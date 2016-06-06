@@ -1,13 +1,7 @@
 
 # coding: utf-8
 
-# Korenaga 2011
-# ======
-# 
-# Temperature dependent convection
-# ----
-# 
-# This Notebooks implements the case of two-dimensional, incompressible, internally-heated fmantle convection.
+# This Notebook implements two-dimensional, incompressible, internally-heated mantle convection. The model is similar to Korenaga 2010, but with a shear-thinning arrhenius-viscosity law.
 # 
 # 
 # **Keywords:** Stokes system, advective diffusive systems, analysis tools, tools for post analysis, rheologies
@@ -18,7 +12,7 @@
 # Korenaga, Jun. "Scaling of plate tectonic convection with pseudoplastic rheology." Journal of Geophysical Research: Solid Earth 115.B11 (2010).
 # http://onlinelibrary.wiley.com/doi/10.1029/2010JB007670/full
 
-# In[414]:
+# In[1]:
 
 import numpy as np
 import underworld as uw
@@ -45,7 +39,7 @@ rank = comm.Get_rank()
 # Model name and directories
 # -----
 
-# In[415]:
+# In[2]:
 
 ############
 #Model name.  
@@ -61,7 +55,7 @@ else:
     ModIt = str(sys.argv[1])
 
 
-# In[416]:
+# In[3]:
 
 ###########
 #Standard output directory setup
@@ -91,7 +85,7 @@ if uw.rank()==0:
 comm.Barrier() #Barrier here so no procs run the check in the next cell too early
 
 
-# In[417]:
+# In[4]:
 
 ###########
 #Check if starting from checkpoint
@@ -115,7 +109,7 @@ for dirpath, dirnames, files in os.walk(checkpointPath):
 
 # **Use pint to setup any unit conversions we'll need**
 
-# In[418]:
+# In[5]:
 
 #u = pint.UnitRegistry()
 #cmpery = u.cm/u.year
@@ -126,7 +120,7 @@ for dirpath, dirnames, files in os.walk(checkpointPath):
 
 # **Set parameter dictionaries**
 
-# In[456]:
+# In[6]:
 
 #dimensional parameter dictionary
 dp = edict({'LS':2900.*1e3,
@@ -181,18 +175,18 @@ ndp.VR = dp.VR*sf.vel #characteristic velocity
 ndp.SR = dp.SR*sf.SR #characteristic strain rate
 
 
-# In[457]:
+# In[7]:
 
 #Make this smaller
 ndp.E
 
 
-# In[421]:
+# In[8]:
 
 ndp.SR, ndp.VR #these should be the same for dimensionless length scale = 1.
 
 
-# In[422]:
+# In[9]:
 
 #Temperature convention
 dp.TI, dp.TS, ndp.TI, ndp.TS, ndp.TSP, ndp.TIP
@@ -200,7 +194,7 @@ dp.TI, dp.TS, ndp.TI, ndp.TS, ndp.TSP, ndp.TIP
 
 # **Model setup parameters**
 
-# In[423]:
+# In[10]:
 
 ###########
 #Model setup parameters
@@ -269,7 +263,7 @@ metric_output = 10
 # Create mesh and finite element variables
 # ------
 
-# In[424]:
+# In[11]:
 
 mesh = uw.mesh.FeMesh_Cartesian( elementType = ("Q1/dQ0"),
                                  elementRes  = (Xres, Yres), 
@@ -287,16 +281,16 @@ temperatureDotField = uw.mesh.MeshVariable( mesh=mesh,         nodeDofCount=1 )
 
 # **Plot initial temperature**
 
-# In[425]:
+# In[12]:
 
 coordinate = fn.input()
 depthFn = 1. - coordinate[1]
 
 
-# In[458]:
+# In[13]:
 
-s = 5.0
-b = 1.
+s = 7.0
+b = 1.02
 
 
 depth_temp = 1. - ((b)*((1. - depthFn)/(b))**s) #larger values of s bring the average temp closer to 1.
@@ -310,26 +304,26 @@ if not checkpointLoad:
     temperatureField.data[:] = pertCoeff.evaluate(mesh)  
 
 
-# In[463]:
+# In[14]:
 
 figtemp = glucifer.Figure()
 figtemp.append( glucifer.objects.Surface(mesh, temperatureField) )
 figtemp.show()
 
 
-# In[460]:
+# In[15]:
 
 temperatureField.data.min()
 
 
 # **Boundary conditions**
 
-# In[461]:
+# In[16]:
 
 ndp.TIP, ndp.TSP
 
 
-# In[462]:
+# In[17]:
 
 for index in mesh.specialSets["MinJ_VertexSet"]:
     temperatureField.data[index] = ndp.TIP
@@ -351,7 +345,7 @@ dT_dy = [0.,0.]
 
 # also set dirichlet for temp field
 neumannTempBC = uw.conditions.NeumannCondition( dT_dy, variable=temperatureField, 
-                                         indexSetsPerDof=bWalls)
+                                         nodeIndexSet=bWalls)
 
 
 
@@ -359,7 +353,7 @@ neumannTempBC = uw.conditions.NeumannCondition( dT_dy, variable=temperatureField
 # -----
 # 
 
-# In[387]:
+# In[18]:
 
 ###########
 #Material Swarm and variables

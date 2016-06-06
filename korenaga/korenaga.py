@@ -18,7 +18,7 @@
 # Korenaga, Jun. "Scaling of plate tectonic convection with pseudoplastic rheology." Journal of Geophysical Research: Solid Earth 115.B11 (2010).
 # http://onlinelibrary.wiley.com/doi/10.1029/2010JB007670/full
 
-# In[144]:
+# In[1]:
 
 import numpy as np
 import underworld as uw
@@ -45,7 +45,7 @@ rank = comm.Get_rank()
 # Model name and directories
 # -----
 
-# In[145]:
+# In[2]:
 
 ############
 #Model name.  
@@ -61,7 +61,7 @@ else:
     ModIt = str(sys.argv[1])
 
 
-# In[146]:
+# In[3]:
 
 ###########
 #Standard output directory setup
@@ -91,7 +91,7 @@ if uw.rank()==0:
 comm.Barrier() #Barrier here so no procs run the check in the next cell too early
 
 
-# In[147]:
+# In[4]:
 
 ###########
 #Check if starting from checkpoint
@@ -115,7 +115,7 @@ for dirpath, dirnames, files in os.walk(checkpointPath):
 
 # **Use pint to setup any unit conversions we'll need**
 
-# In[175]:
+# In[5]:
 
 #u = pint.UnitRegistry()
 #cmpery = u.cm/u.year
@@ -126,22 +126,23 @@ for dirpath, dirnames, files in os.walk(checkpointPath):
 
 # **Set parameter dictionaries**
 
-# In[149]:
+# In[6]:
 
 #dimensional parameter dictionary
 dp = edict({'LS':2900.*1e3,
-           'rho':4000,
+           'rho':3300,
            'g':9.8, 
-           'eta0':1e19, #I think...page 14
+           'eta0':1e21, #I think...page 14
            'k':1e-6,
            'a':2e-5, 
-           'deltaT':1300,
+           'deltaT':1350, #Hunen
            'TS':273.,
-           'TB':1573.,
-           'cohesion':20e6,
+           'cohesion':21e6,
            'fc':0.02,
-           'E':300000.,
-           'R':8.314}) 
+           'E':240000.,
+           'R':8.314})
+
+dp['TI'] = dp.TS + dp.deltaT
 
 
 #scale_factors
@@ -155,39 +156,35 @@ sf = edict({'stress':dp.LS**2/(dp.k*dp.eta0),
 
 #dimensionless parameters
 
-ndp = edict({'RA':(dp.g*dp.rho*dp.a*dp.deltaT *(dp.LS)**3)/(dp.k*dp.eta0),
+ndp = edict({'RA':(dp.g*dp.rho*dp.a*dp.deltaT*(dp.LS)**3)/(dp.k*dp.eta0),
             'cohesion':dp.cohesion*sf.stress,
             'fcd':dp.fc*sf.lith_grad,
             'gamma':dp.fc/(dp.a*dp.deltaT),
-            'TS':0.,
-            'TB':1.,
+            'E':dp.E*sf.E,
+            'TSP':0., 
+            'TIP':1.,
+            'n':1.,
+            'TS':dp.TS/dp.deltaT,
+            'TI':dp.TI/dp.deltaT,
             'eta_min':1e-3,
-            'StAeta0':0.01,
             'eta_max':1e5,
             'H':20.})
 
 
-ndp.RA  = 1e6
 
 
-# In[ ]:
+ndp.RA = 1e6 #this is what Korenaga sets it to
 
+dp.VR = (0.1*(dp.k/dp.LS)*ndp.RA**(2/3.)) #characteristic velocity
+dp.SR = dp.VR/dp.LS #characteristic strain rate
 
-
-
-# In[150]:
-
-
-ndp.RA
-#ndp.cohesion, dp.eta0
-
-#ndp.cohesion/sf.stress
-#ndp.fcd
+ndp.VR = dp.VR*sf.vel #characteristic velocity
+ndp.SR = dp.SR*sf.SR #characteristic strain rate
 
 
 # **Model setup parameters**
 
-# In[151]:
+# In[7]:
 
 ###########
 #Model setup parameters
@@ -253,7 +250,7 @@ metric_output = 10
 # Create mesh and finite element variables
 # ------
 
-# In[152]:
+# In[8]:
 
 mesh = uw.mesh.FeMesh_Cartesian( elementType = ("Q1/dQ0"),
                                  elementRes  = (Xres, Yres), 
@@ -271,13 +268,13 @@ temperatureDotField = uw.mesh.MeshVariable( mesh=mesh,         nodeDofCount=1 )
 
 # **Plot initial temperature**
 
-# In[153]:
+# In[9]:
 
 coordinate = fn.input()
 depthFn = 1. - coordinate[1]
 
 
-# In[154]:
+# In[10]:
 
 if not checkpointLoad:
     # Setup temperature initial condition via numpy arrays
@@ -287,21 +284,22 @@ if not checkpointLoad:
     temperatureField.data[:] = pertCoeff.evaluate(mesh)  
 
 
-# In[155]:
+# In[11]:
 
 figtemp = glucifer.Figure()
 figtemp.append( glucifer.objects.Surface(mesh, temperatureField) )
-#figtemp.show()
+
+figtemp.show()
 
 
 # **Boundary conditions**
 
-# In[156]:
+# In[13]:
 
 for index in mesh.specialSets["MinJ_VertexSet"]:
-    temperatureField.data[index] = ndp.TB
+    temperatureField.data[index] = ndp.TIP
 for index in mesh.specialSets["MaxJ_VertexSet"]:
-    temperatureField.data[index] = ndp.TS
+    temperatureField.data[index] = ndp.TSP
     
 iWalls = mesh.specialSets["MinI_VertexSet"] + mesh.specialSets["MaxI_VertexSet"]
 jWalls = mesh.specialSets["MinJ_VertexSet"] + mesh.specialSets["MaxJ_VertexSet"]
@@ -318,7 +316,7 @@ dT_dy = [0.,0.]
 
 # also set dirichlet for temp field
 neumannTempBC = uw.conditions.NeumannCondition( dT_dy, variable=temperatureField, 
-                                         indexSetsPerDof=bWalls)
+                                         nodeIndexSet=bWalls)
 
 
 
@@ -326,7 +324,7 @@ neumannTempBC = uw.conditions.NeumannCondition( dT_dy, variable=temperatureField
 # -----
 # 
 
-# In[157]:
+# In[15]:
 
 ###########
 #Material Swarm and variables
@@ -345,7 +343,7 @@ tracerVariable.data[:] = 1
 
 
 
-# In[158]:
+# In[16]:
 
 square_size = 0.1
 
@@ -368,7 +366,7 @@ yops.append((True,testfunc))
 testfunc2 = fn.branching.conditional(yops) 
 
 
-# In[159]:
+# In[17]:
 
 tracerVariable.data[:] = testfunc.evaluate(gSwarm)
 tracerVariable.data[:] = testfunc2.evaluate(gSwarm)
@@ -379,7 +377,7 @@ tracerVariable.data[:] = testfunc2.evaluate(gSwarm)
 
 
 
-# In[160]:
+# In[19]:
 
 #Pack some stuff into a database as well
 fig= glucifer.Figure()
@@ -393,7 +391,7 @@ fig.append( glucifer.objects.Points(gSwarm,tracerVariable, colours= 'white black
 # 
 # Setup the viscosity to be a function of the temperature. Recall that these functions and values are preserved for the entire simulation time. 
 
-# In[161]:
+# In[20]:
 
 # The yeilding of the upper slab is dependent on the strain rate.
 strainRate_2ndInvariant = fn.tensor.second_invariant( 
@@ -407,7 +405,7 @@ gamma = dp.fc/(dp.a*dp.deltaT)
 print(theta, gamma )
 
 
-# In[183]:
+# In[21]:
 
 #overidde these parameters to match the reference case quoted on page 5
 theta = 11.
@@ -416,12 +414,12 @@ gamma = 0.6
 ndp.cohesion = gamma*ndp.RA*1e-5 #cohesion value used in the paper
 
 
-# In[184]:
+# In[22]:
 
 ndp.cohesion
 
 
-# In[185]:
+# In[32]:
 
 ############
 #Rheology
@@ -430,25 +428,28 @@ ndp.cohesion
 #The final mantle rheology is composed as follows*:
 # 
 #
-# mantleviscosityFn = max{  min{(1/eta_arr + 1/eta_p)**-1,
+# mantleviscosityFn = max{  min{(1/nonlinearVisc + 1/eta_p)**-1,
 #                           eta_max},
-#                         eta_min}
+#                           eta_min}
 #                      
-#eta_arr => arhennius viscosity (could be linear or non linear)
+#nonlinearVisc => FK viscosity (could be linear or non linear)
 #eta_p   => stress-limiting effective viscosity
 #
 
 
 
-eta_arr = fn.math.exp(theta*(1. - temperatureField))
+linearVisc = fn.math.exp(theta*(1. - temperatureField))
+nl_correction = (strainRate_2ndInvariant/ndp.SR)**((1.-ndp.n)/(ndp.n))
+nonlinearVisc = nl_correction*linearVisc
+
 ys =  (depthFn*gamma*ndp.RA)#Stress-limiting effective viscosity
 eta_p = ys/(strainRate_2ndInvariant/math.sqrt(0.5)) #extra factor to account for underworld second invariant form
 
 
-mantleviscosityFn = fn.misc.max(fn.misc.min(1./(((1./eta_arr) + (1./eta_p))), ndp.eta_max), ndp.eta_min)
+mantleviscosityFn = fn.misc.max(fn.misc.min(1./(((1./nonlinearVisc) + (1./eta_p))), ndp.eta_max), ndp.eta_min)
 
 
-# In[186]:
+# In[33]:
 
 ndp.cohesion
 
@@ -457,11 +458,11 @@ ndp.cohesion
 # 
 # Plot the viscosity, which is a function of temperature, using the initial temperature conditions set above.
 
-# In[209]:
+# In[62]:
 
-#figEta = glucifer.Figure()
-#figEta.append( glucifer.objects.Surface(mesh, strainRate_2ndInvariant) )
-#figEta.show()
+figEta = glucifer.Figure()
+figEta.append( glucifer.objects.Surface(mesh, linearVisc, logScale=True) )
+figEta.show()
 
 
 # System setup
@@ -471,7 +472,7 @@ ndp.cohesion
 # 
 # **Setup a Stokes system**
 
-# In[192]:
+# In[41]:
 
 # Construct our density function.
 densityFn = ndp.RA * temperatureField
@@ -483,18 +484,18 @@ gravity = ( 0.0, 1.0 )
 buoyancyFn = densityFn * gravity
 
 
-# In[193]:
+# In[42]:
 
 stokesPIC = uw.systems.Stokes(velocityField=velocityField, 
                               pressureField=pressureField,
                               conditions=[freeslipBC,],
-                              fn_viscosity=eta_arr, 
+                              fn_viscosity=linearVisc, 
                               fn_bodyforce=buoyancyFn )
 
 
 # **Set up and solve the Stokes system**
 
-# In[194]:
+# In[43]:
 
 solver = uw.systems.Solver(stokesPIC)
 solver.solve()
@@ -503,12 +504,12 @@ solver.solve()
 # **Add the non-linear viscosity to the Stokes system**
 # 
 
-# In[195]:
+# In[46]:
 
 stokesPIC.fn_viscosity = mantleviscosityFn
 
 
-# In[196]:
+# In[47]:
 
 solver.set_inner_method("superludist")
 solver.options.scr.ksp_type="cg"
