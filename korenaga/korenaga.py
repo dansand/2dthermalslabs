@@ -225,8 +225,8 @@ AVGTEMP = ndp.TIP #Used to define lithosphere
 refineMesh = False
 stickyAir = False 
 arrhenius = False
-lower_mantle = True
-melt_viscosity_reduction= True
+lower_mantle = False
+melt_viscosity_reduction= False
 
 
 
@@ -565,7 +565,7 @@ print(theta, gamma )
 # In[26]:
 
 #overide these parameters to match the reference case quoted on page 5
-theta = 15.
+theta = 11.
 gamma = 0.6
 
 
@@ -916,9 +916,10 @@ def checkpoint1(step, checkpointPath,filename, filewrites):
     os.mkdir(path)
     ##Write and save the file, if not already a writing step
     if not step % filewrites == 0:
-        filename.write((16*'%-15s ' + '\n') % (realtime, Viscdis, float(nu0), float(nu1), Avg_temp, 
+        filename.write((17*'%-15s ' + '\n') % (realtime, Viscdis, float(nu0), float(nu1), Avg_temp,
+                                              Tempmantle,TMAX,
                                               Rms,Rms_surf,Max_vx_surf,Gravwork, etamax, etamin, 
-                                              Area_mantle, Viscmantle, Tempmantle, Viscdismantle,Plateness ))
+                                              Area_mantle, Viscmantle,  Viscdismantle,Plateness ))
     filename.close()
     shutil.copyfile(os.path.join(outputPath, outputFile), os.path.join(path, outputFile))
 
@@ -947,6 +948,10 @@ surface_nodes = np.array(zip(surface_xs, np.ones(len(surface_xs)*mesh.maxCoord[1
 
 
 normgradV = velocityField.fn_gradient[0]/fn.math.sqrt(velocityField[0]*velocityField[0])
+
+tempMM = fn.view.min_max(temperatureField)
+tempMM.evaluate(mesh)
+
 
 
 # In[ ]:
@@ -1036,6 +1041,7 @@ while realtime < 1.:
         # Calculate the Metrics, only on 1 of the processors:
         mantlerestrictFn = temprestrictionFn() #rebuild the mantle restriction function (but these should be dynamic?)
         srrestrictFn = platenessFn(val = 0.1) #rebuild the plateness restriction function
+        ###
         Avg_temp = avg_temp()
         Rms = rms()
         Rms_surf = rms_surf()
@@ -1049,11 +1055,13 @@ while realtime < 1.:
         Tempmantle = basic_int(mantleTemp)
         Viscdismantle = basic_int(mantleVd)
         Plateness = basic_int(plateint)/basic_int(surfint)
+        TMAX = tempMM.max_global()
         # output to summary text file
         if uw.rank()==0:
-            f_o.write((16*'%-15s ' + '\n') % (realtime, Viscdis, float(nu0), float(nu1), Avg_temp, 
+            f_o.write((17*'%-15s ' + '\n') % (realtime, Viscdis, float(nu0), float(nu1), Avg_temp,
+                                              Tempmantle,TMAX,
                                               Rms,Rms_surf,Max_vx_surf,Gravwork, etamax, etamin, 
-                                              Area_mantle, Viscmantle, Tempmantle, Viscdismantle,Plateness ))
+                                              Area_mantle, Viscmantle,  Viscdismantle,Plateness ))
     ################
     #Also repopulate entire swarm periodically
     ################
