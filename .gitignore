@@ -2,3 +2,4 @@ results/
 **/results/
 .ipynb_checkpoints/
 **/.ipynb_checkpoints/
+**/*.png
