@@ -52,7 +52,7 @@ rank = comm.Get_rank()
 #Model name.  
 ############
 Model = "T"
-ModNum = 1
+ModNum = 2
 
 if len(sys.argv) == 1:
     ModIt = "Base"
@@ -248,7 +248,7 @@ dim = 2          # number of spatial dimensions
 
 #MESH STUFF
 
-RES = 64
+RES = 92
 
 
 Xres = int(RES*4)
@@ -264,8 +264,8 @@ else:
 
 
 periodic = [True, False]
-elementType = "Q1/dQ0"
-#elementType ="Q2/DPC1"
+#elementType = "Q1/dQ0"
+elementType ="Q2/DPC1"
 
 
 #System/Solver stuff
@@ -327,12 +327,13 @@ if not checkpointLoad:
         temperatureField.data[index] += pertCoeff
 
 
-# In[15]:
+# In[32]:
 
 figtemp = glucifer.Figure()
 figtemp.append( glucifer.objects.Surface(mesh, temperatureField) )
 
 #figtemp.show()
+figtemp.save_database('test.gldb')
 
 
 # **Boundary conditions**
@@ -548,7 +549,7 @@ fig.append( glucifer.objects.Points(gSwarm,materialVariable))
 # 
 # Setup the viscosity to be a function of the temperature. Recall that these functions and values are preserved for the entire simulation time. 
 
-# In[25]:
+# In[42]:
 
 # The yeilding of the upper slab is dependent on the strain rate.
 strainRate_2ndInvariant = fn.tensor.second_invariant( 
@@ -562,20 +563,20 @@ gamma = dp.fc/(dp.a*dp.deltaT)
 print(theta, gamma )
 
 
-# In[26]:
+# In[43]:
 
 #overide these parameters to match the reference case quoted on page 5
-theta = 11.
+theta = 15.
 gamma = 0.6
 
 
 
-# In[27]:
+# In[44]:
 
 #ndp.E
 
 
-# In[28]:
+# In[45]:
 
 ############
 #Rheology
@@ -639,14 +640,14 @@ crustviscosityFn = fn.misc.max(fn.misc.min(1./(((1./nonlinearVisc) + (1./crust_y
 # 
 # Plot the viscosity, which is a function of temperature, using the initial temperature conditions set above.
 
-# In[50]:
+# In[46]:
 
 figEta = glucifer.Figure()
 figEta.append( glucifer.objects.Surface(mesh, mantleviscosityFn, logScale=True) )
 #figEta.save_database('test.gldb')
 
 
-# In[51]:
+# In[47]:
 
 ndp.RA
 
@@ -658,7 +659,7 @@ ndp.RA
 # 
 # **Setup a Stokes system**
 
-# In[52]:
+# In[48]:
 
 # Here we set a viscosity value of '1.' for both materials
 viscosityMapFn = fn.branching.map( fn_key = materialVariable,
@@ -668,7 +669,7 @@ viscosityMapFn = fn.branching.map( fn_key = materialVariable,
                                     eclIndex:mantleviscosityFn} )
 
 
-# In[53]:
+# In[49]:
 
 # Construct our density function.
 densityFn = ndp.RA * temperatureField
@@ -727,7 +728,7 @@ solver.print_stats()
 
 # **Create an advective diffusive system**
 
-# In[58]:
+# In[37]:
 
 advDiff = uw.systems.AdvectionDiffusion( phiField       = temperatureField, 
                                          phiDotField    = temperatureDotField, 
@@ -741,7 +742,7 @@ passiveadvector = uw.systems.SwarmAdvector( swarm         = gSwarm,
                                      order         = 1)
 
 
-# In[59]:
+# In[38]:
 
 population_control = uw.swarm.PopulationControl(gSwarm,deleteThreshold=0.2,splitThreshold=1.,maxDeletions=3,maxSplits=0, aggressive=True, particlesPerCell=ppc)
 
@@ -749,7 +750,7 @@ population_control = uw.swarm.PopulationControl(gSwarm,deleteThreshold=0.2,split
 # Analysis tools
 # -----
 
-# In[60]:
+# In[39]:
 
 #These are functions we can use to evuate integrals over restricted parts of the domain
 # For instance, we can exclude the thermal lithosphere from integrals
@@ -783,7 +784,7 @@ def platenessFn(val = 0.1):
 srrestrictFn = platenessFn(val = 0.1)
 
 
-# In[61]:
+# In[50]:
 
 #Setup volume integrals 
 
@@ -803,7 +804,7 @@ mantleVisc = uw.utils.Integral( mantleviscosityFn*mantlerestrictFn, mesh )
 mantleVd = uw.utils.Integral( (4.*viscosityMapFn*sinner*mantlerestrictFn), mesh ) #these now work on MappingFunctions
 
 
-# In[62]:
+# In[51]:
 
 #Setup surface integrals
 
@@ -821,7 +822,7 @@ surfint  = uw.utils.Integral( fn=1., mesh=mesh, integrationType='Surface',   #Su
                           surfaceIndexSet=mesh.specialSets["MaxJ_VertexSet"])
 
 
-# In[63]:
+# In[52]:
 
 #Define functions for the evaluation of integrals
 
@@ -852,7 +853,7 @@ def visc_extr(viscfn):
     return vuviscfn.max_global(), vuviscfn.min_global()
 
 
-# In[64]:
+# In[53]:
 
 #v2sum_integral  = uw.utils.Integral( mesh=mesh, fn=fn.math.dot( velocityField, velocityField ) )
 #volume_integral = uw.utils.Integral( mesh=mesh, fn=1. )
@@ -864,9 +865,9 @@ def visc_extr(viscfn):
 #    print('Initial Vrms = {0:.3f}'.format(Vrms))
 
 
-# In[65]:
+# In[55]:
 
-# Calculate the Metrics
+# Check the Metrics
 
 #Avg_temp = avg_temp()
 #Rms = rms()
@@ -881,6 +882,11 @@ def visc_extr(viscfn):
 #Viscmantle = basic_int(mantleVisc)
 #Tempmantle = basic_int(mantleTemp)
 #Viscdismantle = basic_int(mantleVd)
+
+
+# In[59]:
+
+#Tempmantle/Area_mantle, Viscmantle/Area_mantle
 
 
 # Viz.
@@ -941,7 +947,7 @@ def checkpoint2(step, checkpointPath, swarm, filename, varlist = [materialVariab
 
 # **Miscellania**
 
-# In[76]:
+# In[34]:
 
 surface_xs = np.linspace(mesh.minCoord[0], mesh.maxCoord[0], mesh.elementRes[0] + 1)
 surface_nodes = np.array(zip(surface_xs, np.ones(len(surface_xs)*mesh.maxCoord[1]))) #For evaluation surface velocity
@@ -950,13 +956,13 @@ surface_nodes = np.array(zip(surface_xs, np.ones(len(surface_xs)*mesh.maxCoord[1
 normgradV = velocityField.fn_gradient[0]/fn.math.sqrt(velocityField[0]*velocityField[0])
 
 tempMM = fn.view.min_max(temperatureField)
-tempMM.evaluate(mesh)
+dummy = tempMM.evaluate(mesh)
 
 
 
-# In[ ]:
+# In[36]:
 
-
+tempMM.max_global(), temperatureField.data.max()
 
 
 # Main simulation loop
@@ -1041,6 +1047,7 @@ while realtime < 1.:
         # Calculate the Metrics, only on 1 of the processors:
         mantlerestrictFn = temprestrictionFn() #rebuild the mantle restriction function (but these should be dynamic?)
         srrestrictFn = platenessFn(val = 0.1) #rebuild the plateness restriction function
+        dummy = tempMM.evaluate(mesh) #Re-evaluate any fn.view.min_max guys
         ###
         Avg_temp = avg_temp()
         Rms = rms()
