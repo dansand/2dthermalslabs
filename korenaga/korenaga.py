@@ -52,7 +52,7 @@ rank = comm.Get_rank()
 #Model name.  
 ############
 Model = "T"
-ModNum = 2
+ModNum = 3
 
 if len(sys.argv) == 1:
     ModIt = "Base"
@@ -248,7 +248,7 @@ dim = 2          # number of spatial dimensions
 
 #MESH STUFF
 
-RES = 92
+RES = 48
 
 
 Xres = int(RES*4)
@@ -884,7 +884,7 @@ def visc_extr(viscfn):
 #Viscdismantle = basic_int(mantleVd)
 
 
-# In[59]:
+# In[60]:
 
 #Tempmantle/Area_mantle, Viscmantle/Area_mantle
 
@@ -1048,6 +1048,11 @@ while realtime < 1.:
         mantlerestrictFn = temprestrictionFn() #rebuild the mantle restriction function (but these should be dynamic?)
         srrestrictFn = platenessFn(val = 0.1) #rebuild the plateness restriction function
         dummy = tempMM.evaluate(mesh) #Re-evaluate any fn.view.min_max guys
+        #Rebuild these integrals (a test because metrics changes after a restart)
+        mantleArea   = uw.utils.Integral( mantlerestrictFn, mesh )
+        mantleTemp = uw.utils.Integral( temperatureField*mantlerestrictFn, mesh )
+        mantleVisc = uw.utils.Integral( mantleviscosityFn*mantlerestrictFn, mesh )
+        mantleVd = uw.utils.Integral( (4.*viscosityMapFn*sinner*mantlerestrictFn), mesh ) #these now work on MappingFunctions
         ###
         Avg_temp = avg_temp()
         Rms = rms()
