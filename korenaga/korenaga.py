@@ -18,7 +18,7 @@
 # Korenaga, Jun. "Scaling of plate tectonic convection with pseudoplastic rheology." Journal of Geophysical Research: Solid Earth 115.B11 (2010).
 # http://onlinelibrary.wiley.com/doi/10.1029/2010JB007670/full
 
-# In[1]:
+# In[61]:
 
 import numpy as np
 import underworld as uw
@@ -46,7 +46,7 @@ rank = comm.Get_rank()
 # Model name and directories
 # -----
 
-# In[2]:
+# In[62]:
 
 ############
 #Model name.  
@@ -62,7 +62,7 @@ else:
     ModIt = str(sys.argv[1])
 
 
-# In[3]:
+# In[63]:
 
 ###########
 #Standard output directory setup
@@ -92,7 +92,7 @@ if uw.rank()==0:
 comm.Barrier() #Barrier here so no procs run the check in the next cell too early
 
 
-# In[4]:
+# In[64]:
 
 ###########
 #Check if starting from checkpoint
@@ -116,7 +116,7 @@ for dirpath, dirnames, files in os.walk(checkpointPath):
 
 # **Use pint to setup any unit conversions we'll need**
 
-# In[5]:
+# In[65]:
 
 #u = pint.UnitRegistry()
 #cmpery = u.cm/u.year
@@ -127,7 +127,7 @@ for dirpath, dirnames, files in os.walk(checkpointPath):
 
 # **Set parameter dictionaries**
 
-# In[6]:
+# In[66]:
 
 #dimensional parameter dictionary
 dp = edict({'LS':2900.*1e3,
@@ -185,13 +185,13 @@ ndp.VR = dp.VR*sf.vel #characteristic velocity
 ndp.SR = dp.SR*sf.SR #characteristic strain rate
 
 
-# In[7]:
+# In[67]:
 
 #(dp.g*dp.rho*dp.a*dp.deltaT*(dp.LS)**3)/(dp.k*1e6)
 ndp.RA
 
 
-# In[8]:
+# In[68]:
 
 #hDim = 5.44e-12 #crameri and tackley
 #hDim = 2.47e-11 #Turcott and Schubert
@@ -202,7 +202,7 @@ ndp.RA
 #print(Ts, RAh)
 
 
-# In[9]:
+# In[69]:
 
 #A few parameters defining lengths scales, affects materal transistions etc.
 MANTLETOCRUST = (20.*1e3)/dp.LS #Crust depth
@@ -216,7 +216,7 @@ AVGTEMP = ndp.TIP #Used to define lithosphere
 
 # **Model setup parameters**
 
-# In[10]:
+# In[70]:
 
 ###########
 #Model setup parameters
@@ -224,7 +224,7 @@ AVGTEMP = ndp.TIP #Used to define lithosphere
 
 refineMesh = False
 stickyAir = False 
-arrhenius = False
+arrhenius = True
 lower_mantle = False
 melt_viscosity_reduction= False
 
@@ -248,7 +248,7 @@ dim = 2          # number of spatial dimensions
 
 #MESH STUFF
 
-RES = 48
+RES = 92
 
 
 Xres = int(RES*4)
@@ -284,7 +284,7 @@ metric_output = 10
 # Create mesh and finite element variables
 # ------
 
-# In[11]:
+# In[71]:
 
 mesh = uw.mesh.FeMesh_Cartesian( elementType = ("Q1/dQ0"),
                                  elementRes  = (Xres, Yres), 
@@ -302,13 +302,13 @@ temperatureDotField = uw.mesh.MeshVariable( mesh=mesh,         nodeDofCount=1 )
 
 # **Plot initial temperature**
 
-# In[12]:
+# In[72]:
 
 coordinate = fn.input()
 depthFn = 1. - coordinate[1]
 
 
-# In[13]:
+# In[73]:
 
 if not checkpointLoad:
     # Setup temperature initial condition via numpy arrays
@@ -318,7 +318,7 @@ if not checkpointLoad:
     temperatureField.data[:] = pertCoeff.evaluate(mesh)  
 
 
-# In[14]:
+# In[74]:
 
 if not checkpointLoad:
     random_temp_fac = 0.05
@@ -327,18 +327,18 @@ if not checkpointLoad:
         temperatureField.data[index] += pertCoeff
 
 
-# In[32]:
+# In[110]:
 
 figtemp = glucifer.Figure()
 figtemp.append( glucifer.objects.Surface(mesh, temperatureField) )
 
 #figtemp.show()
-figtemp.save_database('test.gldb')
+#figtemp.save_database('test.gldb')
 
 
 # **Boundary conditions**
 
-# In[16]:
+# In[76]:
 
 for index in mesh.specialSets["MinJ_VertexSet"]:
     temperatureField.data[index] = ndp.TIP
@@ -368,7 +368,7 @@ neumannTempBC = uw.conditions.NeumannCondition( dT_dy, variable=temperatureField
 # -----
 # 
 
-# In[17]:
+# In[77]:
 
 ###########
 #Material Swarm and variables
@@ -385,7 +385,7 @@ timeVariable = gSwarm.add_variable( dataType="float", count=1 )
 
 
 
-# In[18]:
+# In[78]:
 
 varlist = [tracerVariable, tracerVariable, yieldingCheck]
 
@@ -393,7 +393,7 @@ varlist = [materialVariable, yieldingCheck, timeVariable]
 varnames = ['materialVariable', 'yieldingCheck', 'timeVariable']
 
 
-# In[19]:
+# In[79]:
 
 mantleIndex = 0
 lithosphereIndex = 1
@@ -436,7 +436,7 @@ else:
 
 # **Passive tracer layout**
 
-# In[20]:
+# In[80]:
 
 #Passive tracers are not included in checkpoint - Probably best to remove this once models are properly bugchecked
 
@@ -466,7 +466,7 @@ tracerVariable.data[:] = testfunc2.evaluate(gSwarm)
 
 # **Material swarm and graphs**
 
-# In[21]:
+# In[81]:
 
 
 ##############
@@ -480,7 +480,7 @@ material_list = [0,1,2,3]
 
 
 
-# In[22]:
+# In[82]:
 
 #All depth conditions are given as (km/D) where D is the length scale,
 #note that 'model depths' are used, e.g. 1-z, where z is the vertical Underworld coordinate
@@ -513,7 +513,7 @@ DG.add_transition((mantleIndex,crustIndex), depthFn, operator.lt, MANTLETOCRUST)
 #DG.add_transition((3,2), depthFn, operator.gt, CRUSTTOECL)
 
 
-# In[23]:
+# In[83]:
 
 #dummyData = np.copy(materialVariable.data)#This is part of a hack that resets ages when a material type changes
 
@@ -535,7 +535,7 @@ for i in range(2): #Need to go through twice first time through
 
 
 
-# In[24]:
+# In[84]:
 
 fig= glucifer.Figure()
 #fig.append( glucifer.objects.Points(gSwarm,tracerVariable, colours= 'white black'))
@@ -549,7 +549,7 @@ fig.append( glucifer.objects.Points(gSwarm,materialVariable))
 # 
 # Setup the viscosity to be a function of the temperature. Recall that these functions and values are preserved for the entire simulation time. 
 
-# In[42]:
+# In[85]:
 
 # The yeilding of the upper slab is dependent on the strain rate.
 strainRate_2ndInvariant = fn.tensor.second_invariant( 
@@ -563,20 +563,16 @@ gamma = dp.fc/(dp.a*dp.deltaT)
 print(theta, gamma )
 
 
-# In[43]:
+# In[120]:
 
 #overide these parameters to match the reference case quoted on page 5
 theta = 15.
 gamma = 0.6
+ndp.E = 11.
 
 
 
-# In[44]:
-
-#ndp.E
-
-
-# In[45]:
+# In[88]:
 
 ############
 #Rheology
@@ -640,14 +636,14 @@ crustviscosityFn = fn.misc.max(fn.misc.min(1./(((1./nonlinearVisc) + (1./crust_y
 # 
 # Plot the viscosity, which is a function of temperature, using the initial temperature conditions set above.
 
-# In[46]:
+# In[89]:
 
 figEta = glucifer.Figure()
 figEta.append( glucifer.objects.Surface(mesh, mantleviscosityFn, logScale=True) )
 #figEta.save_database('test.gldb')
 
 
-# In[47]:
+# In[90]:
 
 ndp.RA
 
@@ -659,7 +655,7 @@ ndp.RA
 # 
 # **Setup a Stokes system**
 
-# In[48]:
+# In[91]:
 
 # Here we set a viscosity value of '1.' for both materials
 viscosityMapFn = fn.branching.map( fn_key = materialVariable,
@@ -669,7 +665,7 @@ viscosityMapFn = fn.branching.map( fn_key = materialVariable,
                                     eclIndex:mantleviscosityFn} )
 
 
-# In[49]:
+# In[92]:
 
 # Construct our density function.
 densityFn = ndp.RA * temperatureField
@@ -681,7 +677,7 @@ gravity = ( 0.0, 1.0 )
 buoyancyFn = densityFn * gravity
 
 
-# In[54]:
+# In[93]:
 
 stokesPIC = uw.systems.Stokes(velocityField=velocityField, 
                               pressureField=pressureField,
@@ -692,7 +688,7 @@ stokesPIC = uw.systems.Stokes(velocityField=velocityField,
 
 # **Set up and solve the Stokes system**
 
-# In[55]:
+# In[94]:
 
 solver = uw.systems.Solver(stokesPIC)
 solver.solve()
@@ -701,12 +697,12 @@ solver.solve()
 # **Add the non-linear viscosity to the Stokes system**
 # 
 
-# In[56]:
+# In[95]:
 
 stokesPIC.fn_viscosity = viscosityMapFn
 
 
-# In[57]:
+# In[96]:
 
 solver.set_inner_method("mumps")
 solver.options.scr.ksp_type="cg"
@@ -728,7 +724,7 @@ solver.print_stats()
 
 # **Create an advective diffusive system**
 
-# In[37]:
+# In[97]:
 
 advDiff = uw.systems.AdvectionDiffusion( phiField       = temperatureField, 
                                          phiDotField    = temperatureDotField, 
@@ -742,7 +738,7 @@ passiveadvector = uw.systems.SwarmAdvector( swarm         = gSwarm,
                                      order         = 1)
 
 
-# In[38]:
+# In[98]:
 
 population_control = uw.swarm.PopulationControl(gSwarm,deleteThreshold=0.2,splitThreshold=1.,maxDeletions=3,maxSplits=0, aggressive=True, particlesPerCell=ppc)
 
@@ -750,7 +746,7 @@ population_control = uw.swarm.PopulationControl(gSwarm,deleteThreshold=0.2,split
 # Analysis tools
 # -----
 
-# In[39]:
+# In[116]:
 
 #These are functions we can use to evuate integrals over restricted parts of the domain
 # For instance, we can exclude the thermal lithosphere from integrals
@@ -766,12 +762,12 @@ def temprestrictionFn(lithval = 0.9):
 
     return fn.branching.conditional(mantleconditions)
 
-mantlerestrictFn = temprestrictionFn()
+mantlerestrictFn = temprestrictionFn(lithval = 0.85)
 
 
 
 def platenessFn(val = 0.1):
-    normgradV = velocityField.fn_gradient[0]/fn.math.sqrt(velocityField[0]*velocityField[0]) #[du*/dx]/sqrt(u*u)
+    normgradV = fn.math.abs(velocityField.fn_gradient[0]/fn.math.sqrt(velocityField[0]*velocityField[0])) #[du*/dx]/sqrt(u*u)
 
 
 
@@ -784,7 +780,16 @@ def platenessFn(val = 0.1):
 srrestrictFn = platenessFn(val = 0.1)
 
 
-# In[50]:
+# In[117]:
+
+#fig = glucifer.Figure()
+#fig.append( glucifer.objects.Surface(mesh, mantlerestrictFn) )
+
+#fig.show()
+#fig.save_database('test.gldb')
+
+
+# In[107]:
 
 #Setup volume integrals 
 
@@ -804,7 +809,7 @@ mantleVisc = uw.utils.Integral( mantleviscosityFn*mantlerestrictFn, mesh )
 mantleVd = uw.utils.Integral( (4.*viscosityMapFn*sinner*mantlerestrictFn), mesh ) #these now work on MappingFunctions
 
 
-# In[51]:
+# In[101]:
 
 #Setup surface integrals
 
@@ -822,7 +827,7 @@ surfint  = uw.utils.Integral( fn=1., mesh=mesh, integrationType='Surface',   #Su
                           surfaceIndexSet=mesh.specialSets["MaxJ_VertexSet"])
 
 
-# In[52]:
+# In[102]:
 
 #Define functions for the evaluation of integrals
 
@@ -853,7 +858,7 @@ def visc_extr(viscfn):
     return vuviscfn.max_global(), vuviscfn.min_global()
 
 
-# In[53]:
+# In[103]:
 
 #v2sum_integral  = uw.utils.Integral( mesh=mesh, fn=fn.math.dot( velocityField, velocityField ) )
 #volume_integral = uw.utils.Integral( mesh=mesh, fn=1. )
@@ -887,6 +892,12 @@ def visc_extr(viscfn):
 # In[60]:
 
 #Tempmantle/Area_mantle, Viscmantle/Area_mantle
+#Plateness = basic_int(plateint)/basic_int(surfint)
+
+
+# In[108]:
+
+
 
 
 # Viz.
