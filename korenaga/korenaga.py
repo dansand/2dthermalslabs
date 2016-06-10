@@ -18,7 +18,7 @@
 # Korenaga, Jun. "Scaling of plate tectonic convection with pseudoplastic rheology." Journal of Geophysical Research: Solid Earth 115.B11 (2010).
 # http://onlinelibrary.wiley.com/doi/10.1029/2010JB007670/full
 
-# In[61]:
+# In[10]:
 
 import numpy as np
 import underworld as uw
@@ -46,7 +46,7 @@ rank = comm.Get_rank()
 # Model name and directories
 # -----
 
-# In[62]:
+# In[11]:
 
 ############
 #Model name.  
@@ -62,7 +62,7 @@ else:
     ModIt = str(sys.argv[1])
 
 
-# In[63]:
+# In[12]:
 
 ###########
 #Standard output directory setup
@@ -92,7 +92,7 @@ if uw.rank()==0:
 comm.Barrier() #Barrier here so no procs run the check in the next cell too early
 
 
-# In[64]:
+# In[13]:
 
 ###########
 #Check if starting from checkpoint
@@ -116,7 +116,7 @@ for dirpath, dirnames, files in os.walk(checkpointPath):
 
 # **Use pint to setup any unit conversions we'll need**
 
-# In[65]:
+# In[14]:
 
 #u = pint.UnitRegistry()
 #cmpery = u.cm/u.year
@@ -127,7 +127,7 @@ for dirpath, dirnames, files in os.walk(checkpointPath):
 
 # **Set parameter dictionaries**
 
-# In[66]:
+# In[15]:
 
 #dimensional parameter dictionary
 dp = edict({'LS':2900.*1e3,
@@ -142,6 +142,7 @@ dp = edict({'LS':2900.*1e3,
            'cohesion':21e6,
            'fc':0.02,
            'E':240000.,
+           'V':6.34*(10**-7),
            'R':8.314})
 
 dp['TI'] = dp.TS + dp.deltaT
@@ -164,6 +165,7 @@ ndp = edict({'RA':(dp.g*dp.rho*dp.a*dp.deltaT*(dp.LS)**3)/(dp.k*dp.eta0),
             'fcd':dp.fc*sf.lith_grad,
             'gamma':dp.fc/(dp.a*dp.deltaT),
             'E':dp.E*sf.E,
+             'W':dp.V*sf.W,
             'TSP':0., 
             'TIP':1.,
             'n':1.,
@@ -185,13 +187,16 @@ ndp.VR = dp.VR*sf.vel #characteristic velocity
 ndp.SR = dp.SR*sf.SR #characteristic strain rate
 
 
-# In[67]:
+# In[16]:
 
 #(dp.g*dp.rho*dp.a*dp.deltaT*(dp.LS)**3)/(dp.k*1e6)
-ndp.RA
+#sf.SR/(60*60*24*365*1e6)
+#dp.LS**2/dp.k
+#sf.SR
+ndp.W
 
 
-# In[68]:
+# In[17]:
 
 #hDim = 5.44e-12 #crameri and tackley
 #hDim = 2.47e-11 #Turcott and Schubert
@@ -202,7 +207,7 @@ ndp.RA
 #print(Ts, RAh)
 
 
-# In[69]:
+# In[18]:
 
 #A few parameters defining lengths scales, affects materal transistions etc.
 MANTLETOCRUST = (20.*1e3)/dp.LS #Crust depth
@@ -216,7 +221,7 @@ AVGTEMP = ndp.TIP #Used to define lithosphere
 
 # **Model setup parameters**
 
-# In[70]:
+# In[19]:
 
 ###########
 #Model setup parameters
@@ -284,7 +289,7 @@ metric_output = 10
 # Create mesh and finite element variables
 # ------
 
-# In[71]:
+# In[20]:
 
 mesh = uw.mesh.FeMesh_Cartesian( elementType = ("Q1/dQ0"),
                                  elementRes  = (Xres, Yres), 
@@ -302,13 +307,13 @@ temperatureDotField = uw.mesh.MeshVariable( mesh=mesh,         nodeDofCount=1 )
 
 # **Plot initial temperature**
 
-# In[72]:
+# In[21]:
 
 coordinate = fn.input()
 depthFn = 1. - coordinate[1]
 
 
-# In[73]:
+# In[22]:
 
 if not checkpointLoad:
     # Setup temperature initial condition via numpy arrays
@@ -318,7 +323,7 @@ if not checkpointLoad:
     temperatureField.data[:] = pertCoeff.evaluate(mesh)  
 
 
-# In[74]:
+# In[23]:
 
 if not checkpointLoad:
     random_temp_fac = 0.05
@@ -327,7 +332,7 @@ if not checkpointLoad:
         temperatureField.data[index] += pertCoeff
 
 
-# In[110]:
+# In[24]:
 
 figtemp = glucifer.Figure()
 figtemp.append( glucifer.objects.Surface(mesh, temperatureField) )
@@ -338,7 +343,7 @@ figtemp.append( glucifer.objects.Surface(mesh, temperatureField) )
 
 # **Boundary conditions**
 
-# In[76]:
+# In[25]:
 
 for index in mesh.specialSets["MinJ_VertexSet"]:
     temperatureField.data[index] = ndp.TIP
@@ -368,7 +373,7 @@ neumannTempBC = uw.conditions.NeumannCondition( dT_dy, variable=temperatureField
 # -----
 # 
 
-# In[77]:
+# In[26]:
 
 ###########
 #Material Swarm and variables
@@ -385,7 +390,7 @@ timeVariable = gSwarm.add_variable( dataType="float", count=1 )
 
 
 
-# In[78]:
+# In[27]:
 
 varlist = [tracerVariable, tracerVariable, yieldingCheck]
 
@@ -393,7 +398,7 @@ varlist = [materialVariable, yieldingCheck, timeVariable]
 varnames = ['materialVariable', 'yieldingCheck', 'timeVariable']
 
 
-# In[79]:
+# In[28]:
 
 mantleIndex = 0
 lithosphereIndex = 1
@@ -402,7 +407,7 @@ eclIndex = 3
 
 
 if checkpointLoad:
-    checkpointLoadDir = natsort.natsorted(checkdirs)[-1]
+    checkpointLoadDir = natsort.natsort(checkdirs)[-1]
     temperatureField.load(os.path.join(checkpointLoadDir, "temperatureField" + ".hdf5"))
     pressureField.load(os.path.join(checkpointLoadDir, "pressureField" + ".hdf5"))
     velocityField.load(os.path.join(checkpointLoadDir, "velocityField" + ".hdf5"))
@@ -436,7 +441,7 @@ else:
 
 # **Passive tracer layout**
 
-# In[80]:
+# In[29]:
 
 #Passive tracers are not included in checkpoint - Probably best to remove this once models are properly bugchecked
 
@@ -466,7 +471,7 @@ tracerVariable.data[:] = testfunc2.evaluate(gSwarm)
 
 # **Material swarm and graphs**
 
-# In[81]:
+# In[30]:
 
 
 ##############
@@ -480,7 +485,7 @@ material_list = [0,1,2,3]
 
 
 
-# In[82]:
+# In[31]:
 
 #All depth conditions are given as (km/D) where D is the length scale,
 #note that 'model depths' are used, e.g. 1-z, where z is the vertical Underworld coordinate
@@ -513,7 +518,7 @@ DG.add_transition((mantleIndex,crustIndex), depthFn, operator.lt, MANTLETOCRUST)
 #DG.add_transition((3,2), depthFn, operator.gt, CRUSTTOECL)
 
 
-# In[83]:
+# In[32]:
 
 #dummyData = np.copy(materialVariable.data)#This is part of a hack that resets ages when a material type changes
 
@@ -535,7 +540,7 @@ for i in range(2): #Need to go through twice first time through
 
 
 
-# In[84]:
+# In[33]:
 
 fig= glucifer.Figure()
 #fig.append( glucifer.objects.Points(gSwarm,tracerVariable, colours= 'white black'))
@@ -549,7 +554,7 @@ fig.append( glucifer.objects.Points(gSwarm,materialVariable))
 # 
 # Setup the viscosity to be a function of the temperature. Recall that these functions and values are preserved for the entire simulation time. 
 
-# In[85]:
+# In[34]:
 
 # The yeilding of the upper slab is dependent on the strain rate.
 strainRate_2ndInvariant = fn.tensor.second_invariant( 
@@ -563,16 +568,17 @@ gamma = dp.fc/(dp.a*dp.deltaT)
 print(theta, gamma )
 
 
-# In[120]:
+# In[36]:
 
 #overide these parameters to match the reference case quoted on page 5
 theta = 15.
 gamma = 0.6
 ndp.E = 11.
+ndp.W = 3.
 
 
 
-# In[88]:
+# In[38]:
 
 ############
 #Rheology
@@ -613,7 +619,8 @@ linearVisc = fn.math.exp(theta*(1. - temperatureField))
 nl_correction = (strainRate_2ndInvariant/ndp.SR)**((1.-ndp.n)/(ndp.n))
 nonlinearVisc = omega*nl_correction*linearVisc
 if arrhenius:
-    nonlinearVisc = fn.misc.min(ndp.eta_max, omega*fn.math.exp(((ndp.E)/(ndp.n*(temperatureField + ndp.TS))) 
+    enthalpyFn = ndp.E + depthFn*ndp.W #"activation enthalpy"
+    nonlinearVisc = fn.misc.min(ndp.eta_max, omega*fn.math.exp(((enthalpyFn)/(ndp.n*(temperatureField + ndp.TS))) 
                                                         - ((ndp.E )/(ndp.n*(ndp.TIP + ndp.TS)))))
 
 ys =  (gamma*ndp.RA*1e-5) + (depthFn*gamma*ndp.RA) #tau_1 * 1e-5 is the cohesion value used in the paper
@@ -632,20 +639,21 @@ crust_yielding = ys/(strainRate_2ndInvariant/math.sqrt(0.5)) #extra factor to ac
 crustviscosityFn = fn.misc.max(fn.misc.min(1./(((1./nonlinearVisc) + (1./crust_yielding))), ndp.eta_max), ndp.eta_min)
 
 
+# In[39]:
+
+(2/16.)*dp.LS, (0.06)*dp.LS
+
+
 # **Plot the initial viscosity**
 # 
 # Plot the viscosity, which is a function of temperature, using the initial temperature conditions set above.
 
-# In[89]:
+# In[44]:
 
 figEta = glucifer.Figure()
-figEta.append( glucifer.objects.Surface(mesh, mantleviscosityFn, logScale=True) )
+figEta.append( glucifer.objects.Surface(mesh, enthalpyFn, logScale=True) )
 #figEta.save_database('test.gldb')
-
-
-# In[90]:
-
-ndp.RA
+figEta.show()
 
 
 # System setup
