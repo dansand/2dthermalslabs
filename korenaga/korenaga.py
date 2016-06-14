@@ -18,7 +18,7 @@
 # Korenaga, Jun. "Scaling of plate tectonic convection with pseudoplastic rheology." Journal of Geophysical Research: Solid Earth 115.B11 (2010).
 # http://onlinelibrary.wiley.com/doi/10.1029/2010JB007670/full
 
-# In[28]:
+# In[1]:
 
 import numpy as np
 import underworld as uw
@@ -53,7 +53,7 @@ rank = comm.Get_rank()
 #Model name.  
 ############
 Model = "T"
-ModNum = 6
+ModNum = 10
 
 if len(sys.argv) == 1:
     ModIt = "Base"
