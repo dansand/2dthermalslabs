@@ -1,19 +1,25 @@
 #!/bin/bash
 #PBS -q express
 #PBS -P m18
-#PBS -l walltime=01:00:00
-#PBS -l mem=32GB
-#PBS -l ncpus=32
+#PBS -l walltime=00:10:00
+#PBS -l mem=16GB
+#PBS -l ncpus=16
 #PBS -l wd
 
 cd ..
 
+# setup the environment for building and running Underworld on raijin.nci.org
 module purge
-module load gcc/4.7.3
-module load python/2.7.5
-module load mpi4py
-module load openmpi/1.6.3
-module load hdf5/1.8.10p
-export PYTHONPATH=$PYTHONPATH:/short/m18/jug565/underworld2_clean
+module load dot pbs gcc/5.2.0 hdf5/1.8.14p python/2.7.11 python/2.7.11-matplotlib openmpi/1.8.4
 
-mpirun -np 32 python saved_models/A0.py 1
+# Petsc and python modules installed in shared space /project/m18/opt
+#  'Local' pip used to install mpi4py
+#  Swig, h5py and petsc-3.6.3 are all installed manually using the cluster environment as per the 'module load' above
+#    Trick to installing swig. I had to create a directory called ‘tmp/’ in my home directory for its configure system to work.
+
+export HDF5_VERSION=1.8.14
+export PETSC_DIR=/projects/m18/opt/petsc-3.6.3
+export PYTHONPATH=/projects/m18/opt:$PYTHONPATH
+export PATH=/projects/m18/opt/swig-3.0.10/bin:$PATH
+
+mpirun -np 16 python ../korenaga/korenaga.py
