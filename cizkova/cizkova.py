@@ -20,7 +20,7 @@
 # 
 # Korenaga, Jun. "Scaling of plate tectonic convection with pseudoplastic rheology." Journal of Geophysical Research: Solid Earth 115.B11 (2010).
 
-# In[2]:
+# In[55]:
 
 import numpy as np
 import underworld as uw
@@ -49,13 +49,13 @@ rank = comm.Get_rank()
 # Model name and directories
 # -----
 
-# In[3]:
+# In[56]:
 
 ############
 #Model name.  
 ############
 Model = "T"
-ModNum = 2
+ModNum = 3
 
 if len(sys.argv) == 1:
     ModIt = "Base"
@@ -65,7 +65,7 @@ else:
     ModIt = str(sys.argv[1])
 
 
-# In[4]:
+# In[57]:
 
 ###########
 #Standard output directory setup
@@ -95,7 +95,7 @@ if uw.rank()==0:
 comm.Barrier() #Barrier here so no procs run the check in the next cell too early
 
 
-# In[5]:
+# In[58]:
 
 ###########
 #Check if starting from checkpoint
@@ -119,7 +119,7 @@ for dirpath, dirnames, files in os.walk(checkpointPath):
 
 # **Use pint to setup any unit conversions we'll need**
 
-# In[6]:
+# In[59]:
 
 u = pint.UnitRegistry()
 cmpery = 1.*u.cm/u.year
@@ -135,7 +135,7 @@ cmpery.to(mpermy)
 
 
 
-# In[27]:
+# In[60]:
 
 #dimensional parameter dictionary
 dp = edict({#'LS':2900.*1e3,
@@ -231,12 +231,12 @@ ndp.StRA = (3300.*dp.g*(dp.LS)**3)/(dp.eta0 *dp.k) #Composisitional Rayleigh num
 ndp.TaP = 1. - ndp.TPP,  #Dimensionles adiabtic component of delta t
 
 
-# In[25]:
+# In[61]:
 
 ndp.eta_crust
 
 
-# In[9]:
+# In[62]:
 
 #(dp.g*dp.rho*dp.a*dp.deltaT*(dp.LS)**3)/(dp.k*1e6)
 #sf.SR/(60*60*24*365*1e6)
@@ -245,7 +245,7 @@ ndp.eta_crust
 ndp.Edf,  ndp.Eds, ndp.Wdf, ndp.Wds, ndp.cohesion, ndp.RA
 
 
-# In[10]:
+# In[63]:
 
 #A few parameters defining lengths scales, affects materal transistions etc.
 MANTLETOCRUST = (20.*1e3)/dp.LS #Crust depth
@@ -260,7 +260,7 @@ LOWERMANTLE = (1000.*1e3)/dp.LS
 
 # **Model setup parameters**
 
-# In[11]:
+# In[64]:
 
 ###########
 #Model setup parameters
@@ -328,7 +328,7 @@ sticky_air_temp = 5
 # Create mesh and finite element variables
 # ------
 
-# In[12]:
+# In[65]:
 
 mesh = uw.mesh.FeMesh_Cartesian( elementType = (elementType),
                                  elementRes  = (Xres, Yres), 
@@ -341,7 +341,7 @@ temperatureField    = uw.mesh.MeshVariable( mesh=mesh,         nodeDofCount=1 )
 temperatureDotField = uw.mesh.MeshVariable( mesh=mesh,         nodeDofCount=1 )
 
 
-# In[13]:
+# In[66]:
 
 axis = 1
 orgs = np.linspace(mesh.minCoord[axis], mesh.maxCoord[axis], mesh.elementRes[axis] + 1)
@@ -352,12 +352,12 @@ value_to_constrain = 1.
 yconst = [(spmesh.find_closest(orgs, value_to_constrain), np.array([value_to_constrain,0]))]
 
 
-# In[14]:
+# In[67]:
 
 mesh.reset()
 
 
-# In[15]:
+# In[68]:
 
 #Y-Axis
 if refineMesh:
@@ -382,13 +382,13 @@ if refineMesh:
 # -------
 # 
 
-# In[16]:
+# In[69]:
 
 coordinate = fn.input()
 depthFn = 1. - coordinate[1]
 
 
-# In[17]:
+# In[70]:
 
 #Work out actual temp at 200 km
 
@@ -397,7 +397,7 @@ potTempFn = ndp.TPP + (depthFn)*ndp.TaP
 abHeatFn = -1.*velocityField[1]*temperatureField*ndp.Di
 
 
-# In[18]:
+# In[71]:
 
 symmetric_IC = False
 slab_IC = True
@@ -436,7 +436,7 @@ if symmetric_IC:
         temperatureField.data[:] = tempFn.evaluate(mesh)  
 
 
-# In[19]:
+# In[72]:
 
 ###########
 #Boundary layer / slab paramaters
@@ -461,7 +461,7 @@ if slab_IC:
 
 
 
-# In[20]:
+# In[73]:
 
 #Make sure material in stick air region is at the surface temperature.
 for index, coord in enumerate(mesh.data):
@@ -469,14 +469,7 @@ for index, coord in enumerate(mesh.data):
                 temperatureField.data[index] = ndp.TSP
 
 
-# In[22]:
-
-fig= glucifer.Figure()
-fig.append( glucifer.objects.Surface(mesh, temperatureField))
-fig.show()
-
-
-# In[23]:
+# In[74]:
 
 #Slab perturbation paramaters
 Roc = 550.
@@ -498,7 +491,8 @@ Org = (subzone, 1.-RocM)
 #Use three circles to define our slab and crust perturbation,  
 
 Oc = inCircleFnGenerator(Org , RocM)
-Cc = inCircleFnGenerator(Org , RocM - 2.*CrustM) #Twice as wide as ordinary crust
+Ic = inCircleFnGenerator(Org , RocM - w0)
+Cc = inCircleFnGenerator(Org , RocM + 2.*CrustM) #Twice as wide as ordinary crust, weak zone on 'outside' of slab
 dx = (RocM)/(np.math.tan((np.math.pi/180.)*phi))
 
 
@@ -517,14 +511,42 @@ coords = ((0.+subzone, 1), (0.+subzone, 1.-RocM), (ptx, 1.))
 Tri = fn.shape.Polygon(np.array(coords))
 
 
-# **Boundary conditions**
+# In[ ]:
+
+
+
+
+# In[75]:
+
+sdFn = ((RocM - fn.math.sqrt((coordinate[0] - Org[0])**2. + (coordinate[1] - Org[1])**2.))) 
+slabFn = ndp.TPP*fn.math.erf((sdFn)/w0)
+
+for index, coord in enumerate(mesh.data):
+    #if Oc.evaluate(tuple(coord)) and Tri.evaluate(tuple(coord)) and not Ic.evaluate(tuple(coord)): #in inner circle, not in outer circle
+    if (
+        Oc.evaluate(tuple(coord)) and
+        Tri.evaluate(tuple(coord)) and not
+        Ic.evaluate(tuple(coord)) and
+        coord[1] > (1. - (250.e3/dp.LS)) 
+        ): #In the quarter-circle defining the lithosphere
+        temperatureField.data[index] = slabFn.evaluate(mesh)[index]
+
+
+# In[76]:
+
+fig= glucifer.Figure()
+fig.append( glucifer.objects.Surface(mesh, temperatureField))
+fig.show()
+
 
 # In[ ]:
 
 
 
 
-# In[22]:
+# **Boundary conditions**
+
+# In[77]:
 
 for index in mesh.specialSets["MinJ_VertexSet"]:
     temperatureField.data[index] = ndp.TBP
@@ -575,7 +597,7 @@ neumannTempBC = uw.conditions.NeumannCondition( dT_dy, variable=temperatureField
 # -----
 # 
 
-# In[23]:
+# In[78]:
 
 ###########
 #Material Swarm and variables
@@ -592,7 +614,7 @@ timeVariable = gSwarm.add_variable( dataType="float", count=1 )
 
 
 
-# In[24]:
+# In[79]:
 
 varlist = [tracerVariable, tracerVariable, yieldingCheck]
 
@@ -600,7 +622,7 @@ varlist = [materialVariable, yieldingCheck, timeVariable]
 varnames = ['materialVariable', 'yieldingCheck', 'timeVariable']
 
 
-# In[25]:
+# In[80]:
 
 mantleIndex = 0
 lithosphereIndex = 1
@@ -645,7 +667,7 @@ else:
 
 # **Passive tracer layout**
 
-# In[26]:
+# In[81]:
 
 #Passive tracers are not included in checkpoint - Probably best to remove this once models are properly bugchecked
 
@@ -675,7 +697,7 @@ tracerVariable.data[:] = testfunc2.evaluate(gSwarm)
 
 # **Material swarm and graphs**
 
-# In[27]:
+# In[82]:
 
 
 ##############
@@ -684,12 +706,12 @@ tracerVariable.data[:] = testfunc2.evaluate(gSwarm)
 material_list = [0,2,5]
 
 
-# In[28]:
+# In[83]:
 
 CRUSTTOMANTLE
 
 
-# In[29]:
+# In[84]:
 
 #All depth conditions are given as (km/D) where D is the length scale,
 #note that 'model depths' are used, e.g. 1-z, where z is the vertical Underworld coordinate
@@ -742,12 +764,12 @@ DG.add_transition((crustIndex,airIndex), depthFn, operator.lt, 0. - TOPOHEIGHT)
 
 
 
-# In[30]:
+# In[85]:
 
 #timeVariable.data[np.where(dummyData[:] != materialVariable.data[:])] = 0. #resets those ages when a material type change
 
 
-# In[31]:
+# In[86]:
 
 #Add crustal weak zone and the intersection of three shapes
 if checkpointLoad != True:
@@ -760,7 +782,7 @@ if checkpointLoad != True:
             materialVariable.data[particleID] = crustIndex
 
 
-# In[32]:
+# In[87]:
 
 DG.build_condition_list(materialVariable)
 for i in range(2): #Need to go through twice first time through
@@ -772,7 +794,7 @@ for i in range(2): #Need to go through twice first time through
 
 
 
-# In[33]:
+# In[88]:
 
 fig= glucifer.Figure()
 #fig.append( glucifer.objects.Points(gSwarm,tracerVariable, colours= 'white black'))
@@ -787,7 +809,7 @@ fig.save_database('test.gldb')
 # 
 # Setup the viscosity to be a function of the temperature. Recall that these functions and values are preserved for the entire simulation time. 
 
-# In[34]:
+# In[89]:
 
 # The yeilding of the upper slab is dependent on the strain rate.
 strainRate_2ndInvariant = fn.tensor.second_invariant( 
@@ -797,12 +819,12 @@ strainRate_2ndInvariant = fn.tensor.second_invariant(
 gamma = dp.fc/(dp.a*dp.deltaT)
 
 
-# In[35]:
+# In[90]:
 
 ndp.Wds, ndp.Wdf, ndp.Eds, ndp.Edf
 
 
-# In[36]:
+# In[91]:
 
 #ndp.Wds = 3.
 #ndp.Wdf = 3.
@@ -810,17 +832,17 @@ ndp.Wds, ndp.Wdf, ndp.Eds, ndp.Edf
 #ndp.Edf = 11.
 
 
-# In[37]:
+# In[92]:
 
 ndp.n = 3.5
 
 
-# In[38]:
+# In[93]:
 
 ndp.Wdf, ndp.Edf,ndp.eta_max
 
 
-# In[39]:
+# In[94]:
 
 ############
 #Rheology
@@ -901,12 +923,12 @@ crust_yielding = ysc/(strainRate_2ndInvariant/math.sqrt(0.5)) #extra factor to a
 crustviscosityFn = fn.misc.max(fn.misc.min(1./(((1./Visc) + (1./crust_yielding))), ndp.eta_max), ndp.eta_min)
 
 
-# In[40]:
+# In[95]:
 
 ndp.Elm, ndp.Wlm
 
 
-# In[56]:
+# In[96]:
 
 #fig= glucifer.Figure()
 #fig.append( glucifer.objects.Points(gSwarm,tracerVariable, colours= 'white black'))
@@ -918,15 +940,15 @@ ndp.Elm, ndp.Wlm
 #fig.save_database('test.gldb')
 
 
-# In[57]:
+# In[97]:
 
-#fig= glucifer.Figure()
+fig= glucifer.Figure()
 #fig.append( glucifer.objects.Points(gSwarm,tracerVariable, colours= 'white black'))
 #fig.append( glucifer.objects.Points(gSwarm,materialVariable))
 #fig.append( glucifer.objects.Surface(mesh, temperatureField))
 
-#fig.append( glucifer.objects.Surface(mesh, strainRate_2ndInvariant/ndp.SR))
-#fig.show()
+fig.append( glucifer.objects.Surface(mesh, strainRate_2ndInvariant/ndp.SR))
+fig.show()
 #fig.save_database('test.gldb')
 
 
@@ -937,7 +959,7 @@ ndp.Elm, ndp.Wlm
 # 
 # **Setup a Stokes system**
 
-# In[58]:
+# In[98]:
 
 #this accounts for the decreas in expansivity
 alphaRatio = 1.2/3
@@ -962,7 +984,7 @@ densityMapFn = fn.branching.map( fn_key = materialVariable,
                                    lowermantleIndex:raylieghFn} )
 
 
-# In[59]:
+# In[99]:
 
 
 # Define our vertical unit vector using a python tuple (this will be automatically converted to a function).
@@ -972,7 +994,7 @@ gravity = ( 0.0, 1.0 )
 buoyancyFn = densityMapFn * gravity
 
 
-# In[60]:
+# In[100]:
 
 stokesPIC = uw.systems.Stokes(velocityField=velocityField, 
                               pressureField=pressureField,
@@ -983,7 +1005,7 @@ stokesPIC = uw.systems.Stokes(velocityField=velocityField,
 
 # **Set up and solve the Stokes system**
 
-# In[61]:
+# In[101]:
 
 solver = uw.systems.Solver(stokesPIC)
 if not checkpointLoad:
@@ -993,12 +1015,12 @@ if not checkpointLoad:
 # **Add the non-linear viscosity to the Stokes system**
 # 
 
-# In[62]:
+# In[102]:
 
 stokesPIC.fn_viscosity = viscosityMapFn
 
 
-# In[63]:
+# In[103]:
 
 solver.set_inner_method("mumps")
 solver.options.scr.ksp_type="cg"
