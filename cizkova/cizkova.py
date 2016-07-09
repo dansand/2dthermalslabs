@@ -536,7 +536,7 @@ for index, coord in enumerate(mesh.data):
 
 fig= glucifer.Figure()
 fig.append( glucifer.objects.Surface(mesh, temperatureField))
-fig.show()
+#fig.show()
 
 
 # In[ ]:
@@ -769,20 +769,20 @@ DG.add_transition((crustIndex,airIndex), depthFn, operator.lt, 0. - TOPOHEIGHT)
 #timeVariable.data[np.where(dummyData[:] != materialVariable.data[:])] = 0. #resets those ages when a material type change
 
 
-# In[86]:
+# In[108]:
 
 #Add crustal weak zone and the intersection of three shapes
 if checkpointLoad != True:
     for particleID in range(gSwarm.particleCoordinates.data.shape[0]):
         if (
-            Oc.evaluate(list(gSwarm.particleCoordinates.data[particleID])) and
+            Cc.evaluate(list(gSwarm.particleCoordinates.data[particleID])) and
             Tri.evaluate(list(gSwarm.particleCoordinates.data[particleID])) and
-            Cc.evaluate(list(gSwarm.particleCoordinates.data[particleID])) == False
+            Oc.evaluate(list(gSwarm.particleCoordinates.data[particleID])) == False
             ):
             materialVariable.data[particleID] = crustIndex
 
 
-# In[87]:
+# In[110]:
 
 DG.build_condition_list(materialVariable)
 for i in range(2): #Need to go through twice first time through
@@ -794,14 +794,14 @@ for i in range(2): #Need to go through twice first time through
 
 
 
-# In[88]:
+# In[111]:
 
 fig= glucifer.Figure()
 #fig.append( glucifer.objects.Points(gSwarm,tracerVariable, colours= 'white black'))
 fig.append( glucifer.objects.Points(gSwarm,materialVariable))
 #fig.append( glucifer.objects.Surface(mesh, dummyField))
-fig.show()
-fig.save_database('test.gldb')
+#fig.show()
+#fig.save_database('test.gldb')
 
 
 # Set up material parameters and functions
@@ -809,7 +809,7 @@ fig.save_database('test.gldb')
 # 
 # Setup the viscosity to be a function of the temperature. Recall that these functions and values are preserved for the entire simulation time. 
 
-# In[89]:
+# In[112]:
 
 # The yeilding of the upper slab is dependent on the strain rate.
 strainRate_2ndInvariant = fn.tensor.second_invariant( 
@@ -819,12 +819,12 @@ strainRate_2ndInvariant = fn.tensor.second_invariant(
 gamma = dp.fc/(dp.a*dp.deltaT)
 
 
-# In[90]:
+# In[113]:
 
 ndp.Wds, ndp.Wdf, ndp.Eds, ndp.Edf
 
 
-# In[91]:
+# In[114]:
 
 #ndp.Wds = 3.
 #ndp.Wdf = 3.
@@ -832,17 +832,17 @@ ndp.Wds, ndp.Wdf, ndp.Eds, ndp.Edf
 #ndp.Edf = 11.
 
 
-# In[92]:
+# In[115]:
 
 ndp.n = 3.5
 
 
-# In[93]:
+# In[116]:
 
 ndp.Wdf, ndp.Edf,ndp.eta_max
 
 
-# In[94]:
+# In[117]:
 
 ############
 #Rheology
@@ -923,16 +923,16 @@ crust_yielding = ysc/(strainRate_2ndInvariant/math.sqrt(0.5)) #extra factor to a
 crustviscosityFn = fn.misc.max(fn.misc.min(1./(((1./Visc) + (1./crust_yielding))), ndp.eta_max), ndp.eta_min)
 
 
-# In[95]:
+# In[118]:
 
 ndp.Elm, ndp.Wlm
 
 
-# In[96]:
+# In[124]:
 
-#fig= glucifer.Figure()
+fig= glucifer.Figure()
 #fig.append( glucifer.objects.Points(gSwarm,tracerVariable, colours= 'white black'))
-#fig.append( glucifer.objects.Points(gSwarm,viscosityMapFn, logScale=True))
+fig.append( glucifer.objects.Points(gSwarm,viscosityMapFn, logScale=True))
 #fig.append( glucifer.objects.Surface(mesh, temperatureField))
 
 #fig.append( glucifer.objects.Surface(mesh,ndflm, logScale=True))
@@ -940,7 +940,12 @@ ndp.Elm, ndp.Wlm
 #fig.save_database('test.gldb')
 
 
-# In[97]:
+# In[125]:
+
+#fig.save_database('test.gldb')
+
+
+# In[123]:
 
 fig= glucifer.Figure()
 #fig.append( glucifer.objects.Points(gSwarm,tracerVariable, colours= 'white black'))
@@ -948,7 +953,7 @@ fig= glucifer.Figure()
 #fig.append( glucifer.objects.Surface(mesh, temperatureField))
 
 fig.append( glucifer.objects.Surface(mesh, strainRate_2ndInvariant/ndp.SR))
-fig.show()
+#fig.show()
 #fig.save_database('test.gldb')
 
 
@@ -959,7 +964,7 @@ fig.show()
 # 
 # **Setup a Stokes system**
 
-# In[98]:
+# In[119]:
 
 #this accounts for the decreas in expansivity
 alphaRatio = 1.2/3
@@ -984,7 +989,7 @@ densityMapFn = fn.branching.map( fn_key = materialVariable,
                                    lowermantleIndex:raylieghFn} )
 
 
-# In[99]:
+# In[120]:
 
 
 # Define our vertical unit vector using a python tuple (this will be automatically converted to a function).
@@ -1015,12 +1020,12 @@ if not checkpointLoad:
 # **Add the non-linear viscosity to the Stokes system**
 # 
 
-# In[102]:
+# In[121]:
 
 stokesPIC.fn_viscosity = viscosityMapFn
 
 
-# In[103]:
+# In[122]:
 
 solver.set_inner_method("mumps")
 solver.options.scr.ksp_type="cg"
@@ -1104,7 +1109,7 @@ srrestrictFn = platenessFn(val = 0.1)
 fig = glucifer.Figure()
 fig.append( glucifer.objects.Surface(mesh, temperatureField) )
 
-fig.show()
+#fig.show()
 #fig.save_database('test.gldb')
 
 
@@ -1460,41 +1465,4 @@ print 'step =',step
 
 viscVariable = gSwarm.add_variable( dataType="float", count=1 )
 viscVariable.data[:] = viscosityMapFn.evaluate(gSwarm)
-
-
-# In[34]:
-
-figSwarm = glucifer.Figure(figsize=(1024,384))
-#figSwarm.append( glucifer.objects.Points(gSwarm,viscVariable, logScale=True))
-figSwarm.append( glucifer.objects.Mesh(mesh))
-figSwarm.show()
-figSwarm.save_database('test.gldb')
-
-
-# In[105]:
-
-#velocityField.data[iWalls.data]
-
-
-# In[28]:
-
-#Pack some stuff into a database as well
-figDb = glucifer.Figure()
-#figDb.append( glucifer.objects.Mesh(mesh))
-figDb.append( glucifer.objects.VectorArrows(mesh,velocityField))
-#figDb.append( glucifer.objects.Points(gSwarm,tracerVariable, colours= 'white black'))
-#figDb.append( glucifer.objects.Points(gSwarm,viscVariable, logScale=True))
-#figDb.append( glucifer.objects.Surface(mesh, mantleviscosityFn, logScale=True))
-figDb.append( glucifer.objects.Surface(mesh, velocityField[0]))
-figDb.show()
-
-
-# In[37]:
-
-velocityField.data.max()
-
-
-# In[ ]:
-
-
 
