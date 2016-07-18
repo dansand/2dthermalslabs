@@ -20,7 +20,7 @@
 # 
 # Korenaga, Jun. "Scaling of plate tectonic convection with pseudoplastic rheology." Journal of Geophysical Research: Solid Earth 115.B11 (2010).
 
-# In[221]:
+# In[1]:
 
 import numpy as np
 import underworld as uw
@@ -49,7 +49,7 @@ rank = comm.Get_rank()
 # Model name and directories
 # -----
 
-# In[222]:
+# In[2]:
 
 ############
 #Model name.  
@@ -65,7 +65,7 @@ else:
     ModIt = str(sys.argv[1])
 
 
-# In[223]:
+# In[3]:
 
 ###########
 #Standard output directory setup
@@ -95,7 +95,7 @@ if uw.rank()==0:
 comm.Barrier() #Barrier here so no procs run the check in the next cell too early
 
 
-# In[224]:
+# In[4]:
 
 ###########
 #Check if starting from checkpoint
@@ -119,7 +119,7 @@ for dirpath, dirnames, files in os.walk(checkpointPath):
 
 # **Use pint to setup any unit conversions we'll need**
 
-# In[283]:
+# In[5]:
 
 u = pint.UnitRegistry()
 cmpery = 1.*u.cm/u.year
@@ -130,7 +130,7 @@ cmpery.to(mpermy)
 
 # **Set parameter dictionaries**
 
-# In[293]:
+# In[6]:
 
 box_half_width =4000e3
 age_at_trench = 100e6
@@ -139,7 +139,7 @@ mpersec = cmperyear*(cmpery.to(u.m/u.second)).magnitude #m/sec
 print(cmperyear, mpersec )
 
 
-# In[226]:
+# In[7]:
 
 ###########
 #Store the physical paramters, scale factors and dimensionless pramters in easyDicts
@@ -237,14 +237,14 @@ ndp.StRA = (3300.*dp.g*(dp.LS)**3)/(dp.eta0 *dp.k) #Composisitional Rayleigh num
 ndp.TaP = 1. - ndp.TPP,  #Dimensionles adiabtic component of delta t
 
 
-# In[298]:
+# In[8]:
 
 dp.CVR = (0.1*(dp.k/dp.LS)*ndp.RA**(2/3.))
 ndp.CVR = dp.CVR*sf.vel #characteristic velocity
 ndp.CVR, ndp.plate_vel 
 
 
-# In[228]:
+# In[9]:
 
 ###########
 #A few parameters defining lengths scales, affects materal transistions etc.
@@ -263,7 +263,7 @@ LOWERMANTLE = (1000.*1e3)/dp.LS
 
 # **Model setup parameters**
 
-# In[229]:
+# In[10]:
 
 ###########
 #Model setup parameters
@@ -331,7 +331,7 @@ sticky_air_temp = 5
 # Create mesh and finite element variables
 # ------
 
-# In[230]:
+# In[11]:
 
 mesh = uw.mesh.FeMesh_Cartesian( elementType = (elementType),
                                  elementRes  = (Xres, Yres), 
@@ -344,12 +344,12 @@ temperatureField    = uw.mesh.MeshVariable( mesh=mesh,         nodeDofCount=1 )
 temperatureDotField = uw.mesh.MeshVariable( mesh=mesh,         nodeDofCount=1 )
 
 
-# In[231]:
+# In[12]:
 
 mesh.reset()
 
 
-# In[232]:
+# In[13]:
 
 
 #X-Axis
@@ -372,7 +372,7 @@ if refineMesh:
     spmesh.deform_1d(deform_lengths, mesh,axis = 'x',norm = 'Min', constraints = [])
 
 
-# In[233]:
+# In[14]:
 
 axis = 1
 orgs = np.linspace(mesh.minCoord[axis], mesh.maxCoord[axis], mesh.elementRes[axis] + 1)
@@ -383,7 +383,7 @@ value_to_constrain = 1.
 yconst = [(spmesh.find_closest(orgs, value_to_constrain), np.array([value_to_constrain,0]))]
 
 
-# In[234]:
+# In[15]:
 
 ###########
 #Mesh refinement
@@ -411,7 +411,7 @@ if refineMesh:
 # -------
 # 
 
-# In[235]:
+# In[16]:
 
 coordinate = fn.input()
 depthFn = 1. - coordinate[1] #a function providing the depth
@@ -426,7 +426,7 @@ abHeatFn = -1.*velocityField[1]*temperatureField*ndp.Di #a function providing th
 
 
 
-# In[236]:
+# In[17]:
 
 ###########
 #Thermal initial condition:
@@ -455,7 +455,7 @@ if symmetric_IC:
         temperatureField.data[:] = tempFn.evaluate(mesh)  
 
 
-# In[237]:
+# In[18]:
 
 ###########
 #Thermal initial condition 2: 
@@ -535,7 +535,7 @@ if not symmetric_IC:
                 temperatureField.data[index] = slabFn.evaluate(mesh)[index]
 
 
-# In[238]:
+# In[19]:
 
 #Make sure material in sticky air region is at the surface temperature.
 for index, coord in enumerate(mesh.data):
@@ -548,7 +548,7 @@ for index, coord in enumerate(mesh.data):
 
 
 
-# In[239]:
+# In[20]:
 
 fig= glucifer.Figure()
 fig.append( glucifer.objects.Surface(mesh, temperatureField))
@@ -572,7 +572,7 @@ fig.append( glucifer.objects.Surface(mesh, temperatureField))
 
 
 
-# In[240]:
+# In[21]:
 
 for index in mesh.specialSets["MinJ_VertexSet"]:
     temperatureField.data[index] = ndp.TBP
@@ -642,7 +642,7 @@ neumannTempBC = uw.conditions.NeumannCondition( dT_dy, variable=temperatureField
 
 
 
-# In[241]:
+# In[22]:
 
 #periodic[0]
 ndp.plate_vel
@@ -652,7 +652,7 @@ ndp.plate_vel
 # -----
 # 
 
-# In[242]:
+# In[23]:
 
 ###########
 #Material Swarm and variables
@@ -674,7 +674,7 @@ varlist = [materialVariable, yieldingCheck, ageVariable]
 varnames = ['materialVariable', 'yieldingCheck', 'ageVariable']
 
 
-# In[243]:
+# In[24]:
 
 mantleIndex = 0
 crustIndex = 1
@@ -713,7 +713,7 @@ else:
                  materialVariable.data[particleID] = crustIndex
 
 
-# In[244]:
+# In[25]:
 
 ###########
 #This block sets up a checkboard layout of passive tracers
@@ -741,7 +741,7 @@ tracerVariable.data[:] = testfunc.evaluate(gSwarm)
 tracerVariable.data[:] = testfunc2.evaluate(gSwarm)
 
 
-# In[245]:
+# In[26]:
 
 #Set the inital particle age, for particles above the critical depth 
 #(only these will be transformed to crust / harzburgite)
@@ -770,7 +770,7 @@ np.unique(ageVariable.data)
 
 
 
-# In[246]:
+# In[27]:
 
 ##############
 #Here we set up a directed graph object that we we use to control the transformation from one material type to another
@@ -819,12 +819,12 @@ DG.add_transition((mantleIndex,harzIndex), ageVariable, operator.gt, crustageCon
 
 
 
-# In[247]:
+# In[28]:
 
 CRUSTTOMANTLE, HARZBURGDEPTH
 
 
-# In[248]:
+# In[29]:
 
 ##############
 #For the slab_IC, we'll also add a crustal weak zone following the dipping perturbation
@@ -841,7 +841,7 @@ if checkpointLoad != True:
                 materialVariable.data[particleID] = crustIndex
 
 
-# In[249]:
+# In[30]:
 
 ##############
 #This is how we use the material graph object to test / apply material transformations
@@ -851,7 +851,7 @@ for i in range(3): #Need to go through a number of times
     materialVariable.data[:] = fn.branching.conditional(DG.condition_list).evaluate(gSwarm)
 
 
-# In[250]:
+# In[31]:
 
 #DG.build_condition_list(materialVariable)
 #materialVariable.data[:] = fn.branching.conditional(DG.condition_list).evaluate(gSwarm)
@@ -859,7 +859,7 @@ for i in range(3): #Need to go through a number of times
 
 # ## Temp, phase and compositional buoyancy
 
-# In[251]:
+# In[40]:
 
 ##############
 #Put this in Slippy
@@ -943,7 +943,7 @@ class component_phases():
         
         pf_sum = uw.function.misc.constant(0.)
         
-        for phaseId in range(len(test.dp['depths'])):
+        for phaseId in range(len(self.dp['depths'])):
             #build reduced pressure
             rp = self.nd_reduced_pressure(depthFn, 
                                    temperatureField,
@@ -951,7 +951,7 @@ class component_phases():
                                    self.ndp['claps'][phaseId ],
                                    self.ndp['temps'][phaseId ])
             #build phase function
-            pf = self.nd_phase(rp, test.ndp['widths'][phaseId ])
+            pf = self.nd_phase(rp, self.ndp['widths'][phaseId ])
             pf_sum += pf
         
         return pf_sum
@@ -971,7 +971,7 @@ class component_phases():
         
         pf_sum = uw.function.misc.constant(0.)
         
-        for phaseId in range(len(test.dp['depths'])):
+        for phaseId in range(len(self.dp['depths'])):
             #build reduced pressure
             rp = self.nd_reduced_pressure(depthFn, 
                                    temperatureField,
@@ -979,13 +979,13 @@ class component_phases():
                                    self.ndp['claps'][phaseId ],
                                    self.ndp['temps'][phaseId ])
             #build phase function
-            pf = self.nd_phase(rp, test.ndp['widths'][phaseId ])
+            pf = self.nd_phase(rp, self.ndp['widths'][phaseId ])
             pf_sum += bouyancy_factor*pf*self.dp['densities'][phaseId ] #we want the dimensional densities here
         
         return pf_sum
 
 
-# In[252]:
+# In[42]:
 
 ##############
 #Set up phase buoyancy contributions
@@ -1005,9 +1005,9 @@ olivinePhase.build_nd_dict(dp.LS, dp.rho, dp.g, dp.deltaTa)
 
 rp = olivinePhase.nd_reduced_pressure(depthFn, 
                                    temperatureField,
-                                   test.ndp['depths'][0],
-                                   test.ndp['claps'][0],
-                                   test.ndp['temps'][0])
+                                   olivinePhase.ndp['depths'][0],
+                                   olivinePhase.ndp['claps'][0],
+                                   olivinePhase.ndp['temps'][0])
 
 #ph_410 = olivinePhase.nd_phase(rp, test.ndp['widths'][0])
 #pf_sum = test.phase_function_sum(temperatureField, depthFn)
@@ -1027,9 +1027,9 @@ garnetPhase.build_nd_dict(dp.LS, dp.rho, dp.g, dp.deltaTa)
 
 rp = garnetPhase.nd_reduced_pressure(depthFn, 
                                    temperatureField,
-                                   test.ndp['depths'][0],
-                                   test.ndp['claps'][0],
-                                   test.ndp['temps'][0])
+                                   garnetPhase.ndp['depths'][0],
+                                   garnetPhase.ndp['claps'][0],
+                                   garnetPhase.ndp['temps'][0])
 
 #ph_410 = olivinePhase.nd_phase(rp, test.ndp['widths'][0])
 #pf_sum = test.phase_function_sum(temperatureField, depthFn)
@@ -1037,7 +1037,7 @@ rp = garnetPhase.nd_reduced_pressure(depthFn,
 garnet_phase_buoyancy = garnetPhase.buoyancy_sum(temperatureField, depthFn, dp.g, dp.LS, dp.k, dp.eta0)
 
 
-# In[253]:
+# In[43]:
 
 ##############
 #Set up compositional buoyancy contributions
@@ -1052,7 +1052,7 @@ pyrolite_comp_buoyancy = (dp.rho - 3300.)*bouyancy_factor
 print(basalt_comp_buoyancy, harz_comp_buoyancy, pyrolite_comp_buoyancy)
 
 
-# In[254]:
+# In[44]:
 
 #this accounts for the decreas in expansivity
 alphaRatio = 1.2/3
@@ -1064,7 +1064,7 @@ harzbuoyancyFn =      (ndp.RA*temperatureField*taFn) +                       har
 basaltbuoyancyFn =    (ndp.RA*temperatureField*taFn) +                       basalt_comp_buoyancy -                       (1.*garnet_phase_buoyancy) 
 
 
-# In[255]:
+# In[47]:
 
 fig= glucifer.Figure()
 #fig.append( glucifer.objects.Points(gSwarm, densityMapFn))
