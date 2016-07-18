@@ -250,7 +250,7 @@ ndp.CVR, ndp.plate_vel
 #A few parameters defining lengths scales, affects materal transistions etc.
 ###########
 
-MANTLETOCRUST = (18.*1e3)/dp.LS #Crust depth
+MANTLETOCRUST = (12.*1e3)/dp.LS #Crust depth
 HARZBURGDEPTH = MANTLETOCRUST + (27.7e3/dp.LS)
 CRUSTTOMANTLE = (200.*1e3)/dp.LS
 LITHTOMANTLE = (900.*1e3)/dp.LS 
@@ -323,7 +323,7 @@ ppc = 25
 #Output and safety stuff
 swarm_repop, swarm_update = 10, 10
 gldbs_output = 20
-checkpoint_every, files_output = 50, 50
+checkpoint_every, files_output = 20, 20
 metric_output = 10
 sticky_air_temp = 5
 
