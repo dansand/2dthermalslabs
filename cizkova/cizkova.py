@@ -20,7 +20,7 @@
 # 
 # Korenaga, Jun. "Scaling of plate tectonic convection with pseudoplastic rheology." Journal of Geophysical Research: Solid Earth 115.B11 (2010).
 
-# In[69]:
+# In[221]:
 
 import numpy as np
 import underworld as uw
@@ -49,7 +49,7 @@ rank = comm.Get_rank()
 # Model name and directories
 # -----
 
-# In[70]:
+# In[222]:
 
 ############
 #Model name.  
@@ -65,7 +65,7 @@ else:
     ModIt = str(sys.argv[1])
 
 
-# In[71]:
+# In[223]:
 
 ###########
 #Standard output directory setup
@@ -95,7 +95,7 @@ if uw.rank()==0:
 comm.Barrier() #Barrier here so no procs run the check in the next cell too early
 
 
-# In[72]:
+# In[224]:
 
 ###########
 #Check if starting from checkpoint
@@ -119,7 +119,7 @@ for dirpath, dirnames, files in os.walk(checkpointPath):
 
 # **Use pint to setup any unit conversions we'll need**
 
-# In[73]:
+# In[283]:
 
 u = pint.UnitRegistry()
 cmpery = 1.*u.cm/u.year
@@ -130,12 +130,16 @@ cmpery.to(mpermy)
 
 # **Set parameter dictionaries**
 
-# In[ ]:
+# In[293]:
+
+box_half_width =4000e3
+age_at_trench = 100e6
+cmperyear = box_half_width / age_at_trench #m/y
+mpersec = cmperyear*(cmpery.to(u.m/u.second)).magnitude #m/sec
+print(cmperyear, mpersec )
 
 
-
-
-# In[74]:
+# In[226]:
 
 ###########
 #Store the physical paramters, scale factors and dimensionless pramters in easyDicts
@@ -168,7 +172,7 @@ dp = edict({#'LS':2900.*1e3,
            'R':8.314,
            'Cp':1250., #Jkg-1K-1
            'StALS':100e3,
-           'plate_vel':8})
+           'plate_vel':4})
 
 #Adibatic heating stuff
 dp.dTa = (dp.a*dp.g*(dp.TP))/dp.Cp #adibatic gradient, at Tp
@@ -233,12 +237,14 @@ ndp.StRA = (3300.*dp.g*(dp.LS)**3)/(dp.eta0 *dp.k) #Composisitional Rayleigh num
 ndp.TaP = 1. - ndp.TPP,  #Dimensionles adiabtic component of delta t
 
 
-# In[75]:
+# In[298]:
 
-#ndp.RA
+dp.CVR = (0.1*(dp.k/dp.LS)*ndp.RA**(2/3.))
+ndp.CVR = dp.CVR*sf.vel #characteristic velocity
+ndp.CVR, ndp.plate_vel 
 
 
-# In[76]:
+# In[228]:
 
 ###########
 #A few parameters defining lengths scales, affects materal transistions etc.
@@ -257,7 +263,7 @@ LOWERMANTLE = (1000.*1e3)/dp.LS
 
 # **Model setup parameters**
 
-# In[77]:
+# In[229]:
 
 ###########
 #Model setup parameters
@@ -325,7 +331,7 @@ sticky_air_temp = 5
 # Create mesh and finite element variables
 # ------
 
-# In[78]:
+# In[230]:
 
 mesh = uw.mesh.FeMesh_Cartesian( elementType = (elementType),
                                  elementRes  = (Xres, Yres), 
@@ -338,12 +344,12 @@ temperatureField    = uw.mesh.MeshVariable( mesh=mesh,         nodeDofCount=1 )
 temperatureDotField = uw.mesh.MeshVariable( mesh=mesh,         nodeDofCount=1 )
 
 
-# In[79]:
+# In[231]:
 
 mesh.reset()
 
 
-# In[80]:
+# In[232]:
 
 
 #X-Axis
@@ -366,7 +372,7 @@ if refineMesh:
     spmesh.deform_1d(deform_lengths, mesh,axis = 'x',norm = 'Min', constraints = [])
 
 
-# In[81]:
+# In[233]:
 
 axis = 1
 orgs = np.linspace(mesh.minCoord[axis], mesh.maxCoord[axis], mesh.elementRes[axis] + 1)
@@ -377,7 +383,7 @@ value_to_constrain = 1.
 yconst = [(spmesh.find_closest(orgs, value_to_constrain), np.array([value_to_constrain,0]))]
 
 
-# In[82]:
+# In[234]:
 
 ###########
 #Mesh refinement
@@ -405,7 +411,7 @@ if refineMesh:
 # -------
 # 
 
-# In[83]:
+# In[235]:
 
 coordinate = fn.input()
 depthFn = 1. - coordinate[1] #a function providing the depth
@@ -420,7 +426,7 @@ abHeatFn = -1.*velocityField[1]*temperatureField*ndp.Di #a function providing th
 
 
 
-# In[84]:
+# In[236]:
 
 ###########
 #Thermal initial condition:
@@ -430,7 +436,7 @@ abHeatFn = -1.*velocityField[1]*temperatureField*ndp.Di #a function providing th
 #Sinusoidal initial condition
 A = 0.2
 sinFn = depthFn + A*(fn.math.cos( math.pi * coordinate[0])  * fn.math.sin( math.pi * coordinate[1] ))        
-iD = 660e3/dp.LS #Initial Slab depth
+iD = 1000e3/dp.LS #Initial Slab depth
 dl =  2*math.sqrt(dp.k*160e6*3600*24*365) #diffusion Length at ... My
 w0 = dl/dp.LS #Boundary layer/slab initial condition
 delX1 = fn.misc.min(fn.math.abs(coordinate[0] - -0.), fn.math.abs(coordinate[0] - -2.))
@@ -449,7 +455,7 @@ if symmetric_IC:
         temperatureField.data[:] = tempFn.evaluate(mesh)  
 
 
-# In[85]:
+# In[237]:
 
 ###########
 #Thermal initial condition 2: 
@@ -461,7 +467,9 @@ if symmetric_IC:
 Roc = 550e3 #radius of curvature of slab
 theta = 89. #Angle to truncate the slab (can also do with with a cutoff depth)
 subzone = 0.0 #X position of subduction zone...in model coordinates
-slabmaxAge = 160e6 #age of subduction plate at trench
+#slabmaxAge = 160e6 #age of subduction plate at trench
+slabmaxAge = 100e6 #age of subduction plate at trench
+
 sense = 'Right' #dip direction
 op_age_fac = 1. #this controls the overidding plate speed, hence age reduction
 
@@ -527,7 +535,7 @@ if not symmetric_IC:
                 temperatureField.data[index] = slabFn.evaluate(mesh)[index]
 
 
-# In[86]:
+# In[238]:
 
 #Make sure material in sticky air region is at the surface temperature.
 for index, coord in enumerate(mesh.data):
@@ -540,7 +548,7 @@ for index, coord in enumerate(mesh.data):
 
 
 
-# In[87]:
+# In[239]:
 
 fig= glucifer.Figure()
 fig.append( glucifer.objects.Surface(mesh, temperatureField))
@@ -564,7 +572,7 @@ fig.append( glucifer.objects.Surface(mesh, temperatureField))
 
 
 
-# In[88]:
+# In[240]:
 
 for index in mesh.specialSets["MinJ_VertexSet"]:
     temperatureField.data[index] = ndp.TBP
@@ -634,7 +642,7 @@ neumannTempBC = uw.conditions.NeumannCondition( dT_dy, variable=temperatureField
 
 
 
-# In[89]:
+# In[241]:
 
 #periodic[0]
 ndp.plate_vel
@@ -644,7 +652,7 @@ ndp.plate_vel
 # -----
 # 
 
-# In[90]:
+# In[242]:
 
 ###########
 #Material Swarm and variables
@@ -666,7 +674,7 @@ varlist = [materialVariable, yieldingCheck, ageVariable]
 varnames = ['materialVariable', 'yieldingCheck', 'ageVariable']
 
 
-# In[91]:
+# In[243]:
 
 mantleIndex = 0
 crustIndex = 1
@@ -705,7 +713,7 @@ else:
                  materialVariable.data[particleID] = crustIndex
 
 
-# In[92]:
+# In[244]:
 
 ###########
 #This block sets up a checkboard layout of passive tracers
@@ -733,7 +741,7 @@ tracerVariable.data[:] = testfunc.evaluate(gSwarm)
 tracerVariable.data[:] = testfunc2.evaluate(gSwarm)
 
 
-# In[93]:
+# In[245]:
 
 #Set the inital particle age, for particles above the critical depth 
 #(only these will be transformed to crust / harzburgite)
@@ -762,7 +770,7 @@ np.unique(ageVariable.data)
 
 
 
-# In[94]:
+# In[246]:
 
 ##############
 #Here we set up a directed graph object that we we use to control the transformation from one material type to another
@@ -811,12 +819,12 @@ DG.add_transition((mantleIndex,harzIndex), ageVariable, operator.gt, crustageCon
 
 
 
-# In[95]:
+# In[247]:
 
 CRUSTTOMANTLE, HARZBURGDEPTH
 
 
-# In[96]:
+# In[248]:
 
 ##############
 #For the slab_IC, we'll also add a crustal weak zone following the dipping perturbation
@@ -833,7 +841,7 @@ if checkpointLoad != True:
                 materialVariable.data[particleID] = crustIndex
 
 
-# In[97]:
+# In[249]:
 
 ##############
 #This is how we use the material graph object to test / apply material transformations
@@ -843,15 +851,227 @@ for i in range(3): #Need to go through a number of times
     materialVariable.data[:] = fn.branching.conditional(DG.condition_list).evaluate(gSwarm)
 
 
-# In[98]:
+# In[250]:
 
 #DG.build_condition_list(materialVariable)
 #materialVariable.data[:] = fn.branching.conditional(DG.condition_list).evaluate(gSwarm)
 
 
-# In[ ]:
+# ## Temp, phase and compositional buoyancy
+
+# In[251]:
+
+##############
+#Put this in Slippy
+##############
+
+from easydict import EasyDict as edict
+class component_phases():
+    """
+    Class that allows you to create 'phase functions' for a mineral component
+
+    """
+    def __init__(self,name, depths,temps, widths,claps,densities):
+        """
+        Class initialiser.
+        Parameter
+        ---------
+        name : str
+            'Component', e.g olivine, pyroxene-garnet
+        depths: list
+            list of transition depths in kilometers
+        widths: list 
+            list of transition widths in kilometers
+        claps: list 
+            list of Clapeyron slopes in Pa/K
+        densities: list
+            list of density changes in kg/m3
+        Returns
+        -------
+        mesh : dp
+        Dictionary storing the phase-transition vales
+
+        """
+        if not isinstance(depths,list):
+            raise TypeError("depths object passed in must be of type 'list'")
+        if not isinstance(temps,list):
+            raise TypeError("temps object passed in must be of type 'list'")
+        if not isinstance(widths,list):
+            raise TypeError("widths object passed in must be of type 'list'")
+        if not isinstance(claps,list):
+            raise TypeError("claps object passed in must be of type 'list'")
+        if not isinstance(densities,list):
+            raise TypeError("densities object passed in must be of type 'list'")
+        if not len(depths) == len(widths) == len(claps) == len(densities):
+            raise ValueError( "All lists of phase values should be the same length")
+        self.dp = edict({})
+        self.dp.name = name
+        self.dp.depths = depths
+        self.dp.temps = temps
+        self.dp.widths = widths
+        self.dp.claps = claps
+        self.dp.densities = densities
+        
+    def build_nd_dict(self, lengthscale, densityscale, gravityscale, tempscale):
+        self.ndp = edict({})
+        self.ndp.name = self.dp.name
+        self.ndp.depths = [i/lengthscale for i in self.dp.depths]
+        self.ndp.temps = [i/tempscale for i in self.dp.temps]
+        self.ndp.widths = [i/lengthscale for i in self.dp.widths]
+        self.ndp.claps = [(i*(tempscale/(densityscale*gravityscale*lengthscale))) for i in self.dp.claps]
+        
+    def nd_reduced_pressure(self, depthFn, temperatureField, depthPh, clapPh, tempPh):
+        """
+        Creates an Underworld function, representing the 'reduced pressure'
+        """
+        return (depthFn - depthPh) - clapPh*(temperatureField - tempPh)
+
+    def nd_phase(self, reduced_p, widthPh):
+        """
+        Creates an Underworld function, representing the phase function in the domain
+        """
+        return 0.5*(1. + fn.math.tanh(reduced_p/(widthPh)))
+    
+    def phase_function_sum(self, temperatureField, depthFn):
+        """
+        Creates an Underworld function, representing the Sum of the individual phase functions:
+        -----------
+        temperatureField : underworld.mesh._meshvariable.MeshVariable
+        
+        ...need to put warning in about running build_nd_dict first 
+        """    
+        
+        pf_sum = uw.function.misc.constant(0.)
+        
+        for phaseId in range(len(test.dp['depths'])):
+            #build reduced pressure
+            rp = self.nd_reduced_pressure(depthFn, 
+                                   temperatureField,
+                                   self.ndp['depths'][phaseId ],
+                                   self.ndp['claps'][phaseId ],
+                                   self.ndp['temps'][phaseId ])
+            #build phase function
+            pf = self.nd_phase(rp, test.ndp['widths'][phaseId ])
+            pf_sum += pf
+        
+        return pf_sum
+    
+    def buoyancy_sum(self, temperatureField, depthFn, gravityscale, lengthscale, diffusivityscale, viscosityscale):
+        """
+        Creates an Underworld function, representing the Sum of the individual phase functions...
+        and the associated density changes:
+        
+        pf_sum = Sum_k{ (Ra*delRho_k*pf_k/rho_0*eta_0*delta_t)}
+        -----------
+        temperatureField : underworld.mesh._meshvariable.MeshVariable
+        
+        ...need to put warning in about running build_nd_dict first 
+        """
+        bouyancy_factor = (gravityscale*lengthscale**3)/(viscosityscale*diffusivityscale)
+        
+        pf_sum = uw.function.misc.constant(0.)
+        
+        for phaseId in range(len(test.dp['depths'])):
+            #build reduced pressure
+            rp = self.nd_reduced_pressure(depthFn, 
+                                   temperatureField,
+                                   self.ndp['depths'][phaseId ],
+                                   self.ndp['claps'][phaseId ],
+                                   self.ndp['temps'][phaseId ])
+            #build phase function
+            pf = self.nd_phase(rp, test.ndp['widths'][phaseId ])
+            pf_sum += bouyancy_factor*pf*self.dp['densities'][phaseId ] #we want the dimensional densities here
+        
+        return pf_sum
 
 
+# In[252]:
+
+##############
+#Set up phase buoyancy contributions
+##############
+
+
+#olivine
+olivinePhase = component_phases(name = 'ol', 
+                        depths=[410e3,660e3],
+                        temps = [1600., 1900.], 
+                        widths = [20e3, 20e3], 
+                        claps=[2.e6, -2.5e6], 
+                        densities = [180., 400.])
+
+olivinePhase.build_nd_dict(dp.LS, dp.rho, dp.g, dp.deltaTa)
+
+
+rp = olivinePhase.nd_reduced_pressure(depthFn, 
+                                   temperatureField,
+                                   test.ndp['depths'][0],
+                                   test.ndp['claps'][0],
+                                   test.ndp['temps'][0])
+
+#ph_410 = olivinePhase.nd_phase(rp, test.ndp['widths'][0])
+#pf_sum = test.phase_function_sum(temperatureField, depthFn)
+
+olivine_phase_buoyancy = olivinePhase.buoyancy_sum(temperatureField, depthFn, dp.g, dp.LS, dp.k, dp.eta0)
+
+#garnet
+garnetPhase = component_phases(name = 'grt', 
+                        depths=[60e3,400e3, 720e3],
+                        temps = [1000., 1600., 1900.], 
+                        widths = [20e3, 20e3, 20e3], 
+                        claps=[0.e6, 1.e6, 1.e6], 
+                        densities = [350., 150., 400.])
+
+garnetPhase.build_nd_dict(dp.LS, dp.rho, dp.g, dp.deltaTa)
+
+
+rp = garnetPhase.nd_reduced_pressure(depthFn, 
+                                   temperatureField,
+                                   test.ndp['depths'][0],
+                                   test.ndp['claps'][0],
+                                   test.ndp['temps'][0])
+
+#ph_410 = olivinePhase.nd_phase(rp, test.ndp['widths'][0])
+#pf_sum = test.phase_function_sum(temperatureField, depthFn)
+
+garnet_phase_buoyancy = garnetPhase.buoyancy_sum(temperatureField, depthFn, dp.g, dp.LS, dp.k, dp.eta0)
+
+
+# In[253]:
+
+##############
+#Set up compositional buoyancy contributions
+##############
+
+bouyancy_factor = (dp.g*dp.LS**3)/(dp.eta0*dp.k)
+
+basalt_comp_buoyancy  = (dp.rho - 2940.)*bouyancy_factor
+harz_comp_buoyancy = (dp.rho - 3235.)*bouyancy_factor
+pyrolite_comp_buoyancy = (dp.rho - 3300.)*bouyancy_factor
+
+print(basalt_comp_buoyancy, harz_comp_buoyancy, pyrolite_comp_buoyancy)
+
+
+# In[254]:
+
+#this accounts for the decreas in expansivity
+alphaRatio = 1.2/3
+taFn = 1. - (depthFn)*(1. - alphaRatio) 
+#raylieghFn = ndp.RA*temperatureField*taFn
+
+pyrolitebuoyancyFn =  (ndp.RA*temperatureField*taFn) +                       pyrolite_comp_buoyancy -                       (0.6*olivine_phase_buoyancy + 0.4*garnet_phase_buoyancy) 
+harzbuoyancyFn =      (ndp.RA*temperatureField*taFn) +                       harz_comp_buoyancy -                       (0.8*olivine_phase_buoyancy + 0.2*garnet_phase_buoyancy) 
+basaltbuoyancyFn =    (ndp.RA*temperatureField*taFn) +                       basalt_comp_buoyancy -                       (1.*garnet_phase_buoyancy) 
+
+
+# In[255]:
+
+fig= glucifer.Figure()
+#fig.append( glucifer.objects.Points(gSwarm, densityMapFn))
+fig.append( glucifer.objects.Surface(mesh, basaltbuoyancyFn ))
+
+
+#fig.show()
 
 
 # Rheology
@@ -859,7 +1079,7 @@ for i in range(3): #Need to go through a number of times
 # 
 # 
 
-# In[99]:
+# In[256]:
 
 # The yeilding of the upper slab is dependent on the strain rate.
 strainRate_2ndInvariant = fn.tensor.second_invariant( 
@@ -868,7 +1088,7 @@ strainRate_2ndInvariant = fn.tensor.second_invariant(
 
 
 
-# In[100]:
+# In[257]:
 
 #ViscReduce = 0.1
 
@@ -878,12 +1098,12 @@ strainRate_2ndInvariant = fn.tensor.second_invariant(
 #ndp.Edf *= ViscReduce
 
 
-# In[101]:
+# In[258]:
 
 ndp.Wds, ndp.Wdf, ndp.Eds, ndp.Edf
 
 
-# In[102]:
+# In[271]:
 
 ############
 #Rheology
@@ -944,6 +1164,11 @@ yielding = ys/(strainRate_2ndInvariant/math.sqrt(0.5)) #extra factor to account 
 #mantleviscosityFn = fn.misc.max(fn.misc.min(1./(((1./Visc) + (1./yielding))), ndp.eta_max), ndp.eta_min)
 mantleviscosityFn = fn.misc.max(fn.misc.min(fn.misc.min(Visc, yielding), ndp.eta_max), ndp.eta_min)
 
+lowMantleDepth = 660e3
+lowMantleViscFac = 30.
+finalviscosityFn  = fn.branching.conditional([(depthFn < lowMantleDepth/dp.LS, mantleviscosityFn),
+                                  (True, ndfp*lowMantleViscFac)])
+
 
 #fn.misc.min(Visc, yielding)
 
@@ -965,7 +1190,7 @@ mantleviscosityFn = fn.misc.max(fn.misc.min(fn.misc.min(Visc, yielding), ndp.eta
 #crustviscosityFn = fn.misc.max(fn.misc.min(1./(((1./Visc) + (1./crust_yielding))), ndp.eta_max), ndp.eta_min)
 
 
-# In[103]:
+# In[260]:
 
 ############
 #Build a weak zone
@@ -997,12 +1222,12 @@ sig = half_width/dp.LS
 gammaFn =  fn.math.exp(-fn.math.pow(fnBuilder, 2.) / (2. * fn.math.pow(sig, 2.)))
 
 
-# In[104]:
+# In[261]:
 
 testFn = disGen((0., 1.))
 
 
-# In[105]:
+# In[262]:
 
 weakVisc = 1.
 weakzoneFn = fn.misc.min((weakVisc/gammaFn*1.),ndp.eta_max)
@@ -1010,7 +1235,7 @@ combmantleviscosityFn = fn.misc.max(ndp.eta_min, fn.misc.min(mantleviscosityFn, 
 
 
 
-# In[106]:
+# In[263]:
 
 fig= glucifer.Figure()
 #fig.append( glucifer.objects.Points(gSwarm,tracerVariable, colours= 'white black'))
@@ -1021,7 +1246,7 @@ fig.append( glucifer.objects.Points(gSwarm,materialVariable))
 #fig.save_database('test.gldb')
 
 
-# In[107]:
+# In[264]:
 
 #velocityField.data.max()
 
@@ -1066,11 +1291,11 @@ fig.append( glucifer.objects.Points(gSwarm,materialVariable))
 # ax.set_yscale("log", nonposy='clip')
 # ax.legend(loc = 3)
 
-# In[118]:
+# In[265]:
 
-fig= glucifer.Figure()
+#fig= glucifer.Figure()
 #fig.append( glucifer.objects.Points(gSwarm,materialVariable))
-fig.append( glucifer.objects.Points(gSwarm,viscosityMapFn, logScale=True))
+#fig.append( glucifer.objects.Points(gSwarm,viscosityMapFn, logScale=True))
 #fig.append( glucifer.objects.Surface(mesh, ndfp, logScale=True))
 
 #fig.append( glucifer.objects.Surface(mesh,mantleviscosityFn, logScale=True))
@@ -1078,12 +1303,12 @@ fig.append( glucifer.objects.Points(gSwarm,viscosityMapFn, logScale=True))
 #fig.save_database('test.gldb')
 
 
-# In[109]:
+# In[266]:
 
 ndsp.evaluate(mesh).min(), ndfp.evaluate(mesh).min()
 
 
-# In[110]:
+# In[267]:
 
 #fig= glucifer.Figure()
 #fig.append( glucifer.objects.Points(gSwarm,tracerVariable, colours= 'white black'))
@@ -1099,12 +1324,9 @@ ndsp.evaluate(mesh).min(), ndfp.evaluate(mesh).min()
 # -----
 # 
 
-# In[111]:
+# In[275]:
 
-#this accounts for the decreas in expansivity
-alphaRatio = 1.2/3
-taFn = 1. - (1. - depthFn)*(1. - alphaRatio) 
-raylieghFn = ndp.RA*temperatureField*taFn 
+
 
 
 if WeakZone:
@@ -1117,17 +1339,17 @@ else: #Use weak crust
     print(2)
     viscosityMapFn = fn.branching.map( fn_key = materialVariable,
                          mapping = {crustIndex:ndp.eta_crust,
-                                    mantleIndex:mantleviscosityFn,
-                                    harzIndex:mantleviscosityFn} )
+                                    mantleIndex:finalviscosityFn,
+                                    harzIndex:finalviscosityFn} )
 
 densityMapFn = fn.branching.map( fn_key = materialVariable,
                          mapping = {airIndex:ndp.StRA,
-                                    crustIndex:raylieghFn, 
-                                    mantleIndex:raylieghFn,
-                                    harzIndex:raylieghFn} )
+                                    crustIndex:basaltbuoyancyFn, 
+                                    mantleIndex:pyrolitebuoyancyFn,
+                                    harzIndex:harzbuoyancyFn} )
 
 
-# In[112]:
+# In[276]:
 
 
 # Define our vertical unit vector using a python tuple (this will be automatically converted to a function).
@@ -1137,7 +1359,7 @@ gravity = ( 0.0, 1.0 )
 buoyancyFn = densityMapFn * gravity
 
 
-# In[113]:
+# In[277]:
 
 stokesPIC = uw.systems.Stokes(velocityField=velocityField, 
                               pressureField=pressureField,
@@ -1146,20 +1368,20 @@ stokesPIC = uw.systems.Stokes(velocityField=velocityField,
                               fn_bodyforce=buoyancyFn )
 
 
-# In[114]:
+# In[278]:
 
 solver = uw.systems.Solver(stokesPIC)
 if not checkpointLoad:
     solver.solve() #A solve on the linear visocisty is unhelpful unless we're starting from scratch
 
 
-# In[115]:
+# In[280]:
 
 #Add the non-linear viscosity to the Stokes system
 stokesPIC.fn_viscosity = viscosityMapFn
 
 
-# In[116]:
+# In[281]:
 
 solver.set_inner_method("mumps")
 solver.options.scr.ksp_type="cg"
@@ -1371,7 +1593,7 @@ viscVariable.data[:] = viscosityMapFn.evaluate(gSwarm)
 #Pack some stuff into a database as well
 figDb = glucifer.Figure()
 #figDb.append( glucifer.objects.Mesh(mesh))
-figDb.append( glucifer.objects.VectorArrows(mesh,velocityField, scaling=0.0005))
+figDb.append( glucifer.objects.VectorArrows(mesh,velocityField, scaling=0.00005))
 #figDb.append( glucifer.objects.Points(gSwarm,tracerVariable, colours= 'white black'))
 figDb.append( glucifer.objects.Points(gSwarm,materialVariable))
 
@@ -1490,6 +1712,7 @@ while realtime < 1.:
     temperatureField.data[:] += dt*abHeatFn.evaluate(mesh)
     
     #Add the viscous heating term
+     #Need to fix this (forgot 'dissipation number')
     #viscDisProj = uw.utils.MeshVariable_Projection( viscDisFnmesh, viscDisMapFn)
     #viscDisProj.solve()
     #temperatureField.data[:] += dt*viscDisFnmesh.evaluate(mesh)
@@ -1609,4 +1832,33 @@ print 'step =',step
 
 viscVariable = gSwarm.add_variable( dataType="float", count=1 )
 viscVariable.data[:] = viscosityMapFn.evaluate(gSwarm)
+
+
+# In[ ]:
+
+
+
+
+# In[282]:
+
+fig= glucifer.Figure()
+#fig.append( glucifer.objects.Points(gSwarm,materialVariable))
+#fig.append( glucifer.objects.Points(gSwarm, viscosityMapFn, logScale=True))
+#fig.append( glucifer.objects.Surface(mesh, bf_sum))
+fig.append( glucifer.objects.VectorArrows(mesh,velocityField, scaling=0.00005))
+fig.append( glucifer.objects.Surface(mesh,mantleviscosityFn, logScale=True))
+#fig.append( glucifer.objects.Surface(mesh,raylieghFn))
+
+fig.show()
+fig.save_database('test.gldb')
+
+
+# In[ ]:
+
+
+
+
+# In[ ]:
+
+
 
