@@ -55,7 +55,7 @@ rank = comm.Get_rank()
 #Model name.  
 ############
 Model = "T"
-ModNum = 9
+ModNum = 0
 
 if len(sys.argv) == 1:
     ModIt = "Base"
@@ -584,6 +584,10 @@ if VelBC:
             VelBCs.add(int(index))
             #Set the plate velocities for the kinematic phase
             velocityField.data[index] = [ndp.plate_vel, 0.]
+        elif (mesh.data[int(index)][0] > (subzone + 0.2) and mesh.data[int(index)][0] < 2 - 0.2):
+            VelBCs.add(int(index))
+            #Set the plate velocities for the kinematic phase
+            velocityField.data[index] = [0., 0.]
         
 
 #If periodic, we'll fix a the x-vel at a single node - at the bottom left (index 0)
@@ -1000,7 +1004,8 @@ testFn = disGen((0., 1.))
 
 # In[ ]:
 
-weakzoneFn = fn.misc.min((10./gammaFn*1.),ndp.eta_max)
+weakVisc = 1.
+weakzoneFn = fn.misc.min((weakVisc/gammaFn*1.),ndp.eta_max)
 combmantleviscosityFn = fn.misc.max(ndp.eta_min, fn.misc.min(mantleviscosityFn, weakzoneFn))
 
 
@@ -1012,8 +1017,8 @@ fig= glucifer.Figure()
 fig.append( glucifer.objects.Points(gSwarm,materialVariable))
 #fig.append( glucifer.objects.Surface(mesh, combmantleviscosityFn, logScale=True))
 #fig.append( glucifer.objects.VectorArrows(mesh, testFn))
-fig.show()
-fig.save_database('test.gldb')
+#fig.show()
+#fig.save_database('test.gldb')
 
 
 # In[ ]:
@@ -1069,7 +1074,7 @@ fig= glucifer.Figure()
 #fig.append( glucifer.objects.Surface(mesh, ndfp, logScale=True))
 
 fig.append( glucifer.objects.Surface(mesh,mantleviscosityFn, logScale=True))
-fig.show()
+#fig.show()
 #fig.save_database('test.gldb')
 
 
@@ -1485,9 +1490,9 @@ while realtime < 1.:
     temperatureField.data[:] += dt*abHeatFn.evaluate(mesh)
     
     #Add the viscous heating term
-    viscDisProj = uw.utils.MeshVariable_Projection( viscDisFnmesh, viscDisMapFn)
-    viscDisProj.solve()
-    temperatureField.data[:] += dt*viscDisFnmesh.evaluate(mesh)
+    #viscDisProj = uw.utils.MeshVariable_Projection( viscDisFnmesh, viscDisMapFn)
+    #viscDisProj.solve()
+    #temperatureField.data[:] += dt*viscDisFnmesh.evaluate(mesh)
     
 
     # Increment
