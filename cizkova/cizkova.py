@@ -20,7 +20,7 @@
 # 
 # Korenaga, Jun. "Scaling of plate tectonic convection with pseudoplastic rheology." Journal of Geophysical Research: Solid Earth 115.B11 (2010).
 
-# In[1]:
+# In[49]:
 
 import numpy as np
 import underworld as uw
@@ -49,7 +49,7 @@ rank = comm.Get_rank()
 # Model name and directories
 # -----
 
-# In[2]:
+# In[50]:
 
 ############
 #Model name.  
@@ -65,7 +65,7 @@ else:
     ModIt = str(sys.argv[1])
 
 
-# In[3]:
+# In[51]:
 
 ###########
 #Standard output directory setup
@@ -95,7 +95,7 @@ if uw.rank()==0:
 comm.Barrier() #Barrier here so no procs run the check in the next cell too early
 
 
-# In[4]:
+# In[52]:
 
 ###########
 #Check if starting from checkpoint
@@ -119,7 +119,7 @@ for dirpath, dirnames, files in os.walk(checkpointPath):
 
 # **Use pint to setup any unit conversions we'll need**
 
-# In[5]:
+# In[53]:
 
 u = pint.UnitRegistry()
 cmpery = 1.*u.cm/u.year
@@ -130,7 +130,7 @@ cmpery.to(mpermy)
 
 # **Set parameter dictionaries**
 
-# In[6]:
+# In[54]:
 
 box_half_width =4000e3
 age_at_trench = 100e6
@@ -139,7 +139,7 @@ mpersec = cmperyear*(cmpery.to(u.m/u.second)).magnitude #m/sec
 print(cmperyear, mpersec )
 
 
-# In[7]:
+# In[55]:
 
 ###########
 #Store the physical paramters, scale factors and dimensionless pramters in easyDicts
@@ -237,14 +237,14 @@ ndp.StRA = (3300.*dp.g*(dp.LS)**3)/(dp.eta0 *dp.k) #Composisitional Rayleigh num
 ndp.TaP = 1. - ndp.TPP,  #Dimensionles adiabtic component of delta t
 
 
-# In[8]:
+# In[56]:
 
 dp.CVR = (0.1*(dp.k/dp.LS)*ndp.RA**(2/3.))
 ndp.CVR = dp.CVR*sf.vel #characteristic velocity
 ndp.CVR, ndp.plate_vel 
 
 
-# In[9]:
+# In[57]:
 
 ###########
 #A few parameters defining lengths scales, affects materal transistions etc.
@@ -263,7 +263,7 @@ LOWERMANTLE = (1000.*1e3)/dp.LS
 
 # **Model setup parameters**
 
-# In[10]:
+# In[58]:
 
 ###########
 #Model setup parameters
@@ -331,7 +331,7 @@ sticky_air_temp = 5
 # Create mesh and finite element variables
 # ------
 
-# In[11]:
+# In[59]:
 
 mesh = uw.mesh.FeMesh_Cartesian( elementType = (elementType),
                                  elementRes  = (Xres, Yres), 
@@ -344,12 +344,12 @@ temperatureField    = uw.mesh.MeshVariable( mesh=mesh,         nodeDofCount=1 )
 temperatureDotField = uw.mesh.MeshVariable( mesh=mesh,         nodeDofCount=1 )
 
 
-# In[12]:
+# In[60]:
 
 mesh.reset()
 
 
-# In[13]:
+# In[61]:
 
 
 #X-Axis
@@ -372,7 +372,7 @@ if refineMesh:
     spmesh.deform_1d(deform_lengths, mesh,axis = 'x',norm = 'Min', constraints = [])
 
 
-# In[14]:
+# In[62]:
 
 axis = 1
 orgs = np.linspace(mesh.minCoord[axis], mesh.maxCoord[axis], mesh.elementRes[axis] + 1)
@@ -383,7 +383,7 @@ value_to_constrain = 1.
 yconst = [(spmesh.find_closest(orgs, value_to_constrain), np.array([value_to_constrain,0]))]
 
 
-# In[15]:
+# In[63]:
 
 ###########
 #Mesh refinement
@@ -411,7 +411,7 @@ if refineMesh:
 # -------
 # 
 
-# In[16]:
+# In[64]:
 
 coordinate = fn.input()
 depthFn = 1. - coordinate[1] #a function providing the depth
@@ -426,7 +426,7 @@ abHeatFn = -1.*velocityField[1]*temperatureField*ndp.Di #a function providing th
 
 
 
-# In[17]:
+# In[65]:
 
 ###########
 #Thermal initial condition:
@@ -455,7 +455,7 @@ if symmetric_IC:
         temperatureField.data[:] = tempFn.evaluate(mesh)  
 
 
-# In[18]:
+# In[72]:
 
 ###########
 #Thermal initial condition 2: 
@@ -464,34 +464,40 @@ if symmetric_IC:
 
 #Main control paramters are:
 
-Roc = 550e3 #radius of curvature of slab
+#Roc = 550e3 #radius of curvature of slab
+Roc = 1000e3 #radius of curvature of slab
 theta = 89. #Angle to truncate the slab (can also do with with a cutoff depth)
 subzone = 0.0 #X position of subduction zone...in model coordinates
 #slabmaxAge = 160e6 #age of subduction plate at trench
 slabmaxAge = 100e6 #age of subduction plate at trench
+platemaxAge = 80e6 #max age of slab (Plate model)
+ageAtTrenchSeconds = min(platemaxAge*(3600*24*365), slabmaxAge*(3600*24*365))
+
 
 sense = 'Right' #dip direction
 op_age_fac = 1. #this controls the overidding plate speed, hence age reduction
 
 
 #First build the top TBL
-
-dl =  2*math.sqrt(dp.k*slabmaxAge*3600*24*365) #diffusion Length at ... My
-w0 = dl/dp.LS
+#Create functions between zero and one, to control age distribution
 ageFn1 = (fn.math.abs(fn.math.abs(coordinate[0]) - 2.)/2.)
 ageFn  = fn.branching.conditional([(coordinate[0] <= 0, ageFn1),
                                   (True, ageFn1/op_age_fac)])
-w = w0*fn.math.sqrt(ageFn + 1e-7)
-tempBL = (potTempFn) *fn.math.erf((depthFn)/w) + ndp.TSP
+
+#dimensionlize the age function
+ageFn *= slabmaxAge*(3600*24*365)
+ageFn = fn.misc.min(ageFn, platemaxAge*(3600*24*365)) #apply plate model
+
+w0 = (2.*math.sqrt(dp.k*ageAtTrenchSeconds))/dp.LS #diffusion depth of plate at the trench
+
+tempBL = (potTempFn) *fn.math.erf((depthFn*dp.LS)/(2.*fn.math.sqrt(dp.k*ageFn))) + ndp.TSP #boundary layer function
 if not symmetric_IC:
     if not checkpointLoad:
         out = uw.utils.MeshVariable_Projection( temperatureField, tempBL) #apply function with projection
         out.solve()
-
-        
+    
         
 #Now build the perturbation part
-
 def inCircleFnGenerator(centre, radius):
     coord = fn.input()
     offsetFn = coord - centre
@@ -502,8 +508,9 @@ phi = 90. - theta
 RocM = (Roc/dp.LS)
 CrustM = MANTLETOCRUST
 Org = (subzone, 1.-RocM)
+maxDepth = 150e3/dp.LS
 
-#Use three circles to define our slab and crust perturbation,  
+#We use three circles to define our slab and crust perturbation,  
 Oc = inCircleFnGenerator(Org , RocM)
 Ic = inCircleFnGenerator(Org , RocM - w0)
 Cc = inCircleFnGenerator(Org , RocM - (2.*CrustM)) #Twice as wide as ordinary crust, weak zone on 'outside' of slab
@@ -522,20 +529,23 @@ Tri = fn.shape.Polygon(np.array(coords))
 if not symmetric_IC:
     if not checkpointLoad:
         sdFn = ((RocM - fn.math.sqrt((coordinate[0] - Org[0])**2. + (coordinate[1] - Org[1])**2.))) 
-        slabFn = ndp.TPP*fn.math.erf((sdFn)/w0)
-
+        slabFn = ndp.TPP*fn.math.erf((sdFn*dp.LS)/(2.*math.sqrt(dp.k*ageAtTrenchSeconds))) + ndp.TSP
         for index, coord in enumerate(mesh.data):
-            #if Oc.evaluate(tuple(coord)) and Tri.evaluate(tuple(coord)) and not Ic.evaluate(tuple(coord)): #in inner circle, not in outer circle
             if (
                 Oc.evaluate(tuple(coord)) and
                 Tri.evaluate(tuple(coord)) and not
                 Ic.evaluate(tuple(coord)) and
-                coord[1] > (1. - (250.e3/dp.LS)) 
+                coord[1] > (1. - maxDepth)
                 ): #In the quarter-circle defining the lithosphere
                 temperatureField.data[index] = slabFn.evaluate(mesh)[index]
 
 
-# In[19]:
+# In[73]:
+
+maxDepth
+
+
+# In[74]:
 
 #Make sure material in sticky air region is at the surface temperature.
 for index, coord in enumerate(mesh.data):
@@ -543,12 +553,17 @@ for index, coord in enumerate(mesh.data):
                 temperatureField.data[index] = ndp.TSP
 
 
-# In[ ]:
+# In[75]:
+
+#fn.math.erf((sdFn*dp.LS)/(2.*fn.math.sqrt(dp.k*(slabmaxAge*(3600*24*365))))) 
 
 
+# In[76]:
+
+#dp.k*(slabmaxAge*(3600*24*365))
 
 
-# In[20]:
+# In[77]:
 
 fig= glucifer.Figure()
 fig.append( glucifer.objects.Surface(mesh, temperatureField))
@@ -1064,11 +1079,11 @@ harzbuoyancyFn =      (ndp.RA*temperatureField*taFn) +                       har
 basaltbuoyancyFn =    (ndp.RA*temperatureField*taFn) +                       basalt_comp_buoyancy -                       (1.*garnet_phase_buoyancy) 
 
 
-# In[47]:
+# In[49]:
 
 fig= glucifer.Figure()
 #fig.append( glucifer.objects.Points(gSwarm, densityMapFn))
-fig.append( glucifer.objects.Surface(mesh, basaltbuoyancyFn ))
+fig.append( glucifer.objects.Surface(mesh, pyrolitebuoyancyFn))
 
 
 #fig.show()
@@ -1090,12 +1105,12 @@ strainRate_2ndInvariant = fn.tensor.second_invariant(
 
 # In[257]:
 
-#ViscReduce = 0.1
+ViscReduce = 0.5
 
-#ndp.Wds *= ViscReduce
-#ndp.Wdf *= ViscReduce
-#ndp.Eds *= ViscReduce
-#ndp.Edf *= ViscReduce
+ndp.Wds *= ViscReduce
+ndp.Wdf *= ViscReduce
+ndp.Eds *= ViscReduce
+ndp.Edf *= ViscReduce
 
 
 # In[258]:
