@@ -55,7 +55,7 @@ rank = comm.Get_rank()
 #Model name.  
 ############
 Model = "T"
-ModNum = 0
+ModNum = 10
 
 if len(sys.argv) == 1:
     ModIt = "Base"
@@ -155,7 +155,8 @@ dp = edict({#'LS':2900.*1e3,
            'a':3e-5, #surface thermal expansivity
            'TP':1573., #potential temp
            'TS':273., #surface temp
-           'cohesion':1e7, #
+           #'cohesion':1e7, #
+           'cohesion':1e6, #
            'fc':0.05,   
            'Adf':1e-9,
            'Ads':3.1e-17,
