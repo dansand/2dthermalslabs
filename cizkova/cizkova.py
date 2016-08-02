@@ -167,7 +167,7 @@ dp = edict({'LS_RA':2900.*1e3, #Use full mantle depth for the Rayleigh number
            'TP':1573., #potential temp
            'TS':273., #surface temp
            'cohesion':1e7, #
-           'fc':0.06,   
+           'fc':0.1,   
            'Adf':1e-9,
            'Ads':3.1e-17,
            'Edf':3.35e5,
@@ -178,7 +178,7 @@ dp = edict({'LS_RA':2900.*1e3, #Use full mantle depth for the Rayleigh number
            'Elm':2.0e5,
            'Vlm':1.1e-6,
            'Ba':4.3e-12,  #A value to simulate pressure increase with depth
-           'SR':1e-14,
+           'SR':5e-14,
            'Dr':250e3, #Reference depth
            'R':8.314,
            'Cp':1250., #Jkg-1K-1
@@ -267,7 +267,7 @@ ndp.CVR, ndp.plate_vel, ndp.RA , (dp.TP - dp.TS)
 #A few parameters defining lengths scales, affects materal transistions etc.
 ###########
 
-MANTLETOCRUST = (15.*1e3)/dp.LS #Crust depth
+MANTLETOCRUST = (12.*1e3)/dp.LS #Crust depth
 HARZBURGDEPTH = MANTLETOCRUST + (27.7e3/dp.LS)
 CRUSTTOMANTLE = (300.*1e3)/dp.LS
 LITHTOMANTLE = (900.*1e3)/dp.LS 
@@ -315,7 +315,7 @@ dim = 2          # number of spatial dimensions
 
 #MESH STUFF
 
-RES = 64
+RES = 160
 
 Xres = int(RES*aspectRatio)
 
@@ -807,7 +807,7 @@ tracerVariable.data[:] = testfunc2.evaluate(gSwarm)
 
 # In[305]:
 
-ageVariable.data.min(), ageVariable.data.max(), ageDT
+ageVariable.data.min(), ageVariable.data.max()
 
 
 # In[266]:
@@ -2063,11 +2063,6 @@ velocityField.data[tWalls.data].max()
 # In[233]:
 
 velocityField.data.max()
-
-
-# In[165]:
-
-ndp.SR
 
 
 # In[ ]:

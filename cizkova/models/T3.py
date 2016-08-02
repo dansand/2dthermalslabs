@@ -55,7 +55,7 @@ rank = comm.Get_rank()
 #Model name.  
 ############
 Model = "T"
-ModNum = 1
+ModNum = 3
 
 if len(sys.argv) == 1:
     ModIt = "Base"
@@ -295,7 +295,7 @@ VelBC = False
 WeakZone = False
 aspectRatio = 4
 parallelVisc = False
-compBuoyancy = False #use compositional & phase buoyancy, or simply thermal
+compBuoyancy = True #use compositional & phase buoyancy, or simply thermal
 
 MINX = -1.*aspectRatio/2.
 MINY = 0.
@@ -329,7 +329,7 @@ else:
     MAXY = 1.
 
 
-periodic = [True, False]
+periodic = [False, False]
 elementType = "Q1/dQ0"
 #elementType ="Q2/DPC1"
 

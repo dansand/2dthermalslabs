@@ -2,22 +2,22 @@
 # coding: utf-8
 
 # ## composite, non-linear rheology:
-#
-#
-# The viscous rheology in this model is similar to the Čížková and Bina paper cited below. Other parts of the model setup are similar to Arredondo and Billen (2016) and Korenaga (2011).
-#
+# 
+# 
+# The viscous rheology in this model is similar to the Čížková and Bina paper cited below. Other parts of the model setup are similar to Arredondo and Billen (2016) and Korenaga (2011). 
+# 
 # Here we use a dimensionless system. For the psuedo-plastic effective rheology a Drucker-prager model is used.
-#
-#
+# 
+# 
 # **Keywords:** thermal covection, dislocation creep
-#
-#
+# 
+# 
 # **References**
-#
+# 
 # Čížková, Hana, and Craig R. Bina. "Geodynamics of trench advance: Insights from a Philippine-Sea-style geometry." Earth and Planetary Science Letters 430 (2015): 408-415.
-#
+# 
 # Arredondo, Katrina M., and Magali I. Billen. "The Effects of Phase Transitions and Compositional Layering in Two-dimensional Kinematic Models of Subduction." Journal of Geodynamics (2016).
-#
+# 
 # Korenaga, Jun. "Scaling of plate tectonic convection with pseudoplastic rheology." Journal of Geophysical Research: Solid Earth 115.B11 (2010).
 
 # In[239]:
@@ -52,7 +52,7 @@ rank = comm.Get_rank()
 # In[240]:
 
 ############
-#Model name.
+#Model name.  
 ############
 Model = "T"
 ModNum = 0
@@ -91,7 +91,7 @@ if uw.rank()==0:
         os.makedirs(dbPath)
     if not os.path.isdir(filePath):
         os.makedirs(filePath)
-
+        
 comm.Barrier() #Barrier here so no procs run the check in the next cell too early
 
 
@@ -114,7 +114,7 @@ for dirpath, dirnames, files in os.walk(checkpointPath):
 
 # Setup parameters
 # -----
-#
+# 
 # Set simulation parameters for test.
 
 # **Use pint to setup any unit conversions we'll need**
@@ -160,14 +160,14 @@ print(cmperyear, mpersec )
 dp = edict({'LS_RA':2900.*1e3, #Use full mantle depth for the Rayleigh number
             'LS':2000.*1e3,
            'rho':3300,
-           'g':9.8,
-           'eta0':2e20, #Dislocation creep at 250 km, 1573 K, 1e-15 s-1
+           'g':9.8, 
+           'eta0':2e20, #Dislocation creep at 250 km, 1573 K, 1e-15 s-1 
            'k':1e-6,
            'a':3e-5, #surface thermal expansivity
            'TP':1573., #potential temp
            'TS':273., #surface temp
            'cohesion':1e7, #
-           'fc':0.06,
+           'fc':0.1,   
            'Adf':1e-9,
            'Ads':3.1e-17,
            'Edf':3.35e5,
@@ -178,7 +178,7 @@ dp = edict({'LS_RA':2900.*1e3, #Use full mantle depth for the Rayleigh number
            'Elm':2.0e5,
            'Vlm':1.1e-6,
            'Ba':4.3e-12,  #A value to simulate pressure increase with depth
-           'SR':1e-14,
+           'SR':5e-14,
            'Dr':250e3, #Reference depth
            'R':8.314,
            'Cp':1250., #Jkg-1K-1
@@ -200,7 +200,7 @@ sf = edict({'stress':dp.LS**2/(dp.k*dp.eta0),
             'SR':dp.LS**2/dp.k,
             'W':(-1./dp.Ba)*(np.log(1.-dp.rho*dp.g*dp.Ba*dp.LS))/(dp.R*dp.deltaTa), #Including adiabatic compression, and deltaTa
             'E': 1./(dp.R*dp.deltaTa), #using deltaTa, the guesstimated adiabatic temp differnnce to scale these paramters
-            #'Ads':(dp.eta0**(ndp.n-2))*((dp.k)**(ndp.n-1))*((dp.LS)**(2. - 2*ndp.n))
+            #'Ads':(dp.eta0**(ndp.n-2))*((dp.k)**(ndp.n-1))*((dp.LS)**(2. - 2*ndp.n))       
            })
 
 #dimensionless parameters
@@ -215,7 +215,7 @@ ndp = edict({'RA':(dp.g*dp.rho*dp.a*(dp.TP - dp.TS)*(dp.LS_RA)**3)/(dp.k*dp.eta0
             'Eds':dp.Eds*sf.E,
             'Elm':dp.Elm*sf.E,
            'Wlm':dp.Vlm*sf.W,
-            'TSP':0.,
+            'TSP':0., 
             'TBP':1.,
             'TPP':(dp.TP - dp.TS)/dp.deltaT, #dimensionless potential temp
             'Dr':dp.Dr/dp.LS,
@@ -250,7 +250,7 @@ ndp.TaP = 1. - ndp.TPP,  #Dimensionles adiabtic component of delta t
 
 # In[246]:
 
-#40000./sf.vel,
+#40000./sf.vel, 
 ndp.plate_vel
 
 
@@ -267,15 +267,15 @@ ndp.CVR, ndp.plate_vel, ndp.RA , (dp.TP - dp.TS)
 #A few parameters defining lengths scales, affects materal transistions etc.
 ###########
 
-MANTLETOCRUST = (15.*1e3)/dp.LS #Crust depth
+MANTLETOCRUST = (12.*1e3)/dp.LS #Crust depth
 HARZBURGDEPTH = MANTLETOCRUST + (27.7e3/dp.LS)
 CRUSTTOMANTLE = (300.*1e3)/dp.LS
-LITHTOMANTLE = (900.*1e3)/dp.LS
-MANTLETOLITH = (200.*1e3)/dp.LS
+LITHTOMANTLE = (900.*1e3)/dp.LS 
+MANTLETOLITH = (200.*1e3)/dp.LS 
 TOPOHEIGHT = (10.*1e3)/dp.LS  #rock-air topography limits
 CRUSTTOECL  = (100.*1e3)/dp.LS
 AVGTEMP = ndp.TPP #Used to define lithosphere
-LOWERMANTLE = (1000.*1e3)/dp.LS
+LOWERMANTLE = (1000.*1e3)/dp.LS 
 
 
 # **Model setup parameters**
@@ -287,8 +287,8 @@ LOWERMANTLE = (1000.*1e3)/dp.LS
 ###########
 
 refineMesh = True
-stickyAir = False
-lowerMantle = False
+stickyAir = False 
+lowerMantle = False 
 meltViscosityReduction = False
 symmetricIC = False
 VelBC = False
@@ -306,16 +306,16 @@ MAXY = 1.
 
 if MINX == 0.:
     squareModel = True
-else:
+else: 
     squareModel = False
-
-
+    
+    
 dim = 2          # number of spatial dimensions
 
 
 #MESH STUFF
 
-RES = 128
+RES = 160
 
 Xres = int(RES*aspectRatio)
 
@@ -323,7 +323,7 @@ Xres = int(RES*aspectRatio)
 if stickyAir:
     Yres = RES
     MAXY = 1. + dp.StALS/dp.LS #150km
-
+    
 else:
     Yres = RES
     MAXY = 1.
@@ -353,8 +353,8 @@ sticky_air_temp = 5
 # In[250]:
 
 mesh = uw.mesh.FeMesh_Cartesian( elementType = (elementType),
-                                 elementRes  = (Xres, Yres),
-                                 minCoord    = (MINX, MINY),
+                                 elementRes  = (Xres, Yres), 
+                                 minCoord    = (MINX, MINY), 
                                  maxCoord    = (MAXX, MAXY), periodic=periodic)
 
 velocityField       = uw.mesh.MeshVariable( mesh=mesh,         nodeDofCount=2 )
@@ -428,7 +428,7 @@ if refineMesh:
 
 # Initial conditions
 # -------
-#
+# 
 
 # In[255]:
 
@@ -454,7 +454,7 @@ abHeatFn = -1.*velocityField[1]*temperatureField*ndp.Di #a function providing th
 
 #Sinusoidal initial condition
 A = 0.2
-sinFn = depthFn + A*(fn.math.cos( math.pi * coordinate[0])  * fn.math.sin( math.pi * coordinate[1] ))
+sinFn = depthFn + A*(fn.math.cos( math.pi * coordinate[0])  * fn.math.sin( math.pi * coordinate[1] ))        
 iD = 1000e3/dp.LS #Initial Slab depth
 dl =  2*math.sqrt(dp.k*160e6*3600*24*365) #diffusion Length at ... My
 w0 = dl/dp.LS #Boundary layer/slab initial condition
@@ -463,21 +463,21 @@ delX = fn.misc.min(delX1 , fn.math.abs(coordinate[0] - 2.))
 w = w0*fn.math.sqrt(delX + 1e-7)
 tempBL = (potTempFn) *fn.math.erf((depthFn)/w) + ndp.TSP
 delX = fn.misc.min(fn.math.abs(coordinate[0] - - 1.) , fn.math.abs(coordinate[0] - 1.))
-tempSlab = (potTempFn ) *fn.math.erf((delX*2.)/w0) + ndp.TSP
+tempSlab = (potTempFn ) *fn.math.erf((delX*2.)/w0) + ndp.TSP       
 tempFn1 =  fn.misc.min(tempBL, tempSlab)
-blFn = fn.branching.conditional([(depthFn < iD, tempFn1),
+blFn = fn.branching.conditional([(depthFn < iD, tempFn1), 
                                     (True, potTempFn)])
 
 tempFn = 0.*sinFn + 1.*blFn #partition the temp between these the symmetric downwelling and sinusoid
-if symmetricIC:
+if symmetricIC:  
     if not checkpointLoad:
-        temperatureField.data[:] = tempFn.evaluate(mesh)
+        temperatureField.data[:] = tempFn.evaluate(mesh)  
 
 
 # In[257]:
 
 ###########
-#Thermal initial condition 2:
+#Thermal initial condition 2: 
 #if symmetricIC == False, we build an asymmetric subduction-zone
 ###########
 
@@ -533,7 +533,7 @@ CrustM = MANTLETOCRUST
 Org = (subzone, 1.-RocM)
 maxDepth = 250e3/dp.LS
 
-#We use three circles to define our slab and crust perturbation,
+#We use three circles to define our slab and crust perturbation,  
 Oc = inCircleFnGenerator(Org , RocM)
 Ic = inCircleFnGenerator(Org , RocM - w0)
 Cc = inCircleFnGenerator(Org , RocM + (1.5*CrustM)) #... weak zone on 'outside' of slab
@@ -573,7 +573,7 @@ for index, coord in enumerate(mesh.data):
 
 # In[259]:
 
-#fn.math.erf((sdFn*dp.LS)/(2.*fn.math.sqrt(dp.k*(slabmaxAge*(3600*24*365)))))
+#fn.math.erf((sdFn*dp.LS)/(2.*fn.math.sqrt(dp.k*(slabmaxAge*(3600*24*365))))) 
 
 
 # In[260]:
@@ -603,11 +603,11 @@ fig.append( glucifer.objects.Surface(mesh, temperatureField))
 #         pyplt.ioff()
 #         ax.imshow(np.flipud(field_data), cmap='coolwarm', extent=[0,ql*aspectRatio,ql, 0])
 #         #ax.set_x([0,dp.LS*aspectRatio])
-#
+#         
 #         return fig, ax
-#
+#         
 # fig, ax = matplot_field(temperatureField, dp)
-# #show_colormap('cubehelix')
+# #show_colormap('cubehelix')        
 
 # Boundary conditions
 # -------
@@ -618,7 +618,7 @@ for index in mesh.specialSets["MinJ_VertexSet"]:
     temperatureField.data[index] = ndp.TBP
 for index in mesh.specialSets["MaxJ_VertexSet"]:
     temperatureField.data[index] = ndp.TSP
-
+    
 iWalls = mesh.specialSets["MinI_VertexSet"] + mesh.specialSets["MaxI_VertexSet"]
 jWalls = mesh.specialSets["MinJ_VertexSet"] + mesh.specialSets["MaxJ_VertexSet"]
 tWalls = mesh.specialSets["MaxJ_VertexSet"]
@@ -631,34 +631,34 @@ VelBCs = mesh.specialSets["Empty"]
 if VelBC:
     for index in list(tWalls.data):
 
-        if (mesh.data[int(index)][0] < (subzone - 0.05*aspectRatio) and
+        if (mesh.data[int(index)][0] < (subzone - 0.05*aspectRatio) and 
             mesh.data[int(index)][0] > (mesh.minCoord[0] + 0.05*aspectRatio)): #Only push with a portion of teh overiding plate
             #print "first"
             VelBCs.add(int(index))
             #Set the plate velocities for the kinematic phase
             velocityField.data[index] = [ndp.plate_vel, 0.]
-
-        elif (mesh.data[int(index)][0] > (subzone + 0.05*aspectRatio) and
+        
+        elif (mesh.data[int(index)][0] > (subzone + 0.05*aspectRatio) and 
             mesh.data[int(index)][0] < (mesh.maxCoord[0] - 0.05*aspectRatio)):
             #print "second"
             VelBCs.add(int(index))
             #Set the plate velocities for the kinematic phase
             velocityField.data[index] = [0., 0.]
-
+        
 
 #If periodic, we'll fix a the x-vel at a single node - at the bottom left (index 0)
 Fixed = mesh.specialSets["Empty"]
-Fixed.add(int(0))
-
+Fixed.add(int(0))        
+        
 
 if periodic[0] == False:
     if VelBC:
         print(1)
-        freeslipBC = uw.conditions.DirichletCondition( variable      = velocityField,
+        freeslipBC = uw.conditions.DirichletCondition( variable      = velocityField, 
                                                indexSetsPerDof = ( iWalls + VelBCs, jWalls) )
     else:
         print(2)
-        freeslipBC = uw.conditions.DirichletCondition( variable      = velocityField,
+        freeslipBC = uw.conditions.DirichletCondition( variable      = velocityField, 
                                                indexSetsPerDof = ( iWalls, jWalls) )
 
 
@@ -669,23 +669,23 @@ if periodic[0] == False:
 if periodic[0] == True:
     if VelBC:
         print(3)
-        freeslipBC = uw.conditions.DirichletCondition( variable      = velocityField,
+        freeslipBC = uw.conditions.DirichletCondition( variable      = velocityField, 
                                                indexSetsPerDof = ( Fixed + VelBCs , jWalls) )
     else:
         print(4)
-        freeslipBC = uw.conditions.DirichletCondition( variable      = velocityField,
+        freeslipBC = uw.conditions.DirichletCondition( variable      = velocityField, 
                                                indexSetsPerDof = ( Fixed, jWalls) )
-
-
-
-
+        
+    
+    
+    
 # also set dirichlet for temp field
-dirichTempBC = uw.conditions.DirichletCondition(     variable=temperatureField,
+dirichTempBC = uw.conditions.DirichletCondition(     variable=temperatureField, 
                                               indexSetsPerDof=(tWalls,) )
 dT_dy = [0.,0.]
 
 # also set dirichlet for temp field
-neumannTempBC = uw.conditions.NeumannCondition( dT_dy, variable=temperatureField,
+neumannTempBC = uw.conditions.NeumannCondition( dT_dy, variable=temperatureField, 
                                          nodeIndexSet=bWalls)
 
 
@@ -714,7 +714,7 @@ neumannTempBC = uw.conditions.NeumannCondition( dT_dy, variable=temperatureField
 
 # Swarm setup
 # -----
-#
+# 
 
 # In[263]:
 
@@ -793,34 +793,34 @@ for vals in xlist:
     xops.append( (operator.and_(   operator.gt(coordinate[0],vals[0]),   operator.lt(coordinate[0],vals[1])  ),0.) )
 xops.append((True,1.))
 
-testfunc = fn.branching.conditional(xops)
+testfunc = fn.branching.conditional(xops) 
 
 yops = []
 for vals in ylist:
     yops.append( (operator.and_(   operator.gt(coordinate[1],vals[0]),   operator.lt(coordinate[1],vals[1])  ),0.) )
 yops.append((True,testfunc))
 
-testfunc2 = fn.branching.conditional(yops)
+testfunc2 = fn.branching.conditional(yops) 
 tracerVariable.data[:] = testfunc.evaluate(gSwarm)
 tracerVariable.data[:] = testfunc2.evaluate(gSwarm)
 
 
 # In[305]:
 
-ageVariable.data.min(), ageVariable.data.max(), ageDT
+ageVariable.data.min(), ageVariable.data.max()
 
 
 # In[266]:
 
-#Set the inital particle age, for particles above the critical depth
+#Set the inital particle age, for particles above the critical depth 
 #(only these will be transformed to crust / harzburgite)
 
 ageVariable.data[:] = 0. #start with all zero
 crustageCond = 1e-05 #set inital age above critical depth. (about 1.2 Ma.) Might have to be shorter than this - need to experiment
 ageDT = crustageCond + 1e-5 #initalize ages
-ageConditions = [ (depthFn < 100e3/dp.LS , ageDT),
+ageConditions = [ (depthFn < 100e3/dp.LS , ageDT),  
                   (True, 0.) ]
-
+                 
 
 ageEval = fn.branching.conditional( ageConditions ).evaluate(gSwarm)
 ageVariable.data[np.where(ageEval == 0)] = 0 #If below the critical depth, age is set to zero
@@ -831,8 +831,8 @@ np.unique(ageVariable.data)
 
 # Swarm control (material graph)
 # -----
-#
-#
+# 
+# 
 
 # In[ ]:
 
@@ -853,7 +853,7 @@ np.unique(ageVariable.data)
 material_list = [0,1,2,3]
 
 if not checkpointLoad:
-    materialVariable.data[:] = 0 #Initialize to zero
+    materialVariable.data[:] = 0 #Initialize to zero 
 
 #Setup the graph object
 DG = material_graph.MatGraph()
@@ -949,9 +949,9 @@ class component_phases():
             'Component', e.g olivine, pyroxene-garnet
         depths: list
             list of transition depths in kilometers
-        widths: list
+        widths: list 
             list of transition widths in kilometers
-        claps: list
+        claps: list 
             list of Clapeyron slopes in Pa/K
         densities: list
             list of density changes in kg/m3
@@ -980,7 +980,7 @@ class component_phases():
         self.dp.widths = widths
         self.dp.claps = claps
         self.dp.densities = densities
-
+        
     def build_nd_dict(self, lengthscale, densityscale, gravityscale, tempscale):
         self.ndp = edict({})
         self.ndp.name = self.dp.name
@@ -988,7 +988,7 @@ class component_phases():
         self.ndp.temps = [i/tempscale for i in self.dp.temps]
         self.ndp.widths = [i/lengthscale for i in self.dp.widths]
         self.ndp.claps = [(i*(tempscale/(densityscale*gravityscale*lengthscale))) for i in self.dp.claps]
-
+        
     def nd_reduced_pressure(self, depthFn, temperatureField, depthPh, clapPh, tempPh):
         """
         Creates an Underworld function, representing the 'reduced pressure'
@@ -1000,21 +1000,21 @@ class component_phases():
         Creates an Underworld function, representing the phase function in the domain
         """
         return 0.5*(1. + fn.math.tanh(reduced_p/(widthPh)))
-
+    
     def phase_function_sum(self, temperatureField, depthFn):
         """
         Creates an Underworld function, representing the Sum of the individual phase functions:
         -----------
         temperatureField : underworld.mesh._meshvariable.MeshVariable
-
-        ...need to put warning in about running build_nd_dict first
-        """
-
+        
+        ...need to put warning in about running build_nd_dict first 
+        """    
+        
         pf_sum = uw.function.misc.constant(0.)
-
+        
         for phaseId in range(len(self.dp['depths'])):
             #build reduced pressure
-            rp = self.nd_reduced_pressure(depthFn,
+            rp = self.nd_reduced_pressure(depthFn, 
                                    temperatureField,
                                    self.ndp['depths'][phaseId ],
                                    self.ndp['claps'][phaseId ],
@@ -1022,27 +1022,27 @@ class component_phases():
             #build phase function
             pf = self.nd_phase(rp, self.ndp['widths'][phaseId ])
             pf_sum += pf
-
+        
         return pf_sum
-
+    
     def buoyancy_sum(self, temperatureField, depthFn, gravityscale, lengthscale, diffusivityscale, viscosityscale):
         """
         Creates an Underworld function, representing the Sum of the individual phase functions...
         and the associated density changes:
-
+        
         pf_sum = Sum_k{ (Ra*delRho_k*pf_k/rho_0*eta_0*delta_t)}
         -----------
         temperatureField : underworld.mesh._meshvariable.MeshVariable
-
-        ...need to put warning in about running build_nd_dict first
+        
+        ...need to put warning in about running build_nd_dict first 
         """
         bouyancy_factor = (gravityscale*lengthscale**3)/(viscosityscale*diffusivityscale)
-
+        
         pf_sum = uw.function.misc.constant(0.)
-
+        
         for phaseId in range(len(self.dp['depths'])):
             #build reduced pressure
-            rp = self.nd_reduced_pressure(depthFn,
+            rp = self.nd_reduced_pressure(depthFn, 
                                    temperatureField,
                                    self.ndp['depths'][phaseId ],
                                    self.ndp['claps'][phaseId ],
@@ -1050,7 +1050,7 @@ class component_phases():
             #build phase function
             pf = self.nd_phase(rp, self.ndp['widths'][phaseId ])
             pf_sum += bouyancy_factor*pf*self.dp['densities'][phaseId ] #we want the dimensional densities here
-
+        
         return pf_sum
 
 
@@ -1062,17 +1062,17 @@ class component_phases():
 
 
 #olivine
-olivinePhase = component_phases(name = 'ol',
+olivinePhase = component_phases(name = 'ol', 
                         depths=[410e3,660e3],
-                        temps = [1600., 1900.],
-                        widths = [20e3, 20e3],
-                        claps=[2.e6, -2.5e6],
+                        temps = [1600., 1900.], 
+                        widths = [20e3, 20e3], 
+                        claps=[2.e6, -2.5e6], 
                         densities = [180., 400.])
 
 olivinePhase.build_nd_dict(dp.LS, dp.rho, dp.g, dp.deltaTa)
 
 
-rp = olivinePhase.nd_reduced_pressure(depthFn,
+rp = olivinePhase.nd_reduced_pressure(depthFn, 
                                    temperatureField,
                                    olivinePhase.ndp['depths'][0],
                                    olivinePhase.ndp['claps'][0],
@@ -1084,17 +1084,17 @@ rp = olivinePhase.nd_reduced_pressure(depthFn,
 olivine_phase_buoyancy = olivinePhase.buoyancy_sum(temperatureField, depthFn, dp.g, dp.LS, dp.k, dp.eta0)
 
 #garnet
-garnetPhase = component_phases(name = 'grt',
+garnetPhase = component_phases(name = 'grt', 
                         depths=[60e3,400e3, 720e3],
-                        temps = [1000., 1600., 1900.],
-                        widths = [20e3, 20e3, 20e3],
-                        claps=[0.e6, 1.e6, 1.e6],
+                        temps = [1000., 1600., 1900.], 
+                        widths = [20e3, 20e3, 20e3], 
+                        claps=[0.e6, 1.e6, 1.e6], 
                         densities = [350., 150., 400.])
 
 garnetPhase.build_nd_dict(dp.LS, dp.rho, dp.g, dp.deltaTa)
 
 
-rp = garnetPhase.nd_reduced_pressure(depthFn,
+rp = garnetPhase.nd_reduced_pressure(depthFn, 
                                    temperatureField,
                                    garnetPhase.ndp['depths'][0],
                                    garnetPhase.ndp['claps'][0],
@@ -1125,16 +1125,16 @@ print(basalt_comp_buoyancy, harz_comp_buoyancy, pyrolite_comp_buoyancy)
 
 #this accounts for the decreas in expansivity
 alphaRatio = 1.2/3
-taFn = 1. - (depthFn)*(1. - alphaRatio)
+taFn = 1. - (depthFn)*(1. - alphaRatio) 
 #raylieghFn = ndp.RA*temperatureField*taFn
 
 
 if not compBuoyancy:
     pyrolitebuoyancyFn =  (ndp.RA*temperatureField*taFn)
-    harzbuoyancyFn =      (ndp.RA*temperatureField*taFn)
+    harzbuoyancyFn =      (ndp.RA*temperatureField*taFn) 
     basaltbuoyancyFn =    (ndp.RA*temperatureField*taFn)
 
-else :
+else : 
     pyrolitebuoyancyFn =  (ndp.RA*temperatureField*taFn) -                          (0.6*olivine_phase_buoyancy + 0.4*garnet_phase_buoyancy) +                           pyrolite_comp_buoyancy
     harzbuoyancyFn =      (ndp.RA*temperatureField*taFn) -                          (0.8*olivine_phase_buoyancy + 0.2*garnet_phase_buoyancy) +                           harz_comp_buoyancy
     basaltbuoyancyFn =    (ndp.RA*temperatureField*taFn) -                          (1.*garnet_phase_buoyancy) +                           basalt_comp_buoyancy
@@ -1142,14 +1142,14 @@ else :
 
 # Rheology
 # -----
-#
-#
+# 
+# 
 
 # In[276]:
 
 # The yeilding of the upper slab is dependent on the strain rate.
-strainRate_2ndInvariant = fn.tensor.second_invariant(
-                            fn.tensor.symmetric(
+strainRate_2ndInvariant = fn.tensor.second_invariant( 
+                            fn.tensor.symmetric( 
                             velocityField.fn_gradient ))
 
 
@@ -1176,12 +1176,12 @@ ndp.Wds, ndp.Wdf, ndp.Eds, ndp.Edf
 #############
 #
 #The final mantle rheology is composed as follows*:
-#
+# 
 #
 # mantleviscosityFn = max{  min{(1/omega*Visc + 1/eta_p)**-1,
 #                           eta_max},
 #                           eta_min}
-#
+#                      
 #Visc => min{diffusionCreep, dislocationCreep, }
 #eta_p   => stress-limiting effective viscosity
 #
@@ -1196,7 +1196,7 @@ if meltViscosityReduction:
 #implementation of the lower mantle viscosity increase, similar to Bello et al. 2015
 a = 1.
 B = 30.
-d0 = 660e3/dp.LS
+d0 = 660e3/dp.LS  
 ds = d0/10.
 if lowerMantle:
     inner1 = 1. - 0.5*(1. - fn.math.tanh(((1. - d0)-(coordinate[1]))/(ds)))
@@ -1205,7 +1205,7 @@ if lowerMantle:
 
 
 ##Diffusion Creep
-ndfp = fn.misc.min(ndp.eta_max, fn.math.exp( ((ndp.Edf + (depthFn*ndp.Wdf))/((temperatureField + ndp.TS))) -
+ndfp = fn.misc.min(ndp.eta_max, fn.math.exp( ((ndp.Edf + (depthFn*ndp.Wdf))/((temperatureField + ndp.TS))) - 
               ((ndp.Edf + (ndp.Dr*ndp.Wdf))/((ndp.TPP + ndp.TS)))  ))
 
 linearVisc = fn.misc.min(ndp.eta_max, ndfp)
@@ -1244,10 +1244,10 @@ finalviscosityFn  = fn.branching.conditional([(depthFn < lowMantleDepth/dp.LS, m
 
 #lower mantle rheology
 
-#ndflm = fn.misc.min(ndp.eta_max, fn.math.exp( ((ndp.Elm + (depthFn*ndp.Wlm))/((temperatureField + ndp.TS))) -
+#ndflm = fn.misc.min(ndp.eta_max, fn.math.exp( ((ndp.Elm + (depthFn*ndp.Wlm))/((temperatureField + ndp.TS))) - 
 #              ((ndp.Elm + (ndp.Dr*ndp.Wlm))/((ndp.TPP + ndp.TS)))  ))
 
-#I ignored Cizkova's lower mantle diffusion creep parameters,
+#I ignored Cizkova's lower mantle diffusion creep parameters, 
 #as they appeared to give lower values that the upper mantle rheology, i.e a visc. decrease at 660.
 #lm_increase = 1.
 #lowermantleviscosityFn = fn.misc.max(lm_increase*ndfp, ndp.eta_min)
@@ -1302,7 +1302,7 @@ fnBuilder = fn.misc.constant(1000.)
 for i in range(num_circles):
     circ_dist = disGen((xar[i], yar[i]))
     fnBuilder = fn.misc.min(circ_dist, fnBuilder)
-
+    
 sig = half_width/dp.LS
 gammaFn =  fn.math.exp(-fn.math.pow(fnBuilder, 2.) / (2. * fn.math.pow(sig, 2.)))
 
@@ -1323,7 +1323,7 @@ combmantleviscosityFn = fn.misc.max(ndp.eta_min, fn.misc.min(mantleviscosityFn, 
 # In[ ]:
 
 
-
+    
 
 
 # In[285]:
@@ -1333,33 +1333,33 @@ combmantleviscosityFn = fn.misc.max(ndp.eta_min, fn.misc.min(mantleviscosityFn, 
 
 # import matplotlib.pylab as pyplt
 # %matplotlib inline
-#
-#
-#
+# 
+# 
+# 
 # ##################
 # #Output functions to numpy vertical averages, maxes, mins
 # ##################
-#
+# 
 # viscmapFnmesh = uw.mesh.MeshVariable(mesh,nodeDofCount=1)
 # out = uw.utils.MeshVariable_Projection( viscmapFnmesh, viscosityMapFn)
 # out.solve()
-#
-#
+# 
+# 
 # #avDf = ndfp.evaluate(mesh).reshape(mesh.elementRes[1] + 1, mesh.elementRes[0] + 1).mean(axis=1)
 # avDs = ndsp.evaluate(mesh).reshape(mesh.elementRes[1] + 1, mesh.elementRes[0] + 1).mean(axis=1)
 # umantle = mantleviscosityFn.evaluate(mesh).reshape(mesh.elementRes[1] + 1, mesh.elementRes[0] + 1).mean(axis=1)
 # lmantle = lowermantleviscosityFn.evaluate(mesh).reshape(mesh.elementRes[1] + 1, mesh.elementRes[0] + 1).mean(axis=1)
 # eff = viscmapFnmesh.evaluate(mesh).reshape(mesh.elementRes[1] + 1, mesh.elementRes[0] + 1).mean(axis=1)
-#
+# 
 # effMin = viscmapFnmesh.evaluate(mesh).reshape(mesh.elementRes[1] + 1, mesh.elementRes[0] + 1).min(axis=1)
 # effMax = viscmapFnmesh.evaluate(mesh).reshape(mesh.elementRes[1] + 1, mesh.elementRes[0] + 1).max(axis=1)
-#
+# 
 # ###################
 # #Plot
 # ###################
 # import matplotlib.pylab as pyplt
 # %matplotlib inline
-#
+# 
 # fig, ax = pyplt.subplots()
 # #ax .plot(avDf, label = 'diff')
 # #ax .plot(avDs, label = 'dis')
@@ -1400,13 +1400,13 @@ ndsp.evaluate(mesh).min(), ndfp.evaluate(mesh).min()
 
 # Stokes system setup
 # -----
-#
+# 
 
 # In[289]:
 
 densityMapFn = fn.branching.map( fn_key = materialVariable,
                          mapping = {airIndex:ndp.StRA,
-                                    crustIndex:basaltbuoyancyFn,
+                                    crustIndex:basaltbuoyancyFn, 
                                     mantleIndex:pyrolitebuoyancyFn,
                                     harzIndex:harzbuoyancyFn} )
 
@@ -1417,16 +1417,16 @@ densityMapFn = fn.branching.map( fn_key = materialVariable,
 # Define our vertical unit vector using a python tuple (this will be automatically converted to a function).
 gravity = ( 0.0, 1.0 )
 
-# Now create a buoyancy force vector using the density and the vertical unit vector.
+# Now create a buoyancy force vector using the density and the vertical unit vector. 
 buoyancyFn = densityMapFn * gravity
 
 
 # In[291]:
 
-stokesPIC = uw.systems.Stokes(velocityField=velocityField,
+stokesPIC = uw.systems.Stokes(velocityField=velocityField, 
                               pressureField=pressureField,
                               conditions=[freeslipBC,],
-                              fn_viscosity=linearVisc,
+                              fn_viscosity=linearVisc, 
                               fn_bodyforce=buoyancyFn )
 
 
@@ -1528,7 +1528,7 @@ solver.print_stats()
 #Check which particles are yielding
 #yieldingCheck.data[:] = 0
 
-#yieldconditions = [ ( mantleviscosityFn < Visc , 1),
+#yieldconditions = [ ( mantleviscosityFn < Visc , 1), 
 #               ( True                                           , 0) ]
 
 # use the branching conditional function to set each particle's index
@@ -1549,16 +1549,16 @@ solver.print_stats()
 
 # In[192]:
 
-advDiff = uw.systems.AdvectionDiffusion( phiField       = temperatureField,
-                                         phiDotField    = temperatureDotField,
+advDiff = uw.systems.AdvectionDiffusion( phiField       = temperatureField, 
+                                         phiDotField    = temperatureDotField, 
                                          velocityField  = velocityField,
                                          fn_sourceTerm    = 0.0,
-                                         fn_diffusivity = 1.0,
+                                         fn_diffusivity = 1.0, 
                                          #conditions     = [neumannTempBC, dirichTempBC] )
                                          conditions     = [ dirichTempBC] )
 
-passiveadvector = uw.systems.SwarmAdvector( swarm         = gSwarm,
-                                     velocityField = velocityField,
+passiveadvector = uw.systems.SwarmAdvector( swarm         = gSwarm, 
+                                     velocityField = velocityField, 
                                      order         = 1)
 
 
@@ -1571,8 +1571,8 @@ passiveadvector = uw.systems.SwarmAdvector( swarm         = gSwarm,
 #    coord = fn.input()
 #    offsetFn = coord - centre
 #    dist = fn.math.sqrt(fn.math.dot( offsetFn, offsetFn ))
-
-
+    
+    
 #    return (((fn.math.tanh(((radius - dist))/widthPh) + 1.) /2.))*fac + farVal
 
 #tfun = htan((0.1, 0.9), 0.1, 0.1, 0.1)
@@ -1607,17 +1607,17 @@ totAdt = 0.
 it = 0
 while totAdt < timetoDifffuse:
     dtad = advDiff.get_max_dt()
-    print("step") + str(it)
+    print("step") + str(it) 
     advDiff.integrate(incrementtoDiffuse)
     totAdt += incrementtoDiffuse
     it += 1
-
-#Reset Boundary conds.
+    
+#Reset Boundary conds.   
 for index in mesh.specialSets["MinJ_VertexSet"]:
     temperatureField.data[index] = ndp.TBP
 for index in mesh.specialSets["MaxJ_VertexSet"]:
     temperatureField.data[index] = ndp.TSP
-
+    
 comm.Barrier()
 
 
@@ -1670,7 +1670,7 @@ srrestrictFn = platenessFn(val = 0.1)
 
 # In[241]:
 
-#Setup volume integrals
+#Setup volume integrals 
 
 tempint = uw.utils.Integral( temperatureField, mesh )
 areaint = uw.utils.Integral( 1.,               mesh )
@@ -1692,15 +1692,15 @@ mantleVd = uw.utils.Integral( (2.*viscosityMapFn*sinner*mantlerestrictFn), mesh 
 
 #Setup surface integrals
 
-rmsSurfInt = uw.utils.Integral( fn=velocityField[0]*velocityField[0], mesh=mesh, integrationType='Surface',
+rmsSurfInt = uw.utils.Integral( fn=velocityField[0]*velocityField[0], mesh=mesh, integrationType='Surface', 
                           surfaceIndexSet=mesh.specialSets["MaxJ_VertexSet"])
-nuTop      = uw.utils.Integral( fn=temperatureField.fn_gradient[1],    mesh=mesh, integrationType='Surface',
+nuTop      = uw.utils.Integral( fn=temperatureField.fn_gradient[1],    mesh=mesh, integrationType='Surface', 
                           surfaceIndexSet=mesh.specialSets["MaxJ_VertexSet"])
-nuBottom   = uw.utils.Integral( fn=temperatureField.fn_gradient[1],    mesh=mesh, integrationType='Surface',
+nuBottom   = uw.utils.Integral( fn=temperatureField.fn_gradient[1],    mesh=mesh, integrationType='Surface', 
                           surfaceIndexSet=mesh.specialSets["MinJ_VertexSet"])
 
 plateint  = uw.utils.Integral( fn=srrestrictFn, mesh=mesh, integrationType='Surface', #Integrate the plateness function
-                          surfaceIndexSet=mesh.specialSets["MaxJ_VertexSet"])
+                          surfaceIndexSet=mesh.specialSets["MaxJ_VertexSet"]) 
 
 surfint  = uw.utils.Integral( fn=1., mesh=mesh, integrationType='Surface',   #Surface length function (i.e. domain width)
                           surfaceIndexSet=mesh.specialSets["MaxJ_VertexSet"])
@@ -1754,7 +1754,7 @@ def visc_extr(viscfn):
 Rms = rms()
 Rms_surf = rms_surf()
 Max_vx_surf = max_vx_surf(velocityField, mesh)
-Rms, Rms_surf, Max_vx_surf
+Rms, Rms_surf, Max_vx_surf 
 #Gravwork = basic_int(dwint)
 #Viscdis = basic_int(vdint)
 #nu1, nu0 = nusseltTB(temperatureField, mesh) # return top then bottom
@@ -1815,31 +1815,31 @@ dummy = tempMM.evaluate(mesh)
 
 
 def checkpoint1(step, checkpointPath,filename, filewrites):
-    path = checkpointPath + str(step)
+    path = checkpointPath + str(step) 
     os.mkdir(path)
     ##Write and save the file, if not already a writing step
     if not step % filewrites == 0:
         filename.write((17*'%-15s ' + '\n') % (realtime, Viscdis, float(nu0), float(nu1), Avg_temp,
                                               Tempmantle,TMAX,
-                                              Rms,Rms_surf,Max_vx_surf,Gravwork, etamax, etamin,
+                                              Rms,Rms_surf,Max_vx_surf,Gravwork, etamax, etamin, 
                                               Area_mantle, Viscmantle,  Viscdismantle,Plateness ))
     filename.close()
     shutil.copyfile(os.path.join(outputPath, outputFile), os.path.join(path, outputFile))
 
 
 def checkpoint2(step, checkpointPath, swarm, filename, varlist = [materialVariable], varnames = ['materialVariable']):
-    path = checkpointPath + str(step)
+    path = checkpointPath + str(step) 
     velfile = "velocityField" + ".hdf5"
     tempfile = "temperatureField" + ".hdf5"
     pressfile = "pressureField" + ".hdf5"
     velocityField.save(os.path.join(path, velfile))
     temperatureField.save(os.path.join(path, tempfile))
     pressureField.save(os.path.join(path, pressfile))
-    swarm.save(os.path.join(path, "swarm.h5") )
+    swarm.save(os.path.join(path, "swarm.h5") ) 
     for ix in range(len(varlist)):
         varb = varlist[ix]
         varb.save(os.path.join(path,varnames[ix] + ".h5"))
-
+    
 
 
 # In[249]:
@@ -1880,7 +1880,7 @@ else:
 
 # Main simulation loop
 # -----
-#
+# 
 
 # In[252]:
 
@@ -1899,16 +1899,16 @@ while realtime < 1.:
         dt = 0.
     advDiff.integrate(dt)
     passiveadvector.integrate(dt)
-
+    
     #Add the adiabatic adjustment:
     temperatureField.data[:] += dt*abHeatFn.evaluate(mesh)
-
+    
     #Add the viscous heating term
      #Need to fix this (forgot 'dissipation number')
     #viscDisProj = uw.utils.MeshVariable_Projection( viscDisFnmesh, viscDisMapFn)
     #viscDisProj.solve()
     #temperatureField.data[:] += dt*viscDisFnmesh.evaluate(mesh)
-
+    
 
     # Increment
     realtime += dt
@@ -1958,24 +1958,24 @@ while realtime < 1.:
         if uw.rank()==0:
             f_o.write((17*'%-15s ' + '\n') % (realtime, Viscdis, float(nu0), float(nu1), Avg_temp,
                                               Tempmantle,TMAX,
-                                              Rms,Rms_surf,Max_vx_surf,Gravwork, etamax, etamin,
+                                              Rms,Rms_surf,Max_vx_surf,Gravwork, etamax, etamin, 
                                               Area_mantle, Viscmantle,  Viscdismantle,Plateness ))
     ################
     #Also repopulate entire swarm periodically
     ################
     #if step % swarm_repop == 0:
-    population_control.repopulate()
+    population_control.repopulate()   
     ################
     #Checkpoint
     ################
     if step % checkpoint_every == 0:
         if uw.rank() == 0:
-            checkpoint1(step, checkpointPath,f_o, metric_output)
+            checkpoint1(step, checkpointPath,f_o, metric_output)           
         checkpoint2(step, checkpointPath, gSwarm, f_o, varlist = varlist, varnames = varnames)
         f_o = open(os.path.join(outputPath, outputFile), 'a') #is this line supposed to be here?
     ################
     #Gldb output
-    ################
+    ################ 
     if (step % gldbs_output == 0):
         #Rebuild any necessary swarm variables
         viscVariable.data[:] = viscosityMapFn.evaluate(gSwarm)
@@ -1986,7 +1986,7 @@ while realtime < 1.:
         figDb.save_database(fullpath)
     ################
     #Files output
-    ################
+    ################ 
     if (step % files_output == 0):
 
         vel_surface = velocityField.evaluate_global(surface_nodes)
@@ -2000,22 +2000,22 @@ while realtime < 1.:
             np.save(fullpath, norm_surface_sr)
     ################
     #Particle update
-    ###############
+    ###############    
     #ageVariable.data[:] += dt #increment the ages (is this efficient?)
     ageDT += dt
-
+    
     if step % swarm_update == 0:
-        #Increment age stuff.
+        #Increment age stuff. 
         ageEval = fn.branching.conditional( ageConditions ).evaluate(gSwarm)
         ageVariable.data[np.where(ageEval == 0)] = 0 #If below the critical depth, age is set to zero
         ageVariable.data[np.where(ageEval != 0)] += ageDT #If age above critical depth, increment age
         ageDT = 0. #reset the age incrementer
-
+        
         #Apply any materialVariable changes
         for i in range(2): #Need to go through twice first time through
             materialVariable.data[:] = fn.branching.conditional(DG.condition_list).evaluate(gSwarm)
 
-
+    
 f_o.close()
 print 'step =',step
 
@@ -2065,9 +2065,7 @@ velocityField.data[tWalls.data].max()
 velocityField.data.max()
 
 
-# In[165]:
-
-ndp.SR
-
-
 # In[ ]:
+
+
+
