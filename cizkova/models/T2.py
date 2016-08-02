@@ -55,7 +55,7 @@ rank = comm.Get_rank()
 #Model name.  
 ############
 Model = "T"
-ModNum = 0
+ModNum = 2
 
 if len(sys.argv) == 1:
     ModIt = "Base"
@@ -488,8 +488,8 @@ Roc = 550e3 #radius of curvature of slab
 
 theta = 89. #Angle to truncate the slab (can also do with with a cutoff depth)
 subzone = 0.0 #X position of subduction zone...in model coordinates
-slabmaxAge = 60e6 #age of subduction plate at trench
-platemaxAge = 60e6 #max age of slab (Plate model)
+slabmaxAge = 160e6 #age of subduction plate at trench
+platemaxAge = 160e6 #max age of slab (Plate model)
 ageAtTrenchSeconds = min(platemaxAge*(3600*24*365), slabmaxAge*(3600*24*365))
 
 
@@ -1230,7 +1230,7 @@ yielding = ys/(strainRate_2ndInvariant) #extra factor to account for underworld 
 mantleviscosityFn = fn.misc.max(fn.misc.min(fn.misc.min(Visc, yielding), ndp.eta_max), ndp.eta_min)
 
 lowMantleDepth = 660e3
-lowMantleViscFac = 1.
+lowMantleViscFac = 10.
 finalviscosityFn  = fn.branching.conditional([(depthFn < lowMantleDepth/dp.LS, mantleviscosityFn),
                                   (True, ndfp*lowMantleViscFac)])
 

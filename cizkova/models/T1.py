@@ -55,7 +55,7 @@ rank = comm.Get_rank()
 #Model name.  
 ############
 Model = "T"
-ModNum = 0
+ModNum = 1
 
 if len(sys.argv) == 1:
     ModIt = "Base"
@@ -329,7 +329,7 @@ else:
     MAXY = 1.
 
 
-periodic = [False, False]
+periodic = [True, False]
 elementType = "Q1/dQ0"
 #elementType ="Q2/DPC1"
 
@@ -488,8 +488,8 @@ Roc = 550e3 #radius of curvature of slab
 
 theta = 89. #Angle to truncate the slab (can also do with with a cutoff depth)
 subzone = 0.0 #X position of subduction zone...in model coordinates
-slabmaxAge = 60e6 #age of subduction plate at trench
-platemaxAge = 60e6 #max age of slab (Plate model)
+slabmaxAge = 160e6 #age of subduction plate at trench
+platemaxAge = 160e6 #max age of slab (Plate model)
 ageAtTrenchSeconds = min(platemaxAge*(3600*24*365), slabmaxAge*(3600*24*365))
 
 
