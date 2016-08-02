@@ -178,7 +178,7 @@ dp = edict({'LS_RA':2900.*1e3, #Use full mantle depth for the Rayleigh number
            'Elm':2.0e5,
            'Vlm':1.1e-6,
            'Ba':4.3e-12,  #A value to simulate pressure increase with depth
-           'SR':5e-14,
+           'SR':5e-15,
            'Dr':250e3, #Reference depth
            'R':8.314,
            'Cp':1250., #Jkg-1K-1
