@@ -315,7 +315,7 @@ dim = 2          # number of spatial dimensions
 
 #MESH STUFF
 
-RES = 64
+RES = 128
 
 Xres = int(RES*aspectRatio)
 
