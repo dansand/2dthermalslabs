@@ -161,13 +161,13 @@ dp = edict({'LS_RA':2900.*1e3, #Use full mantle depth for the Rayleigh number
             'LS':2000.*1e3,
            'rho':3300,
            'g':9.8, 
-           'eta0':1e20, #Dislocation creep at 250 km, 1573 K, 1e-15 s-1 
+           'eta0':2e20, #Dislocation creep at 250 km, 1573 K, 1e-15 s-1 
            'k':1e-6,
            'a':3e-5, #surface thermal expansivity
            'TP':1573., #potential temp
            'TS':273., #surface temp
            'cohesion':1e7, #
-           'fc':0.05,   
+           'fc':0.02,   
            'Adf':1e-9,
            'Ads':3.1e-17,
            'Edf':3.35e5,
@@ -223,7 +223,7 @@ ndp = edict({'RA':(dp.g*dp.rho*dp.a*(dp.TP - dp.TS)*(dp.LS_RA)**3)/(dp.k*dp.eta0
             'TS':dp.TS/dp.deltaT,
             'TP':dp.TP/dp.deltaT,
              #'eta_crust':1e21/dp.eta0,
-             'eta_crust':0.1,
+             'eta_crust':0.01,
             'eta_min':1e-3,
             'eta_max':1e5,
             'H':0.,
@@ -269,7 +269,7 @@ ndp.CVR, ndp.plate_vel, ndp.RA , (dp.TP - dp.TS)
 
 MANTLETOCRUST = (15.*1e3)/dp.LS #Crust depth
 HARZBURGDEPTH = MANTLETOCRUST + (27.7e3/dp.LS)
-CRUSTTOMANTLE = (200.*1e3)/dp.LS
+CRUSTTOMANTLE = (300.*1e3)/dp.LS
 LITHTOMANTLE = (900.*1e3)/dp.LS 
 MANTLETOLITH = (200.*1e3)/dp.LS 
 TOPOHEIGHT = (10.*1e3)/dp.LS  #rock-air topography limits
