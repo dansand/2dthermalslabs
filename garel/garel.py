@@ -350,9 +350,9 @@ ppc = 25
 
 #Output and safety stuff
 swarm_repop, swarm_update = 10, 10
-gldbs_output = 1
-checkpoint_every, files_output = 1, 20
-metric_output = 1
+gldbs_output = 10
+checkpoint_every, files_output = 10, 20
+metric_output = 10
 sticky_air_temp = 5
 
 
@@ -508,7 +508,7 @@ op_age_fac = 1. #this controls the overidding plate speed, hence age reduction
 
 #First build the top TBL
 #Create functions between zero and one, to control age distribution
-ageFn1 = fn.misc.max(0., (1. - 1.1*fn.math.abs(xFn)/(aspectRatio/2.) ))
+ageFn1 = fn.misc.max(0., (1. - 1.*fn.math.abs(xFn)/(aspectRatio/2.) ))
 ageFn  = fn.branching.conditional([(coordinate[0] <= 0, ageFn1),
                                   (True, ageFn1/op_age_fac)])
 
