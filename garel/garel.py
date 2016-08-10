@@ -1198,7 +1198,7 @@ correctrDepth = np.log(1. - dp.rho*dp.g*dp.Ba*dp.LS*ndp.rDepth)/np.log(1. - dp.r
 ndp.rDepth*dp.LS, correctrDepth*dp.LS
 
 
-# In[209]:
+# In[211]:
 
 
 
@@ -1242,13 +1242,13 @@ mantleviscosityFn = safe_visc(1./(((1./diffusion) + (1./dislocation) + (1./peier
 lowMantleDepth = 660e3
 lowMantleViscFac = 1.
 finalviscosityFn  = fn.branching.conditional([(depthFn < lowMantleDepth/dp.LS, mantleviscosityFn),
-                                  (True, ndfp*lowMantleViscFac)])
+                                  (True, diffusion*lowMantleViscFac)])
 
 
 ##Crust rheology
 crustys =  ndp.cohesion + (depthFn*ndp.fcd*0.1)
 crustplasticity = crustys/(strainRate_2ndInvariant) #extra factor to account for underworld second invariant form
-crustviscosityFn = safe_visc(1./(((1./diffusion) + (1./dislocation) + (1./peierls) + (1./crustplasticity))))
+crustviscosityFn = safe_visc(1./(((1./diffusion) + (1./dislocation) + (1./peierls) + (1./crustplasticity))), viscmin=ndp.eta_min, viscmax=1.)
 
 
 # In[207]:
