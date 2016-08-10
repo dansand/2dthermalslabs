@@ -288,7 +288,6 @@ LOWERMANTLE = (1000.*1e3)/dp.LS
 
 refineMesh = True
 stickyAir = False 
-lowerMantle = False 
 meltViscosityReduction = False
 symmetricIC = False
 VelBC = False
@@ -315,7 +314,7 @@ dim = 2          # number of spatial dimensions
 
 #MESH STUFF
 
-RES = 64
+RES = 128
 
 Xres = int(RES*aspectRatio)
 
@@ -341,9 +340,9 @@ ppc = 25
 
 #Output and safety stuff
 swarm_repop, swarm_update = 10, 10
-gldbs_output = 10
-checkpoint_every, files_output = 20, 20
-metric_output = 10
+gldbs_output = 1
+checkpoint_every, files_output = 1, 20
+metric_output = 1
 sticky_air_temp = 5
 
 
@@ -488,8 +487,8 @@ Roc = 550e3 #radius of curvature of slab
 
 theta = 89. #Angle to truncate the slab (can also do with with a cutoff depth)
 subzone = 0.0 #X position of subduction zone...in model coordinates
-slabmaxAge = 60e6 #age of subduction plate at trench
-platemaxAge = 60e6 #max age of slab (Plate model)
+slabmaxAge = 40e6 #age of subduction plate at trench
+platemaxAge = 40e6 #max age of slab (Plate model)
 ageAtTrenchSeconds = min(platemaxAge*(3600*24*365), slabmaxAge*(3600*24*365))
 
 
@@ -1192,16 +1191,6 @@ if meltViscosityReduction:
     mvr =  fn.branching.conditional( [ (temperatureField > (ndp.Tmvp + 7.5*(1. - coordinate[1])) , 0.1 ),   (         True, 1.) ] )
     omega = omega*mvr
 
-
-#implementation of the lower mantle viscosity increase, similar to Bello et al. 2015
-a = 1.
-B = 30.
-d0 = 660e3/dp.LS  
-ds = d0/10.
-if lowerMantle:
-    inner1 = 1. - 0.5*(1. - fn.math.tanh(((1. - d0)-(coordinate[1]))/(ds)))
-    modfac = a*fn.math.exp(np.log(B)*inner1)
-    omega = omega*modfac
 
 
 ##Diffusion Creep
