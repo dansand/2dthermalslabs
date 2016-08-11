@@ -22,7 +22,7 @@
 # 
 # Korenaga, Jun. "Scaling of plate tectonic convection with pseudoplastic rheology." Journal of Geophysical Research: Solid Earth 115.B11 (2010).
 
-# In[72]:
+# In[1]:
 
 import numpy as np
 import underworld as uw
@@ -51,7 +51,7 @@ rank = comm.Get_rank()
 # Model name and directories
 # -----
 
-# In[73]:
+# In[2]:
 
 ############
 #Model name.  
@@ -67,7 +67,7 @@ else:
     ModIt = str(sys.argv[1])
 
 
-# In[74]:
+# In[3]:
 
 ###########
 #Standard output directory setup
@@ -97,7 +97,7 @@ if uw.rank()==0:
 comm.Barrier() #Barrier here so no procs run the check in the next cell too early
 
 
-# In[75]:
+# In[4]:
 
 ###########
 #Check if starting from checkpoint
@@ -121,7 +121,7 @@ for dirpath, dirnames, files in os.walk(checkpointPath):
 
 # **Use pint to setup any unit conversions we'll need**
 
-# In[76]:
+# In[5]:
 
 u = pint.UnitRegistry()
 cmpery = 1.*u.cm/u.year
@@ -138,7 +138,7 @@ cmpery.to(mpermy)
 
 # **Set parameter dictionaries**
 
-# In[77]:
+# In[6]:
 
 box_half_width =4000e3
 age_at_trench = 100e6
@@ -152,7 +152,7 @@ print(cmperyear, mpersec )
 
 
 
-# In[184]:
+# In[7]:
 
 ###########
 #Store the physical paramters, scale factors and dimensionless pramters in easyDicts
@@ -259,10 +259,10 @@ ndp.StRA = (3300.*dp.g*(dp.LS)**3)/(dp.eta0 *dp.k) #Composisitional Rayleigh num
 ndp.TaP = 1. - ndp.TPP,  #Dimensionles adiabtic component of delta t
 
 
-# In[136]:
+# In[9]:
 
 #40000./sf.vel, 
-ndp.TPP,ndp.rTemp
+#ndp.RA
 
 
 # In[137]:
@@ -1154,7 +1154,7 @@ else :
 # 
 # 
 
-# In[110]:
+# In[10]:
 
 ##############
 #Set up any functions required by the rheology
@@ -1164,7 +1164,7 @@ strainRate_2ndInvariant = fn.tensor.second_invariant(
                             velocityField.fn_gradient ))
 
 def safe_visc(func, viscmin=ndp.eta_min, viscmax=ndp.eta_max):
-    return fn.misc.max(ndp.eta_min, fn.misc.min(ndp.eta_max, func))
+    return fn.misc.max(viscmin, fn.misc.min(viscmax, func))
 
 
 # In[197]:
@@ -1244,11 +1244,10 @@ lowMantleViscFac = 1.
 finalviscosityFn  = fn.branching.conditional([(depthFn < lowMantleDepth/dp.LS, mantleviscosityFn),
                                   (True, diffusion*lowMantleViscFac)])
 
-
 ##Crust rheology
 crustys =  ndp.cohesion + (depthFn*ndp.fcd*0.1)
 crustplasticity = crustys/(strainRate_2ndInvariant) #extra factor to account for underworld second invariant form
-crustviscosityFn = safe_visc(1./(((1./diffusion) + (1./dislocation) + (1./peierls) + (1./crustplasticity))), viscmin=ndp.eta_min, viscmax=1.)
+crustviscosityFn = safe_visc(1./(((1./diffusion) + (1./dislocation) + (1./peierls) + (1./crustplasticity))), viscmin=ndp.eta_min, viscmax=0.1)
 
 
 # In[207]:
