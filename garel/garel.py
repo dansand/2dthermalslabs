@@ -163,7 +163,7 @@ dp = edict({'LS_RA':2900.*1e3, #Use full mantle depth for the Rayleigh number
             'LS':2000.*1e3,
            'rho':3300,
            'g':9.8, 
-           'eta0':2e20, #Dislocation creep at 250 km, 1573 K, 1e-15 s-1 
+           'eta0':1e20, #Dislocation creep at 250 km, 1573 K, 1e-15 s-1 
            'k':1e-6,
            'a':3e-5, #surface thermal expansivity
            'TP':1573., #potential temp
@@ -1247,7 +1247,7 @@ finalviscosityFn  = fn.branching.conditional([(depthFn < lowMantleDepth/dp.LS, m
 ##Crust rheology
 crustys =  ndp.cohesion + (depthFn*ndp.fcd*0.1)
 crustplasticity = crustys/(strainRate_2ndInvariant) #extra factor to account for underworld second invariant form
-crustviscosityFn = safe_visc(1./(((1./diffusion) + (1./dislocation) + (1./peierls) + (1./crustplasticity))), viscmin=ndp.eta_min, viscmax=0.1)
+crustviscosityFn = safe_visc(1./(((1./diffusion) + (1./dislocation) + (1./peierls) + (1./crustplasticity))), viscmin=ndp.eta_min, viscmax=1.0)
 
 
 # In[207]:
