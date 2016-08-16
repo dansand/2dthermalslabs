@@ -58,7 +58,7 @@ rank = comm.Get_rank()
 #Model name.  
 ############
 Model = "T"
-ModNum = 5
+ModNum = 0
 
 if len(sys.argv) == 1:
     ModIt = "Base"
@@ -224,24 +224,23 @@ ndp = edict({'RA':(dp.g*dp.rho*dp.a*(dp.TP - dp.TS)*(dp.LS_RA)**3)/(dp.k*dp.eta0
             'Eds':dp.Eds*sf.E,
             'Elm':dp.Elm*sf.E,
             'Elm':dp.Elm*sf.E,
-           'Wlm':dp.Vlm*sf.W,
+            'Wlm':dp.Vlm*sf.W,
             'TSP':0., 
             'TBP':1.,
             'TPP':(dp.TP - dp.TS)/dp.deltaT, #dimensionless potential temp
             'rDepth':dp.rDepth/dp.LS,
-             'rTemp':(dp.rTemp- dp.TS)/dp.deltaT,
+            'rTemp':(dp.rTemp- dp.TS)/dp.deltaT,
             'n':3.5, #Dislocation creep stress exponent
-             'np':20., #Peierls creep stress exponent
+            'np':20., #Peierls creep stress exponent
             'TS':dp.TS/dp.deltaT,
             'TP':dp.TP/dp.deltaT,
-             #'eta_crust':1e21/dp.eta0,
-             'eta_crust':0.01,
-            'eta_min':1e-3,
-            'eta_max':1e5,
-            'eta_max_crust':0.3,
+            'eta_crust':0.01, #crust viscosity, if using isoviscous weak crust
+            'eta_min':1e-3, 
+            'eta_max':1e5, #viscosity max in the mantle material
+            'eta_max_crust':0.3, #viscosity max in the weak-crust material
             'H':0.,
             'Tmvp':0.6,
-             'Di': dp.a*dp.g*dp.LS/dp.Cp, #Dissipation number
+            'Di': dp.a*dp.g*dp.LS/dp.Cp, #Dissipation number
             'Steta0':1e2,
             'plate_vel':sf.vel*dp.plate_vel*(cmpery.to(u.m/u.second)).magnitude,})
 
@@ -1325,7 +1324,7 @@ if viscCombine == 'harmonic':
     crust_denom = denom + (1./crustyielding)
     crustviscosityFn = safe_visc(1./crust_denom, viscmin=ndp.eta_min, viscmax=ndp.eta_max_crust)
     #Crust viscosity only active above CRUSTVISCUTOFF
-    finalcrustviscosityFn  = fn.branching.conditional([(depthFn < CRUSTVISCUTOFF, crustviscosityFn),
+    finalcrustviscosityFn  = fn.branching.conditional([((depthFn < CRUSTVISCUTOFF and depthFn > MANTLETOCRUST), crustviscosityFn),
                                   (True, finalviscosityFn)])
 
     
@@ -1343,7 +1342,7 @@ if viscCombine == 'min':
     #Add the weaker crust mechanism, plus any cutoffs
     crustviscosityFn = safe_visc(fn.misc.min(finalviscosityFn, crustyielding), viscmin=ndp.eta_min, viscmax=ndp.eta_max_crust)
     #Crust viscosity only active above CRUSTVISCUTOFF
-    finalcrustviscosityFn  = fn.branching.conditional([(depthFn < CRUSTVISCUTOFF, crustviscosityFn),
+    finalcrustviscosityFn  = fn.branching.conditional([((depthFn < CRUSTVISCUTOFF and depthFn > MANTLETOCRUST), crustviscosityFn),
                                   (True, finalviscosityFn)])
 
 if viscCombine == 'mixed':
@@ -1374,7 +1373,7 @@ if viscCombine == 'mixed':
 #viscdict.keys(), viscdict.values()
 
 #Combine the viscous creep and plasticity
-mantleviscosityFn0 = safe_visc(1./(((1./diffusion) + (1./dislocation) + (1./peierls)   + (1./yielding))))
+#mantleviscosityFn0 = safe_visc(1./(((1./diffusion) + (1./dislocation) + (1./peierls)   + (1./yielding))))
 
 #lowMantleDepth = 660e3
 
