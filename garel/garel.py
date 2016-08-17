@@ -292,6 +292,11 @@ LOWMANTLEDEPTH = (660.*1e3)/dp.LS
 CRUSTVISCUTOFF = (100.*1e3)/dp.LS #Deeper than this, crust material rheology reverts to mantle rheology
 
 
+# In[31]:
+
+
+
+
 # **Model setup parameters**
 
 # In[11]:
@@ -585,25 +590,32 @@ for index, coord in enumerate(mesh.data):
                 temperatureField.data[index] = ndp.TSP
 
 
-# In[22]:
+# In[56]:
 
 #fn.math.erf((sdFn*dp.LS)/(2.*fn.math.sqrt(dp.k*(slabmaxAge*(3600*24*365))))) 
+CRUSTVISCUTOFF, MANTLETOCRUST*3
 
 
-# In[ ]:
+# In[74]:
+
+#cond1 = depthFn < CRUSTVISCUTOFF
+#cond2 = depthFn > MANTLETOCRUST
+
+testCond = operator.and_((depthFn < CRUSTVISCUTOFF), (depthFn > MANTLETOCRUST))
+
+testFn  = fn.branching.conditional([((testCond), 1.),
+                                  (True, 0.)])
 
 
-
-
-# In[23]:
+# In[75]:
 
 fig= glucifer.Figure()
-fig.append( glucifer.objects.Surface(mesh, temperatureField))
+fig.append( glucifer.objects.Surface(mesh, testFn))
 
 #fig.append(glucifer.objects.Mesh(mesh))
-#fig.save_database('test.gldb')
+fig.save_database('test.gldb')
 
-#fig.show()
+fig.show()
 
 
 # def matplot_field(temperatureField, dp):
@@ -637,11 +649,6 @@ fig.append( glucifer.objects.Surface(mesh, temperatureField))
 # In[25]:
 
 #testVariable.data.mean()
-
-
-# In[ ]:
-
-
 
 
 # Boundary conditions
@@ -1307,6 +1314,9 @@ crustyielding = crustys/(strainRate_2ndInvariant) #extra factor to account for u
 viscdict = {}
 for i in viscMechs:
     viscdict[i] = locals()[i]
+
+#Condition for weak crust rheology to be active
+crustCond = operator.and_((depthFn < CRUSTVISCUTOFF), (depthFn > MANTLETOCRUST))    
     
 #Harmonic average of all mechanisms    
 if viscCombine == 'harmonic':
@@ -1323,8 +1333,8 @@ if viscCombine == 'harmonic':
     #Add the weaker crust mechanism, plus any cutoffs
     crust_denom = denom + (1./crustyielding)
     crustviscosityFn = safe_visc(1./crust_denom, viscmin=ndp.eta_min, viscmax=ndp.eta_max_crust)
-    #Crust viscosity only active above CRUSTVISCUTOFF
-    finalcrustviscosityFn  = fn.branching.conditional([((depthFn < CRUSTVISCUTOFF and depthFn > MANTLETOCRUST), crustviscosityFn),
+    #Crust viscosity only active above between CRUSTVISCUTOFF and MANTLETOCRUST
+    finalcrustviscosityFn  = fn.branching.conditional([(crustCond, crustviscosityFn),
                                   (True, finalviscosityFn)])
 
     
@@ -1342,7 +1352,8 @@ if viscCombine == 'min':
     #Add the weaker crust mechanism, plus any cutoffs
     crustviscosityFn = safe_visc(fn.misc.min(finalviscosityFn, crustyielding), viscmin=ndp.eta_min, viscmax=ndp.eta_max_crust)
     #Crust viscosity only active above CRUSTVISCUTOFF
-    finalcrustviscosityFn  = fn.branching.conditional([((depthFn < CRUSTVISCUTOFF and depthFn > MANTLETOCRUST), crustviscosityFn),
+    #Crust viscosity only active above between CRUSTVISCUTOFF and MANTLETOCRUST
+    finalcrustviscosityFn  = fn.branching.conditional([(crustCond, crustviscosityFn),
                                   (True, finalviscosityFn)])
 
 if viscCombine == 'mixed':
@@ -1359,7 +1370,7 @@ if viscCombine == 'mixed':
     #Add the weaker crust mechanism, plus any cutoffs
     crust_denom = denom + (1./crustyielding)
     crustviscosityFn = safe_visc(fn.misc.min(crustyielding,1./crust_denom), viscmin=ndp.eta_min, viscmax=ndp.eta_max_crust)
-    #Crust viscosity only active above CRUSTVISCUTOFF
+    #Crust viscosity only active above between CRUSTVISCUTOFF and MANTLETOCRUST
     finalcrustviscosityFn  = fn.branching.conditional([((depthFn < CRUSTVISCUTOFF and depthFn > MANTLETOCRUST), crustviscosityFn),
                                   (True, finalviscosityFn)])
     
