@@ -596,28 +596,6 @@ for index, coord in enumerate(mesh.data):
 CRUSTVISCUTOFF, MANTLETOCRUST*3
 
 
-# In[74]:
-
-#cond1 = depthFn < CRUSTVISCUTOFF
-#cond2 = depthFn > MANTLETOCRUST
-
-testCond = operator.and_((depthFn < CRUSTVISCUTOFF), (depthFn > MANTLETOCRUST))
-
-testFn  = fn.branching.conditional([((testCond), 1.),
-                                  (True, 0.)])
-
-
-# In[75]:
-
-fig= glucifer.Figure()
-fig.append( glucifer.objects.Surface(mesh, testFn))
-
-#fig.append(glucifer.objects.Mesh(mesh))
-fig.save_database('test.gldb')
-
-fig.show()
-
-
 # def matplot_field(temperatureField, dp):
 #     if uw.nProcs() != 1:
 #         print("only in Serial folks")
@@ -1301,7 +1279,7 @@ crustys =  ndp.cohesion + (depthFn*ndp.fcd*0.1)
 crustyielding = crustys/(strainRate_2ndInvariant) #extra factor to account for underworld second invariant form
 
 
-# In[51]:
+# In[76]:
 
 ############
 #Rheology: combine viscous mechanisms in various ways 
@@ -1340,7 +1318,6 @@ if viscCombine == 'harmonic':
     
     
 if viscCombine == 'min':
-    print 'yes'
     mantleviscosityFn = fn.misc.constant(ndp.eta_max)
     for mech in viscdict.values():
         mantleviscosityFn = fn.misc.min(mech, mantleviscosityFn )
@@ -1373,10 +1350,6 @@ if viscCombine == 'mixed':
     #Crust viscosity only active above between CRUSTVISCUTOFF and MANTLETOCRUST
     finalcrustviscosityFn  = fn.branching.conditional([((depthFn < CRUSTVISCUTOFF and depthFn > MANTLETOCRUST), crustviscosityFn),
                                   (True, finalviscosityFn)])
-    
-    
-    
-    
     
     
     
