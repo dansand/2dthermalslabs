@@ -1869,7 +1869,7 @@ else:
 
 
 # In[ ]:
-
+ageDT = 0.
 #while step < 21:
 while realtime < 1.:
 

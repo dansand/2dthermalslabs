@@ -1836,7 +1836,7 @@ viscDisProj.solve()
 
 
 # In[ ]:
-
+ageDT = 0.
 # initialise timer for computation
 start = time.clock()
 # setup summary output file (name above)
