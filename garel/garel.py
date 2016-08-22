@@ -307,8 +307,8 @@ CRUSTVISCUTOFF = (100.*1e3)/dp.LS #Deeper than this, crust material rheology rev
 ###########
 
 #Modelling and Physics switches
-refineMesh = False
-stickyAir = True 
+refineMesh = True
+stickyAir = False 
 meltViscosityReduction = False
 symmetricIC = False
 VelBC = False
@@ -330,7 +330,7 @@ else:
     squareModel = False
     
     
-RES = 256
+RES = 64
 Xres = int(RES*aspectRatio)
 if MINY == 0.5:
     Xres = int(2.*RES*aspectRatio)
@@ -514,8 +514,8 @@ Roc = 350e3 #radius of curvature of slab
 
 theta = 89. #Angle to truncate the slab (can also do with with a cutoff depth)
 subzone = 0.0 #X position of subduction zone...in model coordinates
-slabmaxAge = 100e6 #age of subduction plate at trench
-platemaxAge = 100e6 #max age of slab (Plate model)
+slabmaxAge = 35e6 #age of subduction plate at trench
+platemaxAge = 35e6 #max age of slab (Plate model)
 ageAtTrenchSeconds = min(platemaxAge*(3600*24*365), slabmaxAge*(3600*24*365))
 
 
@@ -627,7 +627,7 @@ CRUSTVISCUTOFF, MANTLETOCRUST*3
 # fig, ax = matplot_field(temperatureField, dp)
 # fig.savefig('test.png')       
 
-# In[23]:
+# In[24]:
 
 fig= glucifer.Figure(quality=3)
 
@@ -964,7 +964,7 @@ fig.save_database('test.gldb')
 
 # ## phase and compositional buoyancy
 
-# In[ ]:
+# In[37]:
 
 ##############
 #Set up phase buoyancy contributions
@@ -1022,7 +1022,7 @@ garnet_phase_buoyancy = garnetPhase.buoyancy_sum(temperatureField, depthFn, dp.g
 
 
 
-# In[ ]:
+# In[38]:
 
 ##############
 #Set up compositional buoyancy contributions
@@ -1063,7 +1063,7 @@ else :
 # 
 # 
 
-# In[ ]:
+# In[39]:
 
 ##############
 #Set up any functions required by the rheology
@@ -1076,7 +1076,7 @@ def safe_visc(func, viscmin=ndp.eta_min, viscmax=ndp.eta_max):
     return fn.misc.max(viscmin, fn.misc.min(viscmax, func))
 
 
-# In[ ]:
+# In[40]:
 
 ##############
 #Get dimensional viscosity values at reference values of temp, pressure, and strain rate
@@ -1091,12 +1091,12 @@ dffac = rDf/dp.eta0
 prfac = rPr/dp.eta0
 
 
-# In[ ]:
+# In[41]:
 
 print(dsfac, dffac, prfac)
 
 
-# In[ ]:
+# In[42]:
 
 #These guys are required because we are approximating compressibility in the pressure term for the flow law,
 #See 'non_linear_rheology' Notebook for more details
@@ -1107,7 +1107,7 @@ correctrDepth = np.log(1. - dp.rho*dp.g*dp.Ba*dp.LS*ndp.rDepth)/np.log(1. - dp.r
 ndp.rDepth*dp.LS, correctrDepth*dp.LS
 
 
-# In[ ]:
+# In[43]:
 
 ############
 #Rheology: create UW2 functions for all viscous mechanisms
@@ -1148,7 +1148,16 @@ crustys =  ndp.cohesion + (depthFn*ndp.fcd*0.1)
 crustyielding = crustys/(strainRate_2ndInvariant) #extra factor to account for underworld second invariant form
 
 
-# In[ ]:
+#increase in lower mantle viscosity
+lowMantleViscFac = 10.
+
+
+# In[75]:
+
+#viscCombine = 'mixed'
+
+
+# In[76]:
 
 ############
 #Rheology: combine viscous mechanisms in various ways 
@@ -1172,7 +1181,6 @@ if viscCombine == 'harmonic':
         denom += 1./mech
     mantleviscosityFn = safe_visc(1./denom)
     harmonic_test = mantleviscosityFn
-    lowMantleViscFac = 10.
     #Only diffusuion creep for lower mantle
     finalviscosityFn  = fn.branching.conditional([(depthFn < LOWMANTLEDEPTH, mantleviscosityFn),
                                   (True, safe_visc(diffusion*lowMantleViscFac))])
@@ -1198,7 +1206,7 @@ if viscCombine == 'min':
     finalviscosityFn  = fn.branching.conditional([(depthFn < LOWMANTLEDEPTH, mantleviscosityFn),
                                   (True, safe_visc(diffusion*lowMantleViscFac))])
     #Add the weaker crust mechanism, plus any cutoffs
-    crustviscosityFn1 = safe_visc(fn.misc.min(finalviscosityFn, crustyielding), viscmin=ndp.eta_min, viscmax=ndp.eta_max)
+    crustviscosityFn1 = safe_visc(fn.misc.min(finalviscosityFn, crustyielding), viscmin=ndp.eta_min, viscmax=ndp.eta_max_crust)
     crustviscosityFn2 = safe_visc(fn.misc.min(finalviscosityFn, crustyielding), viscmin=ndp.eta_min, viscmax=ndp.eta_max_crust)
     #Crust viscosity only active above CRUSTVISCUTOFF
     #Crust viscosity only active above between CRUSTVISCUTOFF and MANTLETOCRUST
@@ -1212,14 +1220,13 @@ if viscCombine == 'mixed':
         denom += 1./mech
     mantleviscosityFn = safe_visc(fn.misc.min(yielding, (1./denom))) #min of harmonic average and yielding
     mixed_test = mantleviscosityFn
-    lowMantleViscFac = 10.
     #Only diffusuion creep for lower mantle
     finalviscosityFn  = fn.branching.conditional([(depthFn < LOWMANTLEDEPTH, mantleviscosityFn),
                                   (True, safe_visc(diffusion*lowMantleViscFac))])
     
     #Add the weaker crust mechanism, plus any cutoffs
     crust_denom = denom + (1./crustyielding)
-    crustviscosityFn1 = safe_visc(fn.misc.min(crustyielding,1./crust_denom), viscmin=ndp.eta_min, viscmax=ndp.eta_max)
+    crustviscosityFn1 = safe_visc(fn.misc.min(crustyielding,1./crust_denom), viscmin=ndp.eta_min, viscmax=ndp.eta_max_crust)
     crustviscosityFn2 = safe_visc(fn.misc.min(crustyielding,1./crust_denom), viscmin=ndp.eta_min, viscmax=ndp.eta_max_crust)
     #Crust viscosity only active above between CRUSTVISCUTOFF and MANTLETOCRUST
     finalcrustviscosityFn  = fn.branching.conditional([(depthFn < MANTLETOCRUST, crustviscosityFn1),
@@ -1239,14 +1246,7 @@ if viscCombine == 'mixed':
 
 
 
-# In[ ]:
-
-#viscCombine = 'mixed'
-#viscCombine
-#ndp.eta_max_crust
-
-
-# In[ ]:
+# In[48]:
 
 fig= glucifer.Figure()
 #fig.append( glucifer.objects.Points(gSwarm, densityMapFn))
@@ -1256,7 +1256,7 @@ fig.append( glucifer.objects.Surface(mesh, mantleviscosityFn, logScale=True))
 #fig.show()
 
 
-# In[ ]:
+# In[49]:
 
 ############
 #Build a weak zone
@@ -1288,12 +1288,12 @@ sig = half_width/dp.LS
 gammaFn =  fn.math.exp(-fn.math.pow(fnBuilder, 2.) / (2. * fn.math.pow(sig, 2.)))
 
 
-# In[ ]:
+# In[50]:
 
 testFn = disGen((0., 1.))
 
 
-# In[ ]:
+# In[51]:
 
 weakVisc = 1.
 weakzoneFn = fn.misc.min((weakVisc/gammaFn*1.),ndp.eta_max)
@@ -1307,7 +1307,7 @@ combmantleviscosityFn = fn.misc.max(ndp.eta_min, fn.misc.min(mantleviscosityFn, 
     
 
 
-# In[ ]:
+# In[52]:
 
 #velocityField.data.max()
 
@@ -1352,7 +1352,7 @@ combmantleviscosityFn = fn.misc.max(ndp.eta_min, fn.misc.min(mantleviscosityFn, 
 # ax.set_yscale("log", nonposy='clip')
 # ax.legend(loc = 3)
 
-# In[ ]:
+# In[53]:
 
 #fig= glucifer.Figure()
 #fig.append( glucifer.objects.Points(gSwarm,materialVariable))
@@ -1364,7 +1364,7 @@ combmantleviscosityFn = fn.misc.max(ndp.eta_min, fn.misc.min(mantleviscosityFn, 
 #fig.save_database('test.gldb')
 
 
-# In[ ]:
+# In[54]:
 
 #ndp.SR
 
@@ -1378,7 +1378,7 @@ combmantleviscosityFn = fn.misc.max(ndp.eta_min, fn.misc.min(mantleviscosityFn, 
 # -----
 # 
 
-# In[ ]:
+# In[55]:
 
 densityMapFn = fn.branching.map( fn_key = materialVariable,
                          mapping = {airIndex:ndp.StRA,
@@ -1387,7 +1387,7 @@ densityMapFn = fn.branching.map( fn_key = materialVariable,
                                     harzIndex:harzbuoyancyFn} )
 
 
-# In[ ]:
+# In[56]:
 
 
 # Define our vertical unit vector using a python tuple (this will be automatically converted to a function).
@@ -1397,7 +1397,7 @@ gravity = ( 0.0, 1.0 )
 buoyancyFn = densityMapFn * gravity
 
 
-# In[ ]:
+# In[57]:
 
 stokesPIC = uw.systems.Stokes(velocityField=velocityField, 
                               pressureField=pressureField,
@@ -1406,14 +1406,14 @@ stokesPIC = uw.systems.Stokes(velocityField=velocityField,
                               fn_bodyforce=buoyancyFn )
 
 
-# In[ ]:
+# In[58]:
 
 solver = uw.systems.Solver(stokesPIC)
 if not checkpointLoad:
     solver.solve() #A solve on the linear visocisty is unhelpful unless we're starting from scratch
 
 
-# In[ ]:
+# In[59]:
 
 fig= glucifer.Figure()
 #fig.append( glucifer.objects.Points(gSwarm,tracerVariable, colours= 'white black'))
@@ -1425,7 +1425,7 @@ fig= glucifer.Figure()
 #fig.save_database('test.gldb')
 
 
-# In[ ]:
+# In[78]:
 
 if WeakZone:
     print(1)
@@ -1457,13 +1457,13 @@ else: #Use weak crust
 
 
 
-# In[ ]:
+# In[79]:
 
 #Add the non-linear viscosity to the Stokes system
 stokesPIC.fn_viscosity = viscosityMapFn
 
 
-# In[ ]:
+# In[80]:
 
 solver.set_inner_method("mumps")
 solver.options.scr.ksp_type="cg"
@@ -1478,7 +1478,7 @@ solver.print_stats()
 
 
 
-# In[ ]:
+# In[63]:
 
 #Check which particles are yielding
 #yieldingCheck.data[:] = 0
@@ -1975,7 +1975,7 @@ f_o.close()
 print 'step =',step
 
 
-# In[ ]:
+# In[81]:
 
 viscVariable = gSwarm.add_variable( dataType="float", count=1 )
 viscVariable.data[:] = viscosityMapFn.evaluate(gSwarm)
@@ -1984,13 +1984,13 @@ viscVariable.data[:] = viscosityMapFn.evaluate(gSwarm)
 #buoyVariable.data[:] = densityMapFn.evaluate(gSwarm)
 
 
-# In[ ]:
+# In[82]:
 
 fig= glucifer.Figure()
 #fig.append( glucifer.objects.Points(gSwarm,buoyVariable))
 fig.append( glucifer.objects.Points(gSwarm, viscosityMapFn, logScale=True, valueRange =[1e-3,1e5]))
 #fig.append( glucifer.objects.Surface(mesh, strainRate_2ndInvariant, logScale=True, valueRange =[1e-3,1e5] ))
-#fig.append( glucifer.objects.VectorArrows(mesh,velocityField, scaling=0.002))
+fig.append( glucifer.objects.VectorArrows(mesh,velocityField, scaling=0.002))
 #fig.append( glucifer.objects.Surface(mesh,densityMapFn))
 #fig.append( glucifer.objects.Surface(mesh,raylieghFn))
 
@@ -1998,17 +1998,16 @@ fig.show()
 fig.save_database('test.gldb')
 
 
-# In[ ]:
+# In[72]:
 
-#fig= glucifer.Figure()
+fig= glucifer.Figure()
 #fig.append( glucifer.objects.Points(gSwarm,testVariable))
 #fig.append( glucifer.objects.Points(gSwarm, viscosityMapFn, logScale=True, valueRange =[1e-3,1e5]))
-#fig.append( glucifer.objects.Surface(mesh, finalviscosityFn, logScale=True, valueRange =[1e-3,1e5] ))
-#fig.append( glucifer.objects.VectorArrows(mesh,velocityField, scaling=0.00002))
+#fig.append( glucifer.objects.Surface(mesh, finalviscosityFn, logScale=True, valueRange =[1e-3,1e5] ))#fig.append( glucifer.objects.VectorArrows(mesh,velocityField, scaling=0.00002))
 #fig.append( glucifer.objects.Surface(mesh,pressureField))
-#fig.append( glucifer.objects.Surface(mesh,raylieghFn))
+fig.append( glucifer.objects.Surface(mesh,temperatureField))
 
-#fig.show()
+fig.show()
 #fig.save_database('test.gldb')
 
 
