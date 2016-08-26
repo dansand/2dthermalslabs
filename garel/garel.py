@@ -1350,11 +1350,6 @@ fnViscMin = fn.branching.conditional( viscMinConditions )
 #fig.save_database('test.gldb')
 
 
-# In[ ]:
-
-np.unique(viscMinVariable.evaluate(gSwarm))
-
-
 # Stokes system setup
 # -----
 # 
