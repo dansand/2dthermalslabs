@@ -694,15 +694,16 @@ temperatureField.data.min()
 
 # In[80]:
 
-for index in mesh.specialSets["MinJ_VertexSet"]:
-    temperatureField.data[index] = potTempFn.evaluate(bWalls).min() #Adiabatic temp at bottom of mesh/domain
-for index in mesh.specialSets["MaxJ_VertexSet"]:
-    temperatureField.data[index] = ndp.TSP
-    
 iWalls = mesh.specialSets["MinI_VertexSet"] + mesh.specialSets["MaxI_VertexSet"]
 jWalls = mesh.specialSets["MinJ_VertexSet"] + mesh.specialSets["MaxJ_VertexSet"]
 tWalls = mesh.specialSets["MaxJ_VertexSet"]
 bWalls =mesh.specialSets["MinJ_VertexSet"]
+
+
+for index in mesh.specialSets["MinJ_VertexSet"]:
+    temperatureField.data[index] = potTempFn.evaluate(bWalls).min() #Adiabatic temp at bottom of mesh/domain
+for index in mesh.specialSets["MaxJ_VertexSet"]:
+    temperatureField.data[index] = ndp.TSP
 
 VelBCs = mesh.specialSets["Empty"]
 
