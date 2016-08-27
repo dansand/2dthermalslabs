@@ -1984,9 +1984,9 @@ while realtime < 1.:
         fnamedb = "dbFig" + "_" + str(ModIt) + "_" + str(step) + ".gldb"
         outputPath = os.path.join(outputPath + "gldbs/" + fnamedb)
         store.step = step
-        figTemp.save(    outputPath + "Temp"    + str(step).zfill(4))
+        #figTemp.save(    outputPath + "Temp"    + str(step).zfill(4))
         figVisc.save( outputPath + "Visc" + str(step).zfill(4))
-        figMech.save( outputPath + "Mech" + str(step).zfill(4))
+        #figMech.save( outputPath + "Mech" + str(step).zfill(4))
     ################
     #Files output
     ################ 
