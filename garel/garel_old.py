@@ -23,7 +23,7 @@
 # 
 # Korenaga, Jun. "Scaling of plate tectonic convection with pseudoplastic rheology." Journal of Geophysical Research: Solid Earth 115.B11 (2010).
 
-# In[202]:
+# In[43]:
 
 import numpy as np
 import underworld as uw
@@ -53,13 +53,13 @@ rank = comm.Get_rank()
 # Model name and directories
 # -----
 
-# In[203]:
+# In[44]:
 
 ############
 #Model name.  
 ############
 Model = "T"
-ModNum = 0
+ModNum = 1
 
 if len(sys.argv) == 1:
     ModIt = "Base"
@@ -69,7 +69,7 @@ else:
     ModIt = str(sys.argv[1])
 
 
-# In[204]:
+# In[45]:
 
 ###########
 #Standard output directory setup
@@ -99,7 +99,7 @@ if uw.rank()==0:
 comm.Barrier() #Barrier here so no procs run the check in the next cell too early
 
 
-# In[205]:
+# In[46]:
 
 ###########
 #Check if starting from checkpoint
@@ -123,7 +123,7 @@ for dirpath, dirnames, files in os.walk(checkpointPath):
 
 # **Use pint to setup any unit conversions we'll need**
 
-# In[206]:
+# In[47]:
 
 u = pint.UnitRegistry()
 cmpery = 1.*u.cm/u.year
@@ -133,7 +133,7 @@ spery = year.to(u.sec)
 cmpery.to(mpermy)
 
 
-# In[207]:
+# In[48]:
 
 box_half_width =4000e3
 age_at_trench = 100e6
@@ -144,7 +144,7 @@ print(cmperyear, mpersec )
 
 # **Set parameter dictionaries**
 
-# In[208]:
+# In[49]:
 
 ###########
 #Store the physical parameters, scale factors and dimensionless pramters in easyDicts
@@ -155,7 +155,8 @@ print(cmperyear, mpersec )
 #Style => parameters_like_this
 
 dp = edict({'LS_RA':2900.*1e3, #Use full mantle depth for the Rayleigh number
-            'LS':2000.*1e3, #Depth of domain
+            'LS':2900.*1e3, #Length_scale
+            'depth':2000.*1e3, #Depth of domain
            'rho':3300.,  #reference density
            'g':9.8, #surface gravity
            'eta0':1e20, #Dislocation creep at 250 km, 1573 K, 1e-15 s-1 
@@ -206,7 +207,8 @@ sf = edict({'stress':dp.LS**2/(dp.k*dp.eta0),
 
 #dimensionless parameters
 
-ndp = edict({'RA':(dp.g*dp.rho*dp.a*(dp.TP - dp.TS)*(dp.LS_RA)**3)/(dp.k*dp.eta0),
+ndp = edict({'RA':(dp.g*dp.rho*dp.a*(dp.TP - dp.TS)*(dp.LS)**3)/(dp.k*dp.eta0),
+             'depth':dp.depth/dp.LS,
             'cohesion':dp.cohesion*sf.stress,
             'fcd':dp.fc*sf.lith_grad,
             'gamma':dp.fc/(dp.a*dp.deltaT),
@@ -257,26 +259,25 @@ ndp.StRA = (3300.*dp.g*(dp.LS)**3)/(dp.eta0 *dp.k) #Composisitional Rayleigh num
 ndp.TaP = 1. - ndp.TPP,  #Dimensionles adiabtic component of delta t
 
 
-# In[209]:
+# In[50]:
 
 #40000./sf.vel, 
-#ndp.RA
-ndp.plate_vel
+#sf.lith_grad/(dp.rho*dp.g*(2000e3)**3/(dp.eta0*dp.k) )
 
 
-# In[210]:
+# In[51]:
 
 #(4.0065172577e-06*sf.SR)/(3600.*24*365)
 
 
-# In[211]:
+# In[52]:
 
 dp.CVR = (0.1*(dp.k/dp.LS)*ndp.RA**(2/3.))
 ndp.CVR = dp.CVR*sf.vel #characteristic velocity
 ndp.CVR, ndp.plate_vel, ndp.RA , (dp.TP - dp.TS)
 
 
-# In[212]:
+# In[53]:
 
 ###########
 #lengths scales for various processes (material transistions etc.)
@@ -297,7 +298,7 @@ AGETRACKDEPTH = 100e3/dp.LS #above this depth we track the age of the lithsphere
 
 # **Model setup parameters**
 
-# In[213]:
+# In[54]:
 
 ###########
 #Model setup parameters
@@ -315,10 +316,12 @@ viscMechs = ['diffusion', 'dislocation', 'peierls', 'yielding']
 viscCombine = 'harmonic' #'harmonic', 'min', 'mixed'....
 
 #Domain and Mesh paramters
+
+
 dim = 2          # number of spatial dimensions
-MINX = -1.*aspectRatio/2.
-MINY = 0.
-MAXX = 1.*aspectRatio/2.
+MINX = -1.*ndp.depth*aspectRatio/2.
+MINY = 1. - ndp.depth
+MAXX = 1.*ndp.depth*aspectRatio/2.
 MAXY = 1.
 if MINX == 0.:
     squareModel = True
@@ -326,7 +329,7 @@ else:
     squareModel = False
     
     
-RES = 64
+RES = 256
 Xres = int(RES*aspectRatio)
 if MINY == 0.5:
     Xres = int(2.*RES*aspectRatio)
@@ -360,7 +363,7 @@ sticky_air_temp = 5
 # Create mesh and finite element variables
 # ------
 
-# In[214]:
+# In[55]:
 
 mesh = uw.mesh.FeMesh_Cartesian( elementType = (elementType),
                                  elementRes  = (Xres, Yres), 
@@ -373,12 +376,12 @@ temperatureField    = uw.mesh.MeshVariable( mesh=mesh,         nodeDofCount=1 )
 temperatureDotField = uw.mesh.MeshVariable( mesh=mesh,         nodeDofCount=1 )
 
 
-# In[215]:
+# In[56]:
 
 mesh.reset()
 
 
-# In[216]:
+# In[57]:
 
 ###########
 #Mesh refinement
@@ -404,7 +407,7 @@ if refineMesh:
     spmesh.deform_1d(deform_lengths, mesh,axis = 'x',norm = 'Min', constraints = [])
 
 
-# In[217]:
+# In[58]:
 
 axis = 1
 orgs = np.linspace(mesh.minCoord[axis], mesh.maxCoord[axis], mesh.elementRes[axis] + 1)
@@ -415,7 +418,7 @@ value_to_constrain = 1.
 yconst = [(spmesh.find_closest(orgs, value_to_constrain), np.array([value_to_constrain,0]))]
 
 
-# In[218]:
+# In[59]:
 
 ###########
 #Mesh refinement
@@ -439,7 +442,7 @@ if refineMesh:
     spmesh.deform_1d(deform_lengths, mesh,axis = 'y',norm = 'Min', constraints = yconst)
 
 
-# In[219]:
+# In[60]:
 
 #fig= glucifer.Figure()
 
@@ -453,7 +456,7 @@ if refineMesh:
 # -------
 # 
 
-# In[220]:
+# In[61]:
 
 coordinate = fn.input()
 depthFn = 1. - coordinate[1] #a function providing the depth
@@ -468,7 +471,7 @@ abHeatFn = -1.*velocityField[1]*temperatureField*ndp.Di #a function providing th
 
 
 
-# In[221]:
+# In[62]:
 
 ###########
 #Thermal initial condition:
@@ -497,7 +500,7 @@ if symmetricIC:
         temperatureField.data[:] = tempFn.evaluate(mesh)  
 
 
-# In[222]:
+# In[63]:
 
 ###########
 #Thermal initial condition 2: 
@@ -586,7 +589,7 @@ if not symmetricIC:
 
 
 
-# In[223]:
+# In[64]:
 
 #Make sure material in sticky air region is at the surface temperature.
 for index, coord in enumerate(mesh.data):
@@ -594,7 +597,7 @@ for index, coord in enumerate(mesh.data):
                 temperatureField.data[index] = ndp.TSP
 
 
-# In[224]:
+# In[65]:
 
 #fn.math.erf((sdFn*dp.LS)/(2.*fn.math.sqrt(dp.k*(slabmaxAge*(3600*24*365))))) 
 CRUSTVISCUTOFF, MANTLETOCRUST*3
@@ -624,7 +627,7 @@ CRUSTVISCUTOFF, MANTLETOCRUST*3
 # fig, ax = matplot_field(temperatureField, dp)
 # fig.savefig('test.png')       
 
-# In[225]:
+# In[74]:
 
 #fig= glucifer.Figure(quality=3)
 
@@ -637,17 +640,20 @@ CRUSTVISCUTOFF, MANTLETOCRUST*3
 # Boundary conditions
 # -------
 
-# In[226]:
+# In[73]:
 
-for index in mesh.specialSets["MinJ_VertexSet"]:
-    temperatureField.data[index] = ndp.TBP
-for index in mesh.specialSets["MaxJ_VertexSet"]:
-    temperatureField.data[index] = ndp.TSP
-    
 iWalls = mesh.specialSets["MinI_VertexSet"] + mesh.specialSets["MaxI_VertexSet"]
 jWalls = mesh.specialSets["MinJ_VertexSet"] + mesh.specialSets["MaxJ_VertexSet"]
 tWalls = mesh.specialSets["MaxJ_VertexSet"]
 bWalls =mesh.specialSets["MinJ_VertexSet"]
+
+
+for index in mesh.specialSets["MinJ_VertexSet"]:
+    temperatureField.data[index] = potTempFn.evaluate(bWalls).min() #Adiabatic temp at bottom of mesh/domain
+for index in mesh.specialSets["MaxJ_VertexSet"]:
+    temperatureField.data[index] = ndp.TSP
+    
+
 
 VelBCs = mesh.specialSets["Empty"]
 
@@ -1311,11 +1317,6 @@ fnViscMin = fn.branching.conditional( viscMinConditions )
 #fig.append( glucifer.objects.Points(gSwarm,temperatureField))
 #fig.show()
 #fig.save_database('test.gldb')
-
-
-# In[201]:
-
-np.unique(viscMinVariable.evaluate(gSwarm))
 
 
 # Stokes system setup
