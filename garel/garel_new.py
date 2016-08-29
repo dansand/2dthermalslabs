@@ -1974,12 +1974,12 @@ while realtime < 1.:
     if (step % gldbs_output == 0):
         #Rebuild any necessary swarm variables
         #Write gldbs
-        fnamedb = "dbFig" + "_" + str(ModIt) + "_" + str(step) + ".gldb"
-        outputPath = os.path.join(outputPath + "gldbs/" + fnamedb)
+        #fnamedb = "dbFig" + "_" + str(ModIt) + "_" + str(step) + ".gldb"        
+        fullpath = os.path.join(outputPath + "gldbs/")
         store.step = step
         #figTemp.save(    outputPath + "Temp"    + str(step).zfill(4))
-        figVisc.save( outputPath + "Visc" + str(step).zfill(4))
-        figMech.save( outputPath + "Mech" + str(step).zfill(4))
+        figVisc.save( fullPath + "Visc" + str(step).zfill(4))
+        figMech.save( fullPath + "Mech" + str(step).zfill(4))
     ################
     #Files output
     ################ 
