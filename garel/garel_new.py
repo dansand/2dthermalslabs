@@ -1774,8 +1774,9 @@ Rms, Rms_surf, Max_vx_surf
 # In[37]:
 
 store = glucifer.Store('subduction')
-figTemp = glucifer.Figure(store,figsize=(300*np.round(aspectRatio,2),300))
-figTemp.append( glucifer.objects.Points(gSwarm,temperatureField))
+
+#figTemp = glucifer.Figure(store,figsize=(300*np.round(aspectRatio,2),300))
+#figTemp.append( glucifer.objects.Points(gSwarm,temperatureField))
 
 figVisc= glucifer.Figure(store, figsize=(300*np.round(aspectRatio,2),300))
 figVisc.append( glucifer.objects.Points(gSwarm,viscosityMapFn, logScale=True, valueRange =[1e-3,1e5]))
@@ -1978,7 +1979,7 @@ while realtime < 1.:
         store.step = step
         #figTemp.save(    outputPath + "Temp"    + str(step).zfill(4))
         figVisc.save( outputPath + "Visc" + str(step).zfill(4))
-        #figMech.save( outputPath + "Mech" + str(step).zfill(4))
+        figMech.save( outputPath + "Mech" + str(step).zfill(4))
     ################
     #Files output
     ################ 
