@@ -23,7 +23,7 @@
 # 
 # Korenaga, Jun. "Scaling of plate tectonic convection with pseudoplastic rheology." Journal of Geophysical Research: Solid Earth 115.B11 (2010).
 
-# In[1]:
+# In[19]:
 
 import numpy as np
 import underworld as uw
@@ -50,7 +50,7 @@ comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 
 
-# In[2]:
+# In[20]:
 
 #store = glucifer.Store('subduction')
 #figParticle = glucifer.Figure( store, figsize=(960,300), name="Particles" )
@@ -61,7 +61,7 @@ rank = comm.Get_rank()
 # Model name and directories
 # -----
 
-# In[3]:
+# In[21]:
 
 ############
 #Model name.  
@@ -77,7 +77,7 @@ else:
     ModIt = str(sys.argv[1])
 
 
-# In[4]:
+# In[22]:
 
 ###########
 #Standard output directory setup
@@ -107,7 +107,7 @@ if uw.rank()==0:
 comm.Barrier() #Barrier here so no procs run the check in the next cell too early
 
 
-# In[5]:
+# In[23]:
 
 ###########
 #Check if starting from checkpoint
@@ -131,7 +131,7 @@ for dirpath, dirnames, files in os.walk(checkpointPath):
 
 # **Use pint to setup any unit conversions we'll need**
 
-# In[6]:
+# In[24]:
 
 u = pint.UnitRegistry()
 cmpery = 1.*u.cm/u.year
@@ -141,7 +141,7 @@ spery = year.to(u.sec)
 cmpery.to(mpermy)
 
 
-# In[7]:
+# In[25]:
 
 box_half_width =4000e3
 age_at_trench = 100e6
@@ -152,7 +152,7 @@ print(cmperyear, mpersec )
 
 # **Set parameter dictionaries**
 
-# In[8]:
+# In[26]:
 
 ###########
 #Store the physical parameters, scale factors and dimensionless pramters in easyDicts
@@ -261,24 +261,12 @@ ndp.StRA = (3300.*dp.g*(dp.LS)**3)/(dp.eta0 *dp.k) #Composisitional Rayleigh num
 ndp.TaP = 1. - ndp.TPP,  #Dimensionles adiabtic component of delta t
 
 
-# In[9]:
+# In[27]:
 
 ndp.RA, (dp.TP - dp.TS), dp.deltaTa
 
 
-# In[10]:
-
-#(4.0065172577e-06*sf.SR)/(3600.*24*365)
-
-
-# In[11]:
-
-dp.CVR = (0.1*(dp.k/dp.LS)*ndp.RA**(2/3.))
-ndp.CVR = dp.CVR*sf.vel #characteristic velocity
-ndp.CVR, ndp.plate_vel, ndp.RA , (dp.TP - dp.TS)
-
-
-# In[12]:
+# In[30]:
 
 ###########
 #lengths scales for various processes (material transistions etc.)
@@ -299,7 +287,7 @@ AGETRACKDEPTH = 100e3/dp.LS #above this depth we track the age of the lithsphere
 
 # **Model setup parameters**
 
-# In[13]:
+# In[76]:
 
 ###########
 #Model setup parameters
@@ -317,7 +305,7 @@ viscCombine = 'harmonic' #'harmonic', 'min', 'mixed'....
 
 #Domain and Mesh paramters
 
-RES = 256
+RES = 192
 
 VelBC = False
 if dp.depth == 2900.e3:
@@ -330,7 +318,7 @@ else:
     print ("depth should be 2900km, or 1450 km")
 
 dim = 2          # number of spatial dimensions
-hw = np.round(5000e3/dp.LS, 3)
+hw = np.round(5000e3/dp.LS, 1)
 MINX = -1*hw
 MINY = 1. - (dp.depth/dp.LS)
 
@@ -365,10 +353,15 @@ metric_output = 30
 sticky_air_temp = 5
 
 
+# In[77]:
+
+MINX, MAXX
+
+
 # Create mesh and finite element variables
 # ------
 
-# In[14]:
+# In[78]:
 
 mesh = uw.mesh.FeMesh_Cartesian( elementType = (elementType),
                                  elementRes  = (Xres, Yres), 
@@ -381,12 +374,12 @@ temperatureField    = uw.mesh.MeshVariable( mesh=mesh,         nodeDofCount=1 )
 temperatureDotField = uw.mesh.MeshVariable( mesh=mesh,         nodeDofCount=1 )
 
 
-# In[15]:
+# In[79]:
 
 mesh.reset()
 
 
-# In[16]:
+# In[80]:
 
 ###########
 #Mesh refinement
@@ -402,7 +395,7 @@ if refineMesh:
 
     deform_lengths = edge_rest_lengths.copy()
     min_point =  (abs(mesh.maxCoord[axis]) - abs(mesh.minCoord[axis]))/2.
-    el_reduction = 0.6001
+    el_reduction = 0.51
     dx = mesh.maxCoord[axis] - min_point
 
     deform_lengths = deform_lengths -                                     ((1.-el_reduction) *deform_lengths[0]) +                                     abs((origcoords[1:] - min_point))*((0.5*deform_lengths[0])/dx)
@@ -412,7 +405,7 @@ if refineMesh:
     spmesh.deform_1d(deform_lengths, mesh,axis = 'x',norm = 'Min', constraints = [])
 
 
-# In[17]:
+# In[81]:
 
 axis = 1
 orgs = np.linspace(mesh.minCoord[axis], mesh.maxCoord[axis], mesh.elementRes[axis] + 1)
@@ -423,7 +416,7 @@ value_to_constrain = 1.
 yconst = [(spmesh.find_closest(orgs, value_to_constrain), np.array([value_to_constrain,0]))]
 
 
-# In[32]:
+# In[82]:
 
 ###########
 #Mesh refinement
@@ -447,7 +440,7 @@ if refineMesh:
     spmesh.deform_1d(deform_lengths, mesh,axis = 'y',norm = 'Min', constraints = yconst)
 
 
-# In[35]:
+# In[84]:
 
 #fig= glucifer.Figure()
 #fig.append(glucifer.objects.Mesh(mesh))
@@ -460,7 +453,7 @@ if refineMesh:
 # -------
 # 
 
-# In[59]:
+# In[ ]:
 
 coordinate = fn.input()
 depthFn = 1. - coordinate[1] #a function providing the depth
@@ -1982,8 +1975,8 @@ while realtime < 1.:
             fullpath = os.path.join(outputPath + "gldbs/")
             store.step = step
             #Save figures to store
-            figVisc.save( fullPath + "Visc" + str(step).zfill(4))
-            figMech.save( fullPath + "Mech" + str(step).zfill(4))
+            figVisc.save( fullpath + "Visc" + str(step).zfill(4))
+            figMech.save( fullpath + "Mech" + str(step).zfill(4))
             #figTemp.save(    outputPath + "Temp"    + str(step).zfill(4))
     ################
     #Files output
