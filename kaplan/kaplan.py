@@ -1870,14 +1870,19 @@ while realtime < 1.:
     ################
     #Gldb output
     ################ 
-    if (step % gldbs_output == 0):
-        #Rebuild any necessary swarm variables
-        #Write gldbs
-        fnamedb = "dbFig" + "_" + str(ModIt) + "_" + str(step) + ".gldb"
-        outputPath = os.path.join(outputPath + "gldbs/" + fnamedb)
-        store.step = step
-        figTemp.save(    outputPath + "Temp"    + str(step).zfill(4))
-        figVisc.save( outputPath + "Visc" + str(step).zfill(4))
+        if (step % gldbs_output == 0): 
+        if figures == 'gldb':
+            #Remember to rebuild any necessary swarm variables
+            fnamedb = "dbFig" + "_" + str(ModIt) + "_" + str(step) + ".gldb"
+            fullpath = os.path.join(outputPath + "gldbs/" + fnamedb)
+            figDb.save_database(fullpath)
+        elif figures == 'store':      
+            fullpath = os.path.join(outputPath + "gldbs/")
+            store.step = step
+            #Save figures to store
+            figVisc.save( fullPath + "Visc" + str(step).zfill(4))
+            #figMech.save( fullPath + "Mech" + str(step).zfill(4))
+            figTemp.save(    outputPath + "Temp"    + str(step).zfill(4))
     ################
     #Files output
     ################ 
