@@ -1757,7 +1757,8 @@ if figures == 'gldb':
     figDb.append( glucifer.objects.Points(gSwarm,temperatureField))
 
 elif figures == 'store':
-    store = glucifer.Store('subduction')
+    fullpath = os.path.join(outputPath + "gldbs/")
+    store = glucifer.Store(fullpath + 'subduction')
 
     #figTemp = glucifer.Figure(store,figsize=(300*np.round(aspectRatio,2),300))
     #figTemp.append( glucifer.objects.Points(gSwarm,temperatureField))
