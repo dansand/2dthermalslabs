@@ -23,7 +23,7 @@
 # 
 # Korenaga, Jun. "Scaling of plate tectonic convection with pseudoplastic rheology." Journal of Geophysical Research: Solid Earth 115.B11 (2010).
 
-# In[15]:
+# In[1]:
 
 import numpy as np
 import underworld as uw
@@ -50,7 +50,7 @@ comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 
 
-# In[16]:
+# In[2]:
 
 #store = glucifer.Store('subduction')
 #figParticle = glucifer.Figure( store, figsize=(960,300), name="Particles" )
@@ -61,7 +61,7 @@ rank = comm.Get_rank()
 # Model name and directories
 # -----
 
-# In[17]:
+# In[3]:
 
 ############
 #Model name.  
@@ -77,7 +77,7 @@ else:
     ModIt = str(sys.argv[1])
 
 
-# In[18]:
+# In[4]:
 
 ###########
 #Standard output directory setup
@@ -107,7 +107,7 @@ if uw.rank()==0:
 comm.Barrier() #Barrier here so no procs run the check in the next cell too early
 
 
-# In[19]:
+# In[5]:
 
 ###########
 #Check if starting from checkpoint
@@ -131,7 +131,7 @@ for dirpath, dirnames, files in os.walk(checkpointPath):
 
 # **Use pint to setup any unit conversions we'll need**
 
-# In[20]:
+# In[6]:
 
 u = pint.UnitRegistry()
 cmpery = 1.*u.cm/u.year
@@ -141,7 +141,7 @@ spery = year.to(u.sec)
 cmpery.to(mpermy)
 
 
-# In[21]:
+# In[7]:
 
 box_half_width =4000e3
 age_at_trench = 100e6
@@ -152,7 +152,7 @@ print(cmperyear, mpersec )
 
 # **Set parameter dictionaries**
 
-# In[22]:
+# In[8]:
 
 ###########
 #Store the physical parameters, scale factors and dimensionless pramters in easyDicts
@@ -261,24 +261,24 @@ ndp.StRA = (3300.*dp.g*(dp.LS)**3)/(dp.eta0 *dp.k) #Composisitional Rayleigh num
 ndp.TaP = 1. - ndp.TPP,  #Dimensionles adiabtic component of delta t
 
 
-# In[23]:
+# In[9]:
 
 ndp.RA, (dp.TP - dp.TS), dp.deltaTa
 
 
-# In[24]:
+# In[10]:
 
 #(4.0065172577e-06*sf.SR)/(3600.*24*365)
 
 
-# In[25]:
+# In[11]:
 
 dp.CVR = (0.1*(dp.k/dp.LS)*ndp.RA**(2/3.))
 ndp.CVR = dp.CVR*sf.vel #characteristic velocity
 ndp.CVR, ndp.plate_vel, ndp.RA , (dp.TP - dp.TS)
 
 
-# In[26]:
+# In[12]:
 
 ###########
 #lengths scales for various processes (material transistions etc.)
@@ -299,7 +299,7 @@ AGETRACKDEPTH = 100e3/dp.LS #above this depth we track the age of the lithsphere
 
 # **Model setup parameters**
 
-# In[27]:
+# In[13]:
 
 ###########
 #Model setup parameters
@@ -357,6 +357,7 @@ PIC_integration=True
 ppc = 25
 
 #Metric output stuff
+figures =  'store' #glucifer Store won't work on all machines, if not, set to 'gldb' 
 swarm_repop, swarm_update = 10, 10
 gldbs_output = 30
 checkpoint_every, files_output = 30, 1e6
@@ -367,7 +368,7 @@ sticky_air_temp = 5
 # Create mesh and finite element variables
 # ------
 
-# In[28]:
+# In[14]:
 
 mesh = uw.mesh.FeMesh_Cartesian( elementType = (elementType),
                                  elementRes  = (Xres, Yres), 
@@ -380,12 +381,12 @@ temperatureField    = uw.mesh.MeshVariable( mesh=mesh,         nodeDofCount=1 )
 temperatureDotField = uw.mesh.MeshVariable( mesh=mesh,         nodeDofCount=1 )
 
 
-# In[29]:
+# In[15]:
 
 mesh.reset()
 
 
-# In[30]:
+# In[16]:
 
 ###########
 #Mesh refinement
@@ -411,7 +412,7 @@ if refineMesh:
     spmesh.deform_1d(deform_lengths, mesh,axis = 'x',norm = 'Min', constraints = [])
 
 
-# In[31]:
+# In[17]:
 
 axis = 1
 orgs = np.linspace(mesh.minCoord[axis], mesh.maxCoord[axis], mesh.elementRes[axis] + 1)
@@ -1749,40 +1750,40 @@ Rms, Rms_surf, Max_vx_surf
 
 # In[ ]:
 
-#Pack some stuff into a database as well
-#figDb = glucifer.Figure()
-#figDb.append( glucifer.objects.Mesh(mesh))
-#figDb.append( glucifer.objects.VectorArrows(mesh,velocityField, scaling=0.00005))
-#figDb.append( glucifer.objects.Points(gSwarm,tracerVariable, colours= 'white black'))
-#figDb.append( glucifer.objects.Points(gSwarm,materialVariable))
-#figDb.append( glucifer.objects.Points(gSwarm,viscMinVariable))
-#figDb.append( glucifer.objects.Points(gSwarm,fnViscMin))
+if figures == 'gldb':
+    #Pack some stuff into a database as well
+    figDb = glucifer.Figure()
+    #figDb.append( glucifer.objects.Mesh(mesh))
+    figDb.append( glucifer.objects.VectorArrows(mesh,velocityField, scaling=0.00005))
+    #figDb.append( glucifer.objects.Points(gSwarm,tracerVariable, colours= 'white black'))
+    #figDb.append( glucifer.objects.Points(gSwarm,materialVariable))
+    #figDb.append( glucifer.objects.Points(gSwarm,viscMinVariable))
+    figDb.append( glucifer.objects.Points(gSwarm,fnViscMin))
+    figDb.append( glucifer.objects.Points(gSwarm,viscosityMapFn, logScale=True, valueRange =[1e-3,1e5]))
+    #figDb.append( glucifer.objects.Surface(mesh, strainRate_2ndInvariant, logScale=True))
+    figDb.append( glucifer.objects.Points(gSwarm,temperatureField))
+
+elif figures == 'store':
+    store = glucifer.Store('subduction')
+
+    #figTemp = glucifer.Figure(store,figsize=(300*np.round(aspectRatio,2),300))
+    #figTemp.append( glucifer.objects.Points(gSwarm,temperatureField))
+
+    figVisc= glucifer.Figure(store, figsize=(300*np.round(aspectRatio,2),300))
+    figVisc.append( glucifer.objects.Points(gSwarm,viscosityMapFn, logScale=True, valueRange =[1e-3,1e5]))
+
+    figMech= glucifer.Figure(store, figsize=(300*np.round(aspectRatio,2),300))
+    figMech.append( glucifer.objects.Points(gSwarm,fnViscMin))
 
 
-#figDb.append( glucifer.objects.Points(gSwarm,viscosityMapFn, logScale=True, valueRange =[1e-3,1e5]))
-#figDb.append( glucifer.objects.Surface(mesh, strainRate_2ndInvariant, logScale=True))
-#figDb.append( glucifer.objects.Points(gSwarm,temperatureField))
+# In[18]:
 
-#figDb.show()
-
-
-# In[36]:
-
-#aspectRatio
+figures
 
 
 # In[37]:
 
-store = glucifer.Store('subduction')
 
-#figTemp = glucifer.Figure(store,figsize=(300*np.round(aspectRatio,2),300))
-#figTemp.append( glucifer.objects.Points(gSwarm,temperatureField))
-
-figVisc= glucifer.Figure(store, figsize=(300*np.round(aspectRatio,2),300))
-figVisc.append( glucifer.objects.Points(gSwarm,viscosityMapFn, logScale=True, valueRange =[1e-3,1e5]))
-
-figMech= glucifer.Figure(store, figsize=(300*np.round(aspectRatio,2),300))
-figMech.append( glucifer.objects.Points(gSwarm,fnViscMin))
 
 
 # In[ ]:
@@ -1971,15 +1972,19 @@ while realtime < 1.:
     ################
     #Gldb output
     ################ 
-    if (step % gldbs_output == 0):
-        #Rebuild any necessary swarm variables
-        #Write gldbs
-        #fnamedb = "dbFig" + "_" + str(ModIt) + "_" + str(step) + ".gldb"        
-        fullpath = os.path.join(outputPath + "gldbs/")
-        store.step = step
-        #figTemp.save(    outputPath + "Temp"    + str(step).zfill(4))
-        figVisc.save( fullPath + "Visc" + str(step).zfill(4))
-        figMech.save( fullPath + "Mech" + str(step).zfill(4))
+    if (step % gldbs_output == 0): 
+        if figures == 'gldb':
+            #Remember to rebuild any necessary swarm variables
+            fnamedb = "dbFig" + "_" + str(ModIt) + "_" + str(step) + ".gldb"
+            fullpath = os.path.join(outputPath + "gldbs/" + fnamedb)
+            figDb.save_database(fullpath)
+        elif figures == 'store':      
+            fullpath = os.path.join(outputPath + "gldbs/")
+            store.step = step
+            #Save figures to store
+            figVisc.save( fullPath + "Visc" + str(step).zfill(4))
+            figMech.save( fullPath + "Mech" + str(step).zfill(4))
+            #figTemp.save(    outputPath + "Temp"    + str(step).zfill(4))
     ################
     #Files output
     ################ 
