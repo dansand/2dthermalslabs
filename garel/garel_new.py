@@ -166,7 +166,7 @@ pressure_correct = False
 
 # **Set parameter dictionaries**
 
-# In[9]:
+# In[67]:
 
 ###########
 #Store the physical parameters, scale factors and dimensionless pramters in easyDicts
@@ -196,9 +196,9 @@ dp = edict({'depth':0.5*2900.*1e3, #Depth
            'Vdf':4e-6,
            'Vds':12e-6,
            'Vpr':10e-6,
-           'Alm':1.3e-16,
+           'Alm':2e-16,
            'Elm':2.0e5,
-           'Vlm':1.1e-6,
+           'Vlm':1.5e-6,
            'Ba':4.3e-12,  #A value to simulate pressure increase with depth
             'BAdT':0.0005, #adiabatic temp gradient used to correct rheology if Boussinesq approx.
            'SR':1e-15,
@@ -261,7 +261,7 @@ ndp = edict({'RA':(dp.g*dp.rho*dp.a*dp.deltaTa*(dp.LS)**3)/(dp.k*dp.eta0),
             'Di': dp.a*dp.g*dp.LS/dp.Cp, #Dissipation number
             'Steta0':1e2,
             'plate_vel':sf.vel*dp.plate_vel*(cmpery.to(u.m/u.second)).magnitude,
-            'low_mantle_visc_fac':10.,
+            'low_mantle_visc_fac':1.,
             'crust_cohesion_fac':1.,
             'crust_fc_fac':0.01})
 
@@ -279,7 +279,7 @@ ndp.StRA = (3300.*dp.g*(dp.LS)**3)/(dp.eta0 *dp.k) #Composisitional Rayleigh num
 ndp.TaP = 1. - ndp.TPP,  #Dimensionles adiabtic component of deltaT
 
 
-# In[10]:
+# In[68]:
 
 dp.LS
 
@@ -290,7 +290,7 @@ dp.LS
 #lengths scales for various processes (material transistions etc.)
 ###########
 
-MANTLETOCRUST = (8.*1e3)/dp.LS #Crust depth
+MANTLETOCRUST = (20.*1e3)/dp.LS #Crust depth
 HARZBURGDEPTH = MANTLETOCRUST + (27.7e3/dp.LS)
 CRUSTTOMANTLE = (800.*1e3)/dp.LS
 LITHTOMANTLE = (900.*1e3)/dp.LS 
@@ -299,7 +299,7 @@ TOPOHEIGHT = (10.*1e3)/dp.LS  #rock-air topography limits
 CRUSTTOECL  = (100.*1e3)/dp.LS
 AVGTEMP = ndp.TPP #Used to define lithosphere
 LOWMANTLEDEPTH = (660.*1e3)/dp.LS 
-CRUSTVISCUTOFF = (100.*1e3)/dp.LS #Deeper than this, crust material rheology reverts to mantle rheology
+CRUSTVISCUTOFF = (150.*1e3)/dp.LS #Deeper than this, crust material rheology reverts to mantle rheology
 AGETRACKDEPTH = 100e3/dp.LS #above this depth we track the age of the lithsphere (below age is assumed zero)
 
 
@@ -357,11 +357,11 @@ PIC_integration=True
 ppc = 25
 
 #Metric output stuff
-figures =  'store' #glucifer Store won't work on all machines, if not, set to 'gldb' 
+figures =  'gldb' #glucifer Store won't work on all machines, if not, set to 'gldb' 
 swarm_repop, swarm_update = 10, 10
-gldbs_output = 2
-checkpoint_every, files_output = 4, 10 #checkpoint every needs to be greater or equal to metric_output 
-metric_output = 4
+gldbs_output = 6
+checkpoint_every, files_output = 6, 2 #checkpoint every needs to be greater or equal to metric_output 
+metric_output = 6
 
 
 # In[13]:
@@ -672,11 +672,11 @@ CRUSTVISCUTOFF, MANTLETOCRUST*3
 # fig, ax = matplot_field(temperatureField, dp)
 # fig.savefig('test.png')       
 
-# In[27]:
+# In[62]:
 
-fig= glucifer.Figure(quality=3)
+#fig= glucifer.Figure(quality=3)
 
-#fig.append( glucifer.objects.Surface(mesh,temperatureField, discrete=True))
+#fig.append( glucifer.objects.Surface(mesh,depthFn, discrete=True))
 #fig.append( glucifer.objects.Mesh(mesh))
 #fig.show()
 #fig.save_database('test.gldb')
@@ -1158,27 +1158,30 @@ def safe_visc(func, viscmin=ndp.eta_min, viscmax=ndp.eta_max):
 #strainRate_2ndInvariant = fn.misc.constant(ndp.SR) #dummy fucntion to check which mechanisms are at active are reference strain rate
 
 
-# In[48]:
+# In[76]:
 
 ##############
 #Get dimensional viscosity values at reference values of temp, pressure, and strain rate
 ##############
 dp.rPressure  = (-1./dp.Ba)*(np.log(1.-dp.rho*dp.g*dp.Ba*dp.rDepth))
 rDf = (1./dp.Adf)*np.exp( ((dp.Edf + dp.Vdf*dp.rPressure))/((dp.R*dp.rTemp)))
+rLm = (1./dp.Alm)*np.exp( ((dp.Elm + dp.Vlm*dp.rPressure))/((dp.R*dp.rTemp)))
+
 rDs = (1./dp.Ads**(1./ndp.n))*(dp.SR**((1.-ndp.n)/ndp.n))*np.exp( ((dp.Eds + dp.Vds*dp.rPressure))/((ndp.n*dp.R*dp.rTemp)))
 rPr = (1./dp.Apr**(1./ndp.np))*(dp.SR**((1.-ndp.np)/ndp.np))*np.exp( ((dp.Epr + dp.Vpr*dp.rPressure))/((ndp.np*dp.R*dp.rTemp)))
 
 dsfac = rDs/dp.eta0
 dffac = rDf/dp.eta0
 prfac = rPr/dp.eta0
+lmfac = rLm/dp.eta0
 
 
-# In[49]:
+# In[70]:
 
-print(dsfac, dffac, prfac)
+#print(dsfac, dffac, prfac, lmfac)
 
 
-# In[50]:
+# In[71]:
 
 #These guys are required because we are approximating compressibility in the pressure term for the flow law,
 #See 'non_linear_rheology' Notebook for more details
@@ -1201,17 +1204,17 @@ else:
 #ndp.rDepth*dp.LS, correctrDepth*dp.LS
 
 
-# In[51]:
+# In[72]:
 
 np.log(1. - dp.rho*dp.g*dp.Ba*dp.LS*ndp.rDepth)/np.log(1. - dp.rho*dp.g*dp.Ba*dp.LS)
 
 
-# In[52]:
+# In[73]:
 
 ndp.rDepth
 
 
-# In[53]:
+# In[77]:
 
 ############
 #Rheology: create UW2 functions for all viscous mechanisms
@@ -1223,6 +1226,12 @@ omega = fn.misc.constant(1.) #this function can hold any arbitary viscosity modi
 ##Diffusion Creep
 diffusion = dffac*fn.math.exp( ((ndp.Edf + (corrDepthFn*ndp.Wdf))/((corrTempFn+ ndp.TS))) - 
               ((ndp.Edf + (correctrDepth*ndp.Wdf))/((ndp.rTemp + ndp.TS)))  ) 
+
+
+##Diffusion Creep
+lmdiffusion = lmfac*fn.math.exp( ((ndp.Elm + (corrDepthFn*ndp.Wlm))/((corrTempFn+ ndp.TS))) - 
+              ((ndp.Elm + (correctrDepth*ndp.Wlm))/((ndp.rTemp + ndp.TS)))  ) 
+
 
 linearVisc = safe_visc(diffusion)
 
@@ -1244,16 +1253,17 @@ peierls = prfac*(nl_correction)*fn.math.exp( ((ndp.Eps + (corrDepthFn*ndp.Wps))/
 ys =  ndp.cohesion + (depthFn*ndp.fcd)
 ysMax = 10e4*1e6*sf.stress
 ysf = fn.misc.min(ys, ysMax)
-yielding = ysf/(2.*(strainRate_2ndInvariant))
+yielding = (math.sqrt(1.0)*ysf)/(2.*(strainRate_2ndInvariant)) #sqrt(0.5) converts for second invariant form in uw2
 
 ##Crust rheology
 crustys =  ndp.cohesion*ndp.crust_cohesion_fac + (depthFn*ndp.fcd*ndp.crust_fc_fac)
-crustyielding = crustys/(2.*(strainRate_2ndInvariant)) 
+crustysf = fn.misc.min(crustys, ysMax)
+crustyielding = (math.sqrt(1.0)*crustysf)/(2.*(strainRate_2ndInvariant)) 
 
 
 
 
-# In[54]:
+# In[64]:
 
 #ndp.cohesion
 
@@ -1263,7 +1273,7 @@ crustyielding = crustys/(2.*(strainRate_2ndInvariant))
 #(dp.cohesion+ dp.fc*(3300.*9.8*dp.LS))/1e10, (ndp.cohesion + (1.*ndp.fcd))/(1e10*sf.stress)
 
 
-# In[56]:
+# In[79]:
 
 ############
 #Rheology: combine viscous mechanisms in various ways 
@@ -1289,7 +1299,8 @@ if viscCombine == 'harmonic':
     harmonic_test = mantleviscosityFn
     #Only diffusuion creep for lower mantle
     finalviscosityFn  = fn.branching.conditional([(depthFn < LOWMANTLEDEPTH, mantleviscosityFn),
-                                  (True, safe_visc(diffusion*ndp.low_mantle_visc_fac))])
+                                  (True, safe_visc(lmdiffusion*ndp.low_mantle_visc_fac))])
+                                        
     
     #Add the weaker crust mechanism, plus any cutoffs
     crust_denom = denom + (1./crustyielding)
@@ -1310,7 +1321,7 @@ if viscCombine == 'min':
     min_test = mantleviscosityFn
     #Only diffusion creep for lower mantle
     finalviscosityFn  = fn.branching.conditional([(depthFn < LOWMANTLEDEPTH, mantleviscosityFn),
-                                  (True, safe_visc(diffusion*ndp.low_mantle_visc_fac))])
+                                  (True, safe_visc(lmdiffusion*ndp.low_mantle_visc_fac))])
     #Add the weaker crust mechanism, plus any cutoffs
     crustviscosityFn = safe_visc(fn.misc.min(finalviscosityFn, crustyielding), viscmin=ndp.eta_min, viscmax=ndp.eta_max_crust)
     interfaceviscosityFn = safe_visc(fn.misc.min(finalviscosityFn, crustyielding), viscmin=ndp.eta_min, viscmax=ndp.eta_max_crust)
@@ -1328,7 +1339,7 @@ if viscCombine == 'mixed':
     mixed_test = mantleviscosityFn
     #Only diffusuion creep for lower mantle
     finalviscosityFn  = fn.branching.conditional([(depthFn < LOWMANTLEDEPTH, mantleviscosityFn),
-                                  (True, safe_visc(diffusion*ndp.low_mantle_visc_fac))])
+                                  (True, safe_visc(lmdiffusion*ndp.low_mantle_visc_fac))])
     
     #Add the weaker crust mechanism, plus any cutoffs
     crust_denom = denom + (1./crustyielding)
@@ -1342,12 +1353,12 @@ if viscCombine == 'mixed':
 
 
 
-# In[ ]:
+# In[84]:
+
+#ndp.low_mantle_visc_fac = 1.
 
 
-
-
-# In[57]:
+# In[80]:
 
 #viscMinConditions = fn.misc.min(diffusion, dislocation, peierls, yielding)
 
@@ -1379,11 +1390,16 @@ fnViscMin = fn.branching.conditional( viscMinConditions )
 
 
 
-# In[58]:
+# In[85]:
 
 #fig= glucifer.Figure()
-#fig.append( glucifer.objects.Points(gSwarm,temperatureField))
+#fig.append( glucifer.objects.Points(gSwarm,finalviscosityFn, logScale=True))
 #fig.show()
+#fig.save_database('test.gldb')
+
+
+# In[ ]:
+
 #fig.save_database('test.gldb')
 
 
@@ -1419,14 +1435,14 @@ stokesPIC = uw.systems.Stokes(velocityField=velocityField,
                               fn_bodyforce=buoyancyFn )
 
 
-# In[62]:
+# In[90]:
 
 solver = uw.systems.Solver(stokesPIC)
 if not checkpointLoad:
     solver.solve() #A solve on the linear visocisty is unhelpful unless we're starting from scratch
 
 
-# In[63]:
+# In[91]:
 
 #fig= glucifer.Figure()
 #fig.append( glucifer.objects.Points(gSwarm,materialVariable))
@@ -1437,7 +1453,7 @@ if not checkpointLoad:
 #fig.save_database('test.gldb')
 
 
-# In[64]:
+# In[92]:
 
 viscosityMapFn = fn.branching.map( fn_key = materialVariable,
                          mapping = {crustIndex:finalcrustviscosityFn,
@@ -1818,7 +1834,7 @@ dummy = tempMM.evaluate(mesh)
 
 
 
-# In[119]:
+# In[89]:
 
 ##Coordinates for a swarm in the centre of the slab
 
@@ -1865,7 +1881,7 @@ tipVar.data[:,2:] = xFn.evaluate(tipSwarm)
 tipVar.data[:,3:] = yFn.evaluate(tipSwarm)
 
 
-# In[72]:
+# In[90]:
 
 #Not parallel friendly yet
 #tipXvels = np.sum(velocityField[0].evaluate(tipSwarm)) /\
@@ -2086,15 +2102,15 @@ while realtime < 1.:
             fullpath = os.path.join(outputPath + "files/" + fnametemp)
             np.save(fullpath, norm_surface_sr)
         #Save the midswarm and tipswarm coords 
-        fnametemp = "midSwarm" + "_" + str(ModIt) + "_" + str(step)
-        fullpath = os.path.join(outputPath + "files/" + fnametemp)
-        midSwarm.save(fullpath)
+        fnametemp1 = "midSwarm" + "_" + str(ModIt) + "_" + str(step)
+        fullpath1 = os.path.join(outputPath + "files/" + fnametemp1)
+        midSwarm.save(fullpath1)
         tipVar.data[:,:2] = velocityField.evaluate(tipSwarm)
         tipVar.data[:,2:] = xFn.evaluate(tipSwarm)
         tipVar.data[:,3:] = yFn.evaluate(tipSwarm)
-        fnametemp = "tipSwarm" + "_" + str(ModIt) + "_" + str(step)
-        fullpath = os.path.join(outputPath + "files/" + fnametemp)
-        tipSwarm.save(fullpath)
+        #fnametemp2 = "tipSwarm" + "_" + str(ModIt) + "_" + str(step)
+        #fullpath2 = os.path.join(outputPath + "files/" + fnametemp2)
+        #tipSwarm.save(fullpath2)
         
     ################
     #Particle update
@@ -2157,4 +2173,33 @@ velocityField.data.max()
 testFn  = fn.branching.conditional([(depthFn < MANTLETOCRUST*3, 2.),
                                                      (interfaceCond, 1.), #
                                                      (True, 0.)])
+
+
+# In[24]:
+
+ndp.Wdf, ndp.Edf
+
+
+# In[87]:
+
+step = 2
+fnametemp = "midSwarm" + "_" + str(ModIt) + "_" + str(step)
+fullpath = os.path.join(outputPath + "files/" + fnametemp)
+fullpath
+
+
+# In[91]:
+
+fnametemp = "midSwarm" + "_" + str(ModIt) + "_" + str(step)
+fullpath = os.path.join(outputPath + "files/" + fnametemp)
+midSwarm.save(fullpath)
+
+fnametemp = "tipSwarm" + "_" + str(ModIt) + "_" + str(step)
+fullpath = os.path.join(outputPath + "files/" + fnametemp)
+tipSwarm.save(fullpath)
+
+
+# In[ ]:
+
+
 
