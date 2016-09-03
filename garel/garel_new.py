@@ -290,7 +290,7 @@ ndp.TaP = 1. - ndp.TPP,  #Dimensionles adiabtic component of deltaT
 #lengths scales for various processes (material transistions etc.)
 ###########
 
-MANTLETOCRUST = (20.*1e3)/dp.LS #Crust depth
+MANTLETOCRUST = (10.*1e3)/dp.LS #Crust depth
 HARZBURGDEPTH = MANTLETOCRUST + (27.7e3/dp.LS)
 CRUSTTOMANTLE = (800.*1e3)/dp.LS
 LITHTOMANTLE = (900.*1e3)/dp.LS 
@@ -604,7 +604,7 @@ maxDepth = 194e3/dp.LS
 
 #We use three circles to define our slab and crust perturbation,  
 Oc = inCircleFnGenerator(Org , RocM)
-O2 = inCircleFnGenerator(Org , RocM + (0.5*CrustM)) #increases the amount of crust in the interface
+Oc2 = inCircleFnGenerator(Org , RocM + (0.5*CrustM)) #increases the amount of crust in the interface
 Ic = inCircleFnGenerator(Org , RocM - w0)
 Cc = inCircleFnGenerator(Org , RocM - (1.*CrustM)) #... weak zone on 'inside' of slab
 Hc = inCircleFnGenerator(Org , RocM - HARZBURGDEPTH) #... Harzburgite layer 
@@ -1004,7 +1004,7 @@ if checkpointLoad != True:
     if not symmetricIC:
         for particleID in range(gSwarm.particleCoordinates.data.shape[0]):
             if (
-                Oc.evaluate(list(gSwarm.particleCoordinates.data[particleID])) and
+                Oc2.evaluate(list(gSwarm.particleCoordinates.data[particleID])) and
                 Tri.evaluate(list(gSwarm.particleCoordinates.data[particleID])) and
                 gSwarm.particleCoordinates.data[particleID][1] > (1. - maxDepth) and
                 Cc.evaluate(list(gSwarm.particleCoordinates.data[particleID])) == False
