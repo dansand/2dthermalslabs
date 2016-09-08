@@ -1755,10 +1755,7 @@ if figures == 'gldb':
 
 elif figures == 'store':
     fullpath = os.path.join(outputPath + "gldbs/")
-    if checkpointLoad:
-        store = glucifer.Store(fullpath + 'subduction.gldb')
-    else:
-        store = glucifer.Store(fullpath + 'subduction')
+    store = glucifer.Store(fullpath + 'subduction.gldb')
     
 
     #figTemp = glucifer.Figure(store,figsize=(300*np.round(aspectRatio,2),300))
@@ -2035,7 +2032,7 @@ while realtime < 1.:
             fullpath = os.path.join(outputPath + "gldbs/" + fnamedb)
             figDb.save_database(fullpath)
         elif figures == 'store':      
-            fullpath = os.path.join(outputPath + "images/") #in Bec's example pngs get automatically written in fig.Save stor is also uodated
+            fullpath = os.path.join(outputPath + "gldbs/") #in Bec's example pngs get automatically written in fig.Save stor is also uodated
             store.step = step
             #Save figures to store
             figVisc.save( fullpath + "Visc" + str(step).zfill(4))
