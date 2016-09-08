@@ -16,7 +16,7 @@
 # 
 # Kaplan, Michael. Numerical Geodynamics of Solid Planetary Deformation. Diss. University of Southern California, 2015.
 
-# In[1]:
+# In[30]:
 
 import numpy as np
 import underworld as uw
@@ -46,7 +46,7 @@ rank = comm.Get_rank()
 # Model name and directories
 # -----
 
-# In[2]:
+# In[31]:
 
 ############
 #Model name.  
@@ -62,7 +62,7 @@ else:
     ModIt = str(sys.argv[1])
 
 
-# In[3]:
+# In[32]:
 
 ###########
 #Standard output directory setup
@@ -92,7 +92,7 @@ if uw.rank()==0:
 comm.Barrier() #Barrier here so no procs run the check in the next cell too early
 
 
-# In[4]:
+# In[33]:
 
 ###########
 #Check if starting from checkpoint
@@ -116,7 +116,7 @@ for dirpath, dirnames, files in os.walk(checkpointPath):
 
 # **Use pint to setup any unit conversions we'll need**
 
-# In[5]:
+# In[34]:
 
 u = pint.UnitRegistry()
 cmpery = 1.*u.cm/u.year
@@ -126,7 +126,7 @@ spery = year.to(u.sec)
 cmpery.to(mpermy)
 
 
-# In[6]:
+# In[35]:
 
 box_half_width =4000e3
 age_at_trench = 100e6
@@ -137,7 +137,7 @@ print(cmperyear, mpersec )
 
 # **Set parameter dictionaries**
 
-# In[7]:
+# In[64]:
 
 ###########
 #Store the physical parameters, scale factors and dimensionless pramters in easyDicts
@@ -151,7 +151,7 @@ dp = edict({'LS':670*1e3, #Scaling Length scale
             'depth':670*1e3, #Depth of domain
            'rho':3300.,  #reference density
            'g':9.8, #surface gravity
-           'eta0':5e20, #
+           'eta0':2e20, #
            'k':1e-6, #thermal diffusivity
            'a':3e-5, #surface thermal expansivity
            'TP':1673., #mantle potential temp (K)
@@ -215,7 +215,7 @@ ndp = edict({'RA':(dp.g*dp.rho*dp.a*(dp.TP - dp.TS)*(dp.LS)**3)/(dp.k*dp.eta0),
             'eta_min':1e-3, 
             'eta_max':1e5, #viscosity max in the mantle material
             #'eta_min_crust':1e-3, #crust viscosity, if using isoviscous weak crust
-            'eta_max_crust':10., #viscosity max in the weak-crust material
+            'eta_max_crust':2., #viscosity max in the weak-crust material
              'eta_max_interface':1., #viscosity max in the weak-crust material
             #'H':0.,
             #'Tmvp':0.6,
@@ -223,8 +223,8 @@ ndp = edict({'RA':(dp.g*dp.rho*dp.a*(dp.TP - dp.TS)*(dp.LS)**3)/(dp.k*dp.eta0),
             'Steta0':5e-2,
             'plate_vel':sf.vel*dp.plate_vel*(cmpery.to(u.m/u.second)).magnitude,
             'low_mantle_visc_fac':10.,
-            'crust_cohesion_fac':0.5,
-            'crust_fc_fac':0.5,
+            'crust_cohesion_fac':0.2,
+            'crust_fc_fac':0.2,
             'interface_cohesion_fac':0.1,
             'interface_fc_fac':0.1,
             })
@@ -245,13 +245,13 @@ ndp.StRA = (3300.*dp.g*(dp.LS)**3)/(dp.eta0 *dp.k) #Composisitional Rayleigh num
 #ndp.TaP = 1. - ndp.TPP,  #Dimensionles adiabtic component of delta t
 
 
-# In[8]:
+# In[37]:
 
 t1 = 2918002.6260000006
 ndp.fcd
 
 
-# In[9]:
+# In[38]:
 
 #40000./sf.vel, 
 ndp.RA
@@ -260,19 +260,19 @@ ndp.RA
 #3404336.
 
 
-# In[10]:
+# In[39]:
 
 #(4.0065172577e-06*sf.SR)/(3600.*24*365)
 
 
-# In[46]:
+# In[40]:
 
 dp.CVR = (0.1*(dp.k/dp.LS)*ndp.RA**(2/3.))
 ndp.CVR = dp.CVR*sf.vel #characteristic velocity
 ndp.CVR, ndp.plate_vel, ndp.RA , (dp.TP - dp.TS)
 
 
-# In[47]:
+# In[41]:
 
 ###########
 #lengths scales for various processes (material transistions etc.)
@@ -291,14 +291,14 @@ CRUSTVISCUTOFF = (100.*1e3)/dp.LS #Deeper than this, crust material rheology rev
 AGETRACKDEPTH = 100e3/dp.LS #above this depth we track the age of the lithsphere (below age is assumed zero)
 
 
-# In[48]:
+# In[42]:
 
 #MINX
 
 
 # **Model setup parameters**
 
-# In[49]:
+# In[56]:
 
 ###########
 #Model setup parameters
@@ -343,7 +343,7 @@ else:
     squareModel = False
     
     
-RES = 64
+RES = 192
 Xres = int(RES*aspectRatio)
 #if MINY == 0.5:
 #    Xres = int(2.*RES*aspectRatio)
@@ -357,7 +357,7 @@ else:
     Yres = RES
     MAXY = np.round(MAXY, 2)
 
-periodic = [True, False]
+periodic = [False, False]
 elementType = "Q1/dQ0"
 #elementType ="Q2/DPC1"
 
@@ -367,20 +367,20 @@ PIC_integration=True
 ppc = 25
 
 #Metric output stuff
-figures =  'gldb' #glucifer Store won't work on all machines, if not, set to 'gldb' 
+figures =  'store' #glucifer Store won't work on all machines, if not, set to 'gldb' 
 swarm_repop, swarm_update = 10, 10
 gldbs_output = 10
-checkpoint_every, files_output = 5, 10
+checkpoint_every, files_output = 20, 10
 metric_output = 5
 sticky_air_temp = 5
 
 
-# In[50]:
+# In[57]:
 
 MINY, MAXY
 
 
-# In[51]:
+# In[58]:
 
 MINY, MAXY,MINX, MAXX, tot_depth
 
@@ -388,7 +388,7 @@ MINY, MAXY,MINX, MAXX, tot_depth
 # Create mesh and finite element variables
 # ------
 
-# In[52]:
+# In[59]:
 
 mesh = uw.mesh.FeMesh_Cartesian( elementType = (elementType),
                                  elementRes  = (Xres, Yres), 
@@ -401,12 +401,12 @@ temperatureField    = uw.mesh.MeshVariable( mesh=mesh,         nodeDofCount=1 )
 temperatureDotField = uw.mesh.MeshVariable( mesh=mesh,         nodeDofCount=1 )
 
 
-# In[53]:
+# In[60]:
 
 mesh.reset()
 
 
-# In[54]:
+# In[61]:
 
 ###########
 #Mesh refinement
@@ -432,7 +432,7 @@ if refineMesh:
     spmesh.deform_1d(deform_lengths, mesh,axis = 'x',norm = 'Min', constraints = [])
 
 
-# In[55]:
+# In[62]:
 
 axis = 1
 orgs = np.linspace(mesh.minCoord[axis], mesh.maxCoord[axis], mesh.elementRes[axis] + 1)
@@ -443,7 +443,7 @@ value_to_constrain = MAXY #nodes will remain along this line
 yconst = [(spmesh.find_closest(orgs, value_to_constrain), np.array([value_to_constrain,0]))]
 
 
-# In[56]:
+# In[63]:
 
 ###########
 #Mesh refinement
@@ -467,7 +467,7 @@ if refineMesh:
     spmesh.deform_1d(deform_lengths, mesh,axis = 'y',norm = 'Min', constraints = yconst)
 
 
-# In[57]:
+# In[22]:
 
 #fig= glucifer.Figure()
 
@@ -477,7 +477,7 @@ if refineMesh:
 #fig.save_database('test.gldb')
 
 
-# In[58]:
+# In[23]:
 
 #THis is a hack for adding a sticky air domain, we refine MAXY and things like the temperature stencil work from Y = 1. 
 
@@ -1687,7 +1687,7 @@ if figures == 'gldb':
 
 elif figures == 'store':
     fullpath = os.path.join(outputPath + "gldbs/")
-    store = glucifer.Store(fullpath + 'subduction')
+    store = glucifer.Store(fullpath + 'subduction.gldb')
 
     figTemp = glucifer.Figure(store,figsize=(300*np.round(aspectRatio,2),300))
     figTemp.append( glucifer.objects.Points(gSwarm,temperatureField))
@@ -1901,9 +1901,9 @@ while realtime < 1.:
             fullpath = os.path.join(outputPath + "gldbs/")
             store.step = step
             #Save figures to store
-            figVisc.save( fullPath + "Visc" + str(step).zfill(4))
+            figVisc.save( fullpath + "Visc" + str(step).zfill(4))
             #figMech.save( fullPath + "Mech" + str(step).zfill(4))
-            figTemp.save(    outputPath + "Temp"    + str(step).zfill(4))
+            figTemp.save( fullpath + "Temp"    + str(step).zfill(4))
     ################
     #Files output
     ################ 
@@ -2057,6 +2057,35 @@ vel_surface.shape
 # In[105]:
 
 #velocityField.evaluate(iWalls).mean()/ velocityField.evaluate(mesh).mean()
+
+
+# ## Post Viz
+
+# In[12]:
+
+import glucifer
+
+
+# In[16]:
+
+saved = glucifer.Viewer('results/T/0/Base/gldbs/subduction')
+
+
+# In[17]:
+
+saved.steps
+
+
+# In[19]:
+
+#Re-visualise the final timestep
+saved.step = saved.steps[0]
+for name in saved:
+    fig = saved[name]
+    fig.quality = 2
+    fig.properties["title"] = "Timestep ##"
+    fig.show()
+    #fig.save_image('test' + str(name) + '.png')
 
 
 # In[ ]:
