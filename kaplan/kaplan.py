@@ -16,7 +16,7 @@
 # 
 # Kaplan, Michael. Numerical Geodynamics of Solid Planetary Deformation. Diss. University of Southern California, 2015.
 
-# In[297]:
+# In[1]:
 
 import numpy as np
 import underworld as uw
@@ -46,7 +46,7 @@ rank = comm.Get_rank()
 # Model name and directories
 # -----
 
-# In[298]:
+# In[2]:
 
 ############
 #Model name.  
@@ -62,7 +62,7 @@ else:
     ModIt = str(sys.argv[1])
 
 
-# In[299]:
+# In[3]:
 
 ###########
 #Standard output directory setup
@@ -92,7 +92,7 @@ if uw.rank()==0:
 comm.Barrier() #Barrier here so no procs run the check in the next cell too early
 
 
-# In[300]:
+# In[4]:
 
 ###########
 #Check if starting from checkpoint
@@ -116,7 +116,7 @@ for dirpath, dirnames, files in os.walk(checkpointPath):
 
 # **Use pint to setup any unit conversions we'll need**
 
-# In[301]:
+# In[5]:
 
 u = pint.UnitRegistry()
 cmpery = 1.*u.cm/u.year
@@ -126,7 +126,7 @@ spery = year.to(u.sec)
 cmpery.to(mpermy)
 
 
-# In[302]:
+# In[6]:
 
 box_half_width =4000e3
 age_at_trench = 100e6
@@ -137,7 +137,7 @@ print(cmperyear, mpersec )
 
 # **Set parameter dictionaries**
 
-# In[303]:
+# In[7]:
 
 ###########
 #Store the physical parameters, scale factors and dimensionless pramters in easyDicts
@@ -151,7 +151,7 @@ dp = edict({'LS':670*1e3, #Scaling Length scale
             'depth':670*1e3, #Depth of domain
            'rho':3300.,  #reference density
            'g':9.8, #surface gravity
-           'eta0':1.2e20, #
+           'eta0':5e20, #
            'k':1e-6, #thermal diffusivity
            'a':3e-5, #surface thermal expansivity
            'TP':1673., #mantle potential temp (K)
@@ -215,15 +215,18 @@ ndp = edict({'RA':(dp.g*dp.rho*dp.a*(dp.TP - dp.TS)*(dp.LS)**3)/(dp.k*dp.eta0),
             'eta_min':1e-3, 
             'eta_max':1e5, #viscosity max in the mantle material
             #'eta_min_crust':1e-3, #crust viscosity, if using isoviscous weak crust
-            'eta_max_crust':1., #viscosity max in the weak-crust material
+            'eta_max_crust':10., #viscosity max in the weak-crust material
+             'eta_max_interface':1., #viscosity max in the weak-crust material
             #'H':0.,
             #'Tmvp':0.6,
             #'Di': dp.a*dp.g*dp.LS/dp.Cp, #Dissipation number
             'Steta0':5e-2,
             'plate_vel':sf.vel*dp.plate_vel*(cmpery.to(u.m/u.second)).magnitude,
             'low_mantle_visc_fac':10.,
-            'crust_cohesion_fac':0.1,
-            'crust_fc_fac':0.1
+            'crust_cohesion_fac':0.5,
+            'crust_fc_fac':0.5,
+            'interface_cohesion_fac':0.1,
+            'interface_fc_fac':0.1,
             })
 
 
@@ -242,13 +245,13 @@ ndp.StRA = (3300.*dp.g*(dp.LS)**3)/(dp.eta0 *dp.k) #Composisitional Rayleigh num
 #ndp.TaP = 1. - ndp.TPP,  #Dimensionles adiabtic component of delta t
 
 
-# In[304]:
+# In[8]:
 
 t1 = 2918002.6260000006
 ndp.fcd
 
 
-# In[305]:
+# In[9]:
 
 #40000./sf.vel, 
 ndp.RA
@@ -257,19 +260,19 @@ ndp.RA
 #3404336.
 
 
-# In[306]:
+# In[10]:
 
 #(4.0065172577e-06*sf.SR)/(3600.*24*365)
 
 
-# In[307]:
+# In[46]:
 
 dp.CVR = (0.1*(dp.k/dp.LS)*ndp.RA**(2/3.))
 ndp.CVR = dp.CVR*sf.vel #characteristic velocity
 ndp.CVR, ndp.plate_vel, ndp.RA , (dp.TP - dp.TS)
 
 
-# In[308]:
+# In[47]:
 
 ###########
 #lengths scales for various processes (material transistions etc.)
@@ -288,14 +291,14 @@ CRUSTVISCUTOFF = (100.*1e3)/dp.LS #Deeper than this, crust material rheology rev
 AGETRACKDEPTH = 100e3/dp.LS #above this depth we track the age of the lithsphere (below age is assumed zero)
 
 
-# In[309]:
+# In[48]:
 
 #MINX
 
 
 # **Model setup parameters**
 
-# In[310]:
+# In[49]:
 
 ###########
 #Model setup parameters
@@ -340,7 +343,7 @@ else:
     squareModel = False
     
     
-RES = 96
+RES = 64
 Xres = int(RES*aspectRatio)
 #if MINY == 0.5:
 #    Xres = int(2.*RES*aspectRatio)
@@ -354,7 +357,7 @@ else:
     Yres = RES
     MAXY = np.round(MAXY, 2)
 
-periodic = [False, False]
+periodic = [True, False]
 elementType = "Q1/dQ0"
 #elementType ="Q2/DPC1"
 
@@ -372,12 +375,12 @@ metric_output = 5
 sticky_air_temp = 5
 
 
-# In[311]:
+# In[50]:
 
 MINY, MAXY
 
 
-# In[312]:
+# In[51]:
 
 MINY, MAXY,MINX, MAXX, tot_depth
 
@@ -385,7 +388,7 @@ MINY, MAXY,MINX, MAXX, tot_depth
 # Create mesh and finite element variables
 # ------
 
-# In[313]:
+# In[52]:
 
 mesh = uw.mesh.FeMesh_Cartesian( elementType = (elementType),
                                  elementRes  = (Xres, Yres), 
@@ -398,12 +401,12 @@ temperatureField    = uw.mesh.MeshVariable( mesh=mesh,         nodeDofCount=1 )
 temperatureDotField = uw.mesh.MeshVariable( mesh=mesh,         nodeDofCount=1 )
 
 
-# In[314]:
+# In[53]:
 
 mesh.reset()
 
 
-# In[315]:
+# In[54]:
 
 ###########
 #Mesh refinement
@@ -429,7 +432,7 @@ if refineMesh:
     spmesh.deform_1d(deform_lengths, mesh,axis = 'x',norm = 'Min', constraints = [])
 
 
-# In[316]:
+# In[55]:
 
 axis = 1
 orgs = np.linspace(mesh.minCoord[axis], mesh.maxCoord[axis], mesh.elementRes[axis] + 1)
@@ -440,7 +443,7 @@ value_to_constrain = MAXY #nodes will remain along this line
 yconst = [(spmesh.find_closest(orgs, value_to_constrain), np.array([value_to_constrain,0]))]
 
 
-# In[317]:
+# In[56]:
 
 ###########
 #Mesh refinement
@@ -464,7 +467,7 @@ if refineMesh:
     spmesh.deform_1d(deform_lengths, mesh,axis = 'y',norm = 'Min', constraints = yconst)
 
 
-# In[318]:
+# In[57]:
 
 #fig= glucifer.Figure()
 
@@ -474,7 +477,7 @@ if refineMesh:
 #fig.save_database('test.gldb')
 
 
-# In[319]:
+# In[58]:
 
 #THis is a hack for adding a sticky air domain, we refine MAXY and things like the temperature stencil work from Y = 1. 
 
@@ -486,7 +489,7 @@ if stickyAir:
 # -------
 # 
 
-# In[320]:
+# In[59]:
 
 coordinate = fn.input()
 depthFn = MAXY - coordinate[1] #a function providing the depth
@@ -529,7 +532,7 @@ xFn = coordinate[0]  #a function providing the x-coordinate
 #     if not checkpointLoad:
 #         temperatureField.data[:] = tempFn.evaluate(mesh)  
 
-# In[321]:
+# In[60]:
 
 
 def age_fn(xFn, sz = 0.0, lMOR=MINX, rMOR=MAXX, opFac=1., conjugate_plate = False):
@@ -564,7 +567,7 @@ def age_fn(xFn, sz = 0.0, lMOR=MINX, rMOR=MAXX, opFac=1., conjugate_plate = Fals
     return ageFn
 
 
-# In[247]:
+# In[61]:
 
 ###########
 #Thermal initial condition 2: 
@@ -629,7 +632,7 @@ if not symmetricIC:
 
 
 
-# In[248]:
+# In[62]:
 
 #Now build the perturbation part
 def inCircleFnGenerator(centre, radius):
@@ -676,14 +679,14 @@ if not symmetricIC:
                 temperatureField.data[index] = slabFn.evaluate(mesh)[index]
 
 
-# In[249]:
+# In[63]:
 
 sdFn = ((RocM - fn.math.sqrt((coordinate[0] - Org[0])**2. + (coordinate[1] - Org[1])**2.)))
 slabFn = ndp.TPP*fn.math.erf((sdFn*dp.LS)/(2.*math.sqrt(dp.k*ageAtTrenchSeconds))) + ndp.TSP
 sdFn, slabFn
 
 
-# In[250]:
+# In[64]:
 
 #Make sure material in sticky air region is at the surface temperature.
 for index, coord in enumerate(mesh.data):
@@ -691,7 +694,7 @@ for index, coord in enumerate(mesh.data):
                 temperatureField.data[index] = ndp.TSP
 
 
-# In[251]:
+# In[65]:
 
 #fn.math.erf((sdFn*dp.LS)/(2.*fn.math.sqrt(dp.k*(slabmaxAge*(3600*24*365))))) 
 CRUSTVISCUTOFF, MANTLETOCRUST*3
@@ -721,7 +724,7 @@ CRUSTVISCUTOFF, MANTLETOCRUST*3
 # fig, ax = matplot_field(temperatureField, dp)
 # fig.savefig('test.png')       
 
-# In[252]:
+# In[66]:
 
 temperatureField.data.min(), temperatureField.data.max()
 
@@ -731,13 +734,13 @@ temperatureField.data.min(), temperatureField.data.max()
 
 
 
-# In[253]:
+# In[67]:
 
 
 #ageFn = age_fn(xFn)
 
 
-# In[254]:
+# In[68]:
 
 fig= glucifer.Figure(quality=3)
 
@@ -752,7 +755,7 @@ fig.append( glucifer.objects.Surface(mesh,temperatureField ))
 # Boundary conditions
 # -------
 
-# In[255]:
+# In[69]:
 
 for index in mesh.specialSets["MinJ_VertexSet"]:
     temperatureField.data[index] = ndp.TBP
@@ -835,7 +838,7 @@ neumannTempBC = uw.conditions.NeumannCondition( dT_dy, variable=temperatureField
 
 
 
-# In[256]:
+# In[71]:
 
 #check VelBCs are where we want them
 #test = np.zeros(len(tWalls.data))
@@ -856,7 +859,7 @@ neumannTempBC = uw.conditions.NeumannCondition( dT_dy, variable=temperatureField
 # -----
 # 
 
-# In[257]:
+# In[72]:
 
 ###########
 #Material Swarm and variables
@@ -878,7 +881,7 @@ varlist = [materialVariable, yieldingCheck, ageVariable]
 varnames = ['materialVariable', 'yieldingCheck', 'ageVariable']
 
 
-# In[258]:
+# In[73]:
 
 mantleIndex = 0
 crustIndex = 1
@@ -947,7 +950,7 @@ else:
 
 
 
-# In[259]:
+# In[74]:
 
 ##############
 #Set the initial particle age for particles above the critical depth; 
@@ -969,7 +972,7 @@ ageVariable.data[:] = fn.branching.conditional( ageConditions ).evaluate(gSwarm)
 ageDT = 0.#this is used in the main loop for short term time increments
 
 
-# In[260]:
+# In[75]:
 
 #fig= glucifer.Figure()
 #fig.append( glucifer.objects.Points(gSwarm,ageVariable))
@@ -979,7 +982,7 @@ ageDT = 0.#this is used in the main loop for short term time increments
 #fig.show()
 
 
-# In[269]:
+# In[76]:
 
 ##############
 #Here we set up a directed graph object that we we use to control the transformation from one material type to another
@@ -1033,17 +1036,17 @@ DG.add_transition((crustIndex,airIndex), depthFn, operator.lt, 0. )
 DG.add_transition((harzIndex,airIndex), depthFn, operator.lt, 0. )
 
 
-# In[270]:
+# In[77]:
 
 CRUSTTOMANTLE, HARZBURGDEPTH, 0. + 7.*MANTLETOCRUST
 
 
-# In[271]:
+# In[78]:
 
 #gSwarm.particleCoordinates.data[particleID][1]
 
 
-# In[272]:
+# In[79]:
 
 ##############
 #For the slab_IC, we'll also add a crustal weak zone following the dipping perturbation
@@ -1074,7 +1077,7 @@ if checkpointLoad != True:
                 materialVariable.data[particleID] = harzIndex
 
 
-# In[273]:
+# In[80]:
 
 ##############
 #This is how we use the material graph object to test / apply material transformations
@@ -1085,12 +1088,12 @@ for i in range(2): #Need to go through a number of times
     materialVariable.data[:] = fn.branching.conditional(DG.condition_list).evaluate(gSwarm)
 
 
-# In[274]:
+# In[81]:
 
 #maxDepth
 
 
-# In[275]:
+# In[82]:
 
 fig2= glucifer.Figure()
 fig2.append( glucifer.objects.Points(gSwarm,materialVariable))
@@ -1104,7 +1107,7 @@ fig2.append( glucifer.objects.Points(gSwarm,materialVariable))
 # 
 # This was designed for EBA models, needs a rethink for Boussinesq
 
-# In[276]:
+# In[83]:
 
 ##############
 #Set up phase buoyancy contributions
@@ -1157,7 +1160,7 @@ rp = garnetPhase.nd_reduced_pressure(depthFn,
 garnet_phase_buoyancy = garnetPhase.buoyancy_sum(temperatureField, depthFn, dp.g, dp.LS, dp.k, dp.eta0)
 
 
-# In[277]:
+# In[106]:
 
 ##############
 #Set up compositional buoyancy contributions
@@ -1193,7 +1196,7 @@ else :
 # 
 # 
 
-# In[278]:
+# In[107]:
 
 ##############
 #Set up any functions required by the rheology
@@ -1206,17 +1209,17 @@ def safe_visc(func, viscmin=ndp.eta_min, viscmax=ndp.eta_max):
     return fn.misc.max(viscmin, fn.misc.min(viscmax, func))
 
 
-# In[279]:
+# In[108]:
 
 #strainRate_2ndInvariant = fn.misc.constant(ndp.SR) #dummy fucntion to check which mechanisms are at active are reference strain rate
 
 
-# In[280]:
+# In[109]:
 
 ndp.crust_cohesion_fac
 
 
-# In[281]:
+# In[11]:
 
 ############
 #Rheology: create UW2 functions for all viscous mechanisms
@@ -1240,13 +1243,16 @@ yielding = ysf/(2.*(strainRate_2ndInvariant))
 ##Crust rheology
 #crustys =  ndp.cohesion*ndp.crust_cohesion_fac + (depthFn*ndp.fcd*ndp.crust_fc_fac)
 crustys =  ndp.cohesion*ndp.crust_cohesion_fac + (ndp.crust_fc_fac*depthFn*ndp.fcd) #only weakened cohesion is discussed, not fc
-
-crustyielding = crustys/(2.*(strainRate_2ndInvariant)) #extra factor to account for underworld second invariant form
-
+crustyielding = crustys/(2.*(strainRate_2ndInvariant)) 
 
 
+##Interface rheology
+interfaceys =  ndp.cohesion*ndp.interface_cohesion_fac + (ndp.interface_fc_fac*depthFn*ndp.fcd) #only weakened cohesion is discussed, not fc
+interfaceyielding = interfaceys/(2.*(strainRate_2ndInvariant))
 
-# In[282]:
+
+
+# In[113]:
 
 ############
 #Rheology: combine viscous mechanisms in various ways 
@@ -1260,6 +1266,8 @@ linearviscosityFn = safe_visc(diffusion)
 
 
 
+interfaceCond = operator.and_((depthFn < CRUSTVISCUTOFF), (depthFn > MANTLETOCRUST))    
+
 
 #combined rheology    
 
@@ -1268,17 +1276,24 @@ finalviscosityFn  = fn.branching.conditional([(depthFn < LOWMANTLEDEPTH, safe_vi
                                   (True, safe_visc(safe_visc(diffusion*ndp.low_mantle_visc_fac)))])
 
 #crust rheology    
-finalcrustviscosityFn = safe_visc(fn.misc.min(ndp.eta_max_crust, 
-                                              crustyielding)) #cohesion weakening factor also applies to eta_0
+#finalcrustviscosityFn = safe_visc(fn.misc.min(ndp.eta_max_crust, 
+#                                              crustyielding)) #cohesion weakening factor also applies to eta_0
+
+crustviscosityFn = safe_visc(fn.misc.min(linearviscosityFn, crustyielding), ndp.eta_max_crust)
+interfaceviscosityFn = safe_visc(fn.misc.min(linearviscosityFn, interfaceyielding), ndp.eta_max_interface)
+
+
+finalcrustviscosityFn  = fn.branching.conditional([(depthFn < MANTLETOCRUST, crustviscosityFn),
+                                                     (interfaceCond, interfaceviscosityFn), #
+                                                     (True, finalviscosityFn)])
+
+
+# In[ ]:
 
 
 
-# In[283]:
 
-#.low_mantle_visc_fac
-
-
-# In[284]:
+# In[114]:
 
 #fig= glucifer.Figure()
 #fig.append( glucifer.objects.Points(gSwarm,finalviscosityFn, logScale=True))
@@ -1294,7 +1309,7 @@ finalcrustviscosityFn = safe_visc(fn.misc.min(ndp.eta_max_crust,
 # -----
 # 
 
-# In[285]:
+# In[92]:
 
 densityMapFn = fn.branching.map( fn_key = materialVariable,
                          mapping = {airIndex:ndp.StRA,
@@ -1303,7 +1318,7 @@ densityMapFn = fn.branching.map( fn_key = materialVariable,
                                     harzIndex:harzbuoyancyFn} )
 
 
-# In[286]:
+# In[93]:
 
 
 # Define our vertical unit vector using a python tuple (this will be automatically converted to a function).
@@ -1313,7 +1328,7 @@ gravity = ( 0.0, 1.0 )
 buoyancyFn = densityMapFn * gravity
 
 
-# In[287]:
+# In[94]:
 
 stokesPIC = uw.systems.Stokes(velocityField=velocityField, 
                               pressureField=pressureField,
@@ -1322,14 +1337,14 @@ stokesPIC = uw.systems.Stokes(velocityField=velocityField,
                               fn_bodyforce=buoyancyFn )
 
 
-# In[288]:
+# In[95]:
 
 solver = uw.systems.Solver(stokesPIC)
 if not checkpointLoad:
     solver.solve() #A solve on the linear visocisty is unhelpful unless we're starting from scratch
 
 
-# In[289]:
+# In[115]:
 
 
 
@@ -1348,7 +1363,7 @@ if stickyAir:
 
 
 
-# In[290]:
+# In[116]:
 
 # director orientation in Sticky air
 if stickyAir:
@@ -1360,18 +1375,18 @@ if stickyAir:
     math.cos(orientation)
 
 
-# In[291]:
+# In[117]:
 
 #orientation = -1.*90. * math.pi / 180.0  #vertical
 #math.cos(orientation), math.sin(orientation)
 
 
-# In[292]:
+# In[118]:
 
 #stickyAir
 
 
-# In[293]:
+# In[119]:
 
 #Add the non-linear viscosity to the Stokes system
 stokesPIC.fn_viscosity = viscosityMapFn1
@@ -1381,7 +1396,7 @@ if stickyAir: #If sticky air, add the Transverse anisotropic components to Stoke
     stokesPIC._fn_director   = directorVector
 
 
-# In[294]:
+# In[120]:
 
 solver.set_inner_method("mumps")
 solver.options.scr.ksp_type="cg"
@@ -1391,10 +1406,10 @@ solver.solve(nonLinearIterate=True)
 solver.print_stats()
 
 
-# In[295]:
+# In[122]:
 
 #fig= glucifer.Figure()
-#fig.append( glucifer.objects.Points(gSwarm,finalviscosityFn, logScale=True))
+#fig.append( glucifer.objects.Points(gSwarm,viscosityMapFn1, logScale=True))
 #fig.append( glucifer.objects.Surface(mesh,temperatureField))
 #fig.append( glucifer.objects.VectorArrows(mesh,velocityField, scaling=0.05))
 
@@ -2039,9 +2054,9 @@ plt.plot(x90[:,0])
 vel_surface.shape
 
 
-# In[ ]:
+# In[105]:
 
-get_ipython().magic(u'pinfo np.copy')
+#velocityField.evaluate(iWalls).mean()/ velocityField.evaluate(mesh).mean()
 
 
 # In[ ]:
