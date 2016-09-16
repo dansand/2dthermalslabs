@@ -350,7 +350,7 @@ symmetricIC = False
 VelBC = False
 aspectRatio = 4
 compBuoyancy = False #use compositional & phase buoyancy, or simply thermal
-RES = 64
+RES = 160
 
 #Domain and Mesh paramters
 dim = 2          # number of spatial dimensions
@@ -406,7 +406,7 @@ ppc = 25
 #Metric output stuff
 figures =  'gldb' #glucifer Store won't work on all machines, if not, set to 'gldb' 
 swarm_repop, swarm_update = 10, 10
-gldbs_output = 2
+gldbs_output = 20
 checkpoint_every, files_output = 20, 10
 metric_output = 5
 sticky_air_temp = 5
@@ -1792,8 +1792,8 @@ else:
 
 # In[97]:
 
-#while step < 6:
-while realtime < 1.:
+while step < 20:
+#while realtime < 1.:
 
     # solve Stokes and advection systems
     solver.solve(nonLinearIterate=True)

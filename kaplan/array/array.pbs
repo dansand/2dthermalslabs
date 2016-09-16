@@ -1,0 +1,24 @@
+#!/bin/bash
+#PBS -P m18
+#PBS -q normal
+#PBS -l walltime=01:00:00
+#PBS -l mem=16GB
+#PBS -l ncpus=16
+#PBS -J 1-3
+
+source ~/.profile
+module list
+
+export MPIRUN=mpiexec
+export PYTHONPATH=/short/m18/jug565/code/uw2-2.0.3b2/:$PYTHONPATH
+
+
+##### Obtain Parameters from input.txt file using $PBS_ARRAY_INDEX as the line number #####
+
+parameters=`sed -n "${PBS_ARRAY_INDEX} p" input.txt`
+
+parameterArray=($parameters)
+
+x=${parameterArray[0]}
+
+$MPIRUN -np $PBS_NCPUS --mca mpi_warn_on_fork 0 python kaplan.py $PBS_ARRAY_INDEX dp:eta0*=$x
