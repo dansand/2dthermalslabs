@@ -178,7 +178,7 @@ print(cmperyear, mpersec )
 # * If params are passed in as flags to the script, they overwrite 
 # 
 
-# In[144]:
+# In[8]:
 
 ###########
 #Parameter / settings dictionaries get saved&loaded using pickle
@@ -192,7 +192,7 @@ ndp = edict({}) #dimensionless paramters
 
 
 
-# In[149]:
+# In[9]:
 
 dict_list = [dp, sf, ndp]
 dict_names = ['dp.pkl', 'sf.pkl', 'ndp.pkl']
@@ -202,24 +202,15 @@ def save_pickles(dict_list, dict_names, dictPath):
     counter = 0
     for pdict in dict_list:
         myfile = os.path.join(dictPath, dict_names[counter])
-        print(pdict, myfile)
         with open(myfile, 'wb') as f:
             pickle.dump(pdict, f)
         counter+=1
-            
-#def load_pickles(dict_list, dict_names,dictPath):
-#    import pickle
-#    counter = 0
-#    for pdict in dict_list:
-#        myfile = open(os.path.join(dictPath, dict_names[counter]), 'r')
-#        print(pdict, myfile)
-#        #pdict = pickle.load(myfile)
-#        tempDict = pickle.load(myfile)
-#        pdict.update( edict(tempDict))
-#        print(pdict)
-#        counter+=1
-#    return dict_list
 
+
+#ended up having to pretty much write a hard-coded function
+#All dictionaries we want checkpointed will have to  be added here 
+#and where the function is called
+#Fortunately, this function is only called ONCE
 
 def load_pickles():
     import pickle
@@ -235,7 +226,7 @@ def load_pickles():
     return dp, ndp, sf
 
 
-# In[104]:
+# In[10]:
 
 ###########
 #Store the physical parameters, scale factors and dimensionless pramters in easyDicts
@@ -287,14 +278,14 @@ dp = edict({'LS':2*670*1e3, #Scaling Length scale
             'rRidge':0.5*(670e3*4),
             'maxDepth':250e3,
             'theta':70., #Angle to truncate the slab (can also control with a maxDepth param)
-            'slabmaxAge':100e6, #age of subduction plate at trench
-            'platemaxAge':100e6, #max age of slab (Plate model)
+            'slabmaxAge':60e6, #age of subduction plate at trench
+            'platemaxAge':60e6, #max age of slab (Plate model)
             'sense':'Right', #dip direction
-            'op_age_fac':0.2, #this controls the overidding plate age reduction
+            'op_age_fac':0.5, #this controls the overidding plate age reduction
             #Misc
             'StALS':100e3, #depth of sticky air layer
             'plate_vel':4,
-            'low_mantle_visc_fac':1.
+            'low_mantle_visc_fac':30.
            })
 
 #append any derived parameters to the dictionary
@@ -303,35 +294,22 @@ dp.deltaT = dp.TP - dp.TS
 
 
 
-# In[105]:
+# In[11]:
 
 ##Model dict will go here, once I collect those params and put them in dict. 
 
 
-# In[150]:
+# In[13]:
 
 ###########
 #If starting from a checkpoint load params from file
 ###########
 
 if checkpointLoad:
-    dp, ndp, sf = load_pickles()  #remember this is hard coded
+    dp, ndp, sf = load_pickles()  #remember to add any extra dictionaries
 
 
-# In[151]:
-
-#dp = dict_list[0]
-#dp.keys()
-#ndp.LS
-#dp.keys()
-
-#ndp.ci
-#ndp.ci
-#checkpointLoad
-#dp.LS
-
-
-# In[72]:
+# In[14]:
 
 ###########
 #If command line args are given, overwrite
@@ -385,7 +363,7 @@ for farg in sys.argv[1:]:
 comm.barrier()
 
 
-# In[73]:
+# In[15]:
 
 #Only build these guys first time around, otherwise the read from checkpoints
 #Important because some of these params (like SZ location) may change during model evolution
@@ -461,12 +439,11 @@ if not checkpointLoad:
 #Modelling and Physics switches
 refineMesh = True
 stickyAir = False
-meltViscosityReduction = False
 symmetricIC = False
 VelBC = False
 aspectRatio = 4
 compBuoyancy = False #use compositional & phase buoyancy, or simply thermal
-RES = 64
+RES = 160
 
 #Domain and Mesh paramters
 dim = 2          # number of spatial dimensions
@@ -522,10 +499,10 @@ ppc = 25
 #Metric output stuff
 figures =  'gldb' #glucifer Store won't work on all machines, if not, set to 'gldb' 
 swarm_repop, swarm_update = 10, 10
-gldbs_output = 2
-checkpoint_every, files_output = 2, 10
-metric_output = 2
-sticky_air_temp = 5
+gldbs_output = 100
+checkpoint_every, files_output = 100, 100
+metric_output = 10
+sticky_air_temp = 1e6
 
 
 # Create mesh and finite element variables
@@ -1944,7 +1921,7 @@ start = time.clock()
 # In[ ]:
 
 #while step < 6:
-while realtime < 1.:
+while realtime < 0.0002:
 
     # solve Stokes and advection systems
     solver.solve(nonLinearIterate=True)
