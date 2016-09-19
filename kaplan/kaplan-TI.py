@@ -444,7 +444,7 @@ symmetricIC = False
 VelBC = False
 aspectRatio = 4
 compBuoyancy = False #use compositional & phase buoyancy, or simply thermal
-RES = 64
+RES = 160
 
 #Domain and Mesh paramters
 dim = 2          # number of spatial dimensions
@@ -1448,11 +1448,11 @@ fig2.append( glucifer.objects.Points(gSwarm,materialVariable))
 #fig2.append( glucifer.objects.Points(gSwarm,materialVariable))
 
 #Plot swarm associated with each fault
-for f in faults:
-    fig2.append( glucifer.objects.Points(f.swarm, colours="Black Black", pointSize=5.0, colourBar=False) )
+#for f in faults:
+#    fig2.append( glucifer.objects.Points(f.swarm, colours="Black Black", pointSize=5.0, colourBar=False) )
 
-fig2.show()
-fig2.save_database('test.gldb')
+#fig2.show()
+#fig2.save_database('test.gldb')
 
 
 # In[75]:
@@ -1489,10 +1489,10 @@ figMaterials.append( glucifer.objects.Points(gSwarm, proximityVariable,
 #                                             pointSize=2.0))
 
 #Add mesh
-figMaterials.append( glucifer.objects.Mesh(mesh, opacity=0.1) )
+#figMaterials.append( glucifer.objects.Mesh(mesh, opacity=0.1) )
 
-figMaterials.show()
-figMaterials.save_database('test.gldb')
+#figMaterials.show()
+#figMaterials.save_database('test.gldb')
 
 
 # In[59]:
