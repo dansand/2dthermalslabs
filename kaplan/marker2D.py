@@ -63,30 +63,49 @@ class markerLine2D:
         return
 
 
+    def _update_kdtree_v2(self):
+
+        self.empty = False
+        self.swarm.shadow_particles_fetch()
+
+        if self.swarm.particleLocalCount == 0:
+            self.empty = True
+            self.kdtree = lambda x: float('inf')
+            return
+
+        if self.swarm.particleCoordinates.data_shadow.shape[0] == 0:
+            all_particle_coords = self.swarm.particleCoordinates.data
+        else:
+            all_particle_coords = np.concatenate((self.swarm.particleCoordinates.data,
+                                                  self.swarm.particleCoordinates.data_shadow))
+
+        if len(all_particle_coords) < 3:
+            self.empty = True
+            self.kdtree = lambda x: float('inf')
+        else:
+            self.kdtree = kdTree(all_particle_coords)
+
+        return
 
     def _update_kdtree(self):
 
         self.empty = False
         self.swarm.shadow_particles_fetch()
 
-        if self.swarm.particleCoordinates.data.size:
-            if self.swarm.particleCoordinates.data_shadow.size:
-                all_particle_coords = np.concatenate([self.swarm.particleCoordinates.data, self.swarm.particleCoordinates.data_shadow])
-            else:
-                all_particle_coords = self.swarm.particleCoordinates.data
-        elif self.swarm.particleCoordinates.data_shadow.size:
-            all_particle_coords = self.swarm.particleCoordinates.data_shadow
-        else:
-            all_particle_coords = self.swarm.particleCoordinates.data
+        dims = self.swarm.particleCoordinates.data.shape[1]
 
+        pc = np.append(self.swarm.particleCoordinates.data,
+                       self.swarm.particleCoordinates.data_shadow)
+
+        all_particle_coords = pc.reshape(-1,dims)
 
         if len(all_particle_coords) < 3:
             self.empty = True
-            self.kdtree = kdTree(np.array([(1.0e99,1.0e99), (1.0e99,1.2e99)] ))
+            self.kdtree = lambda x: float('inf')
         else:
             self.kdtree = kdTree(all_particle_coords)
 
-        uw.barrier()
+        return
 
 
     def advection(self, dt):
@@ -121,8 +140,7 @@ class markerLine2D:
         proximity[fpts] = self.ID
 
         return proximity, fpts
-
-
+    
     def compute_normals(self, coords):
 
         # make sure this is called by all procs including those
@@ -140,21 +158,45 @@ class markerLine2D:
         fpts = np.where( np.isinf(d) == False )[0]
         director = np.zeros_like(coords)
 
-        if self.swarm.particleCoordinates.data.size:
-            if self.swarm.particleCoordinates.data_shadow.size:
-                fdirector  = np.concatenate([self.director.data, self.director.data_shadow])
-            else:
-                fdirector  = self.director.data
-        elif self.swarm.particleCoordinates.data_shadow.size:
-            fdirector  = self.director.data_shadow
-        else:
-            fdirector = self.director.data
+        dims = self.swarm.particleCoordinates.data.shape[1]
+
+        pc = np.append(self.director.data,
+                       self.director.data_shadow)
+
+        fdirector = pc.reshape(-1,dims)                                   
 
         director[fpts] = fdirector[p[fpts]]
 
         return director, fpts
 
 
+    def compute_normals_v2(self, coords):
+
+        # make sure this is called by all procs including those
+        # which have an empty self
+
+        self.swarm.shadow_particles_fetch()
+
+        # Nx, Ny = _points_to_normals(self)
+
+        if self.empty:
+            return np.empty((0,2)), np.empty(0, dtype="int")
+
+        d, p   = self.kdtree.query( coords, distance_upper_bound=self.thickness )
+
+        fpts = np.where( np.isinf(d) == False )[0]
+        director = np.zeros_like(coords)
+
+        if uw.nProcs() == 1:
+            fdirector = self.director.data
+        else:
+            fdirector = np.concatenate((self.director.data,
+                                    self.director.data_shadow))
+
+        director[fpts] = fdirector[p[fpts]]
+
+        return director, fpts
+    
     def compute_signed_distance(self, coords):
 
         # make sure this is called by all procs including those
@@ -166,16 +208,47 @@ class markerLine2D:
         if self.empty:
             return np.empty((0,1)), np.empty(0, dtype="int")
 
+        dims = self.swarm.particleCoordinates.data.shape[1]
 
-        if self.swarm.particleCoordinates.data.size:
-            if self.swarm.particleCoordinates.data_shadow.size:
-                fdirector  = np.concatenate([self.director.data, self.director.data_shadow])
-            else:
-                fdirector  = self.director.data
-        elif self.swarm.particleCoordinates.data_shadow.size:
-            fdirector  = self.director.data_shadow
-        else:
+        pc = np.append(self.director.data,
+                       self.director.data_shadow)
+
+        fdirector = pc.reshape(-1,dims)
+
+
+        # Need p, but it hasn't been stored even though d is the proximityVar
+        d, p  = self.kdtree.query( coords, distance_upper_bound=self.thickness )
+
+        fpts = np.where( np.isinf(d) == False )[0]
+
+        director = np.zeros_like(coords)
+
+        vector = coords[fpts] - self.kdtree.data[p[fpts]]
+        director = fdirector[p[fpts]]
+
+        signed_distance = np.zeros((coords.shape[0],1))
+        sd = np.einsum('ij,ij->i', vector, director)
+        signed_distance[fpts,0] = sd[:]
+
+        return signed_distance, fpts
+
+
+    def compute_signed_distance_v2(self, coords):
+
+        # make sure this is called by all procs including those
+        # which have an empty self
+
+        self.swarm.shadow_particles_fetch()
+
+
+        if self.empty:
+            return np.empty((0,1)), np.empty(0, dtype="int")
+
+        if uw.nProcs() == 1:
             fdirector = self.director.data
+        else:
+            fdirector = np.concatenate((self.director.data,
+                                    self.director.data_shadow))
 
 
 
@@ -241,6 +314,5 @@ class markerLine2D:
 
             self.director.data[:,0] = Nx[:]
             self.director.data[:,1] = Ny[:]
-
 
         return
