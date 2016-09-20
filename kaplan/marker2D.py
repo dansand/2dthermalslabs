@@ -69,10 +69,11 @@ class markerLine2D:
         self.empty = False
         self.swarm.shadow_particles_fetch()
 
-
         if self.swarm.particleCoordinates.data.size:
-            all_particle_coords = np.concatenate([self.swarm.particleCoordinates.data, self.swarm.particleCoordinates.data_shadow]) \
-            if self.swarm.particleCoordinates.data_shadow.size else self.swarm.particleCoordinates.data
+            if self.swarm.particleCoordinates.data_shadow.size:
+                all_particle_coords = np.concatenate([self.swarm.particleCoordinates.data, self.swarm.particleCoordinates.data_shadow])
+            else:
+                all_particle_coords = self.swarm.particleCoordinates.data
         elif self.swarm.particleCoordinates.data_shadow.size:
             all_particle_coords = self.swarm.particleCoordinates.data_shadow
         else:
@@ -140,8 +141,10 @@ class markerLine2D:
         director = np.zeros_like(coords)
 
         if self.swarm.particleCoordinates.data.size:
-            fdirector  = np.concatenate([self.director.data, self.director.data_shadow]) \
-            if self.swarm.particleCoordinates.data_shadow.size else self.director.data
+            if self.swarm.particleCoordinates.data_shadow.size:
+                fdirector  = np.concatenate([self.director.data, self.director.data_shadow])
+            else:
+                fdirector  = self.director.data
         elif self.swarm.particleCoordinates.data_shadow.size:
             fdirector  = self.director.data_shadow
         else:
@@ -165,8 +168,10 @@ class markerLine2D:
 
 
         if self.swarm.particleCoordinates.data.size:
-            fdirector  = np.concatenate([self.director.data, self.director.data_shadow]) \
-            if self.swarm.particleCoordinates.data_shadow.size else self.director.data
+            if self.swarm.particleCoordinates.data_shadow.size:
+                fdirector  = np.concatenate([self.director.data, self.director.data_shadow])
+            else:
+                fdirector  = self.director.data
         elif self.swarm.particleCoordinates.data_shadow.size:
             fdirector  = self.director.data_shadow
         else:
