@@ -1704,7 +1704,7 @@ for index, xval in np.ndenumerate(slabCoords[:,0]):
         
 slabCoords = slabCoords[slabCoords[:,1] > (1. - ndp.maxDepth)] #kill any deeper than cutoff
 
-slab_line  = marker2D2.markerLine2D(mesh, velocityField, slabCoords[:, 0], slabCoords[:, 1], 200e3/dp.LS, 0.0, 0.0, crustIndex)
+slab_line  = marker2D.markerLine2D(mesh, velocityField, slabCoords[:, 0], slabCoords[:, 1], 200e3/dp.LS, 0.0, 0.0, crustIndex)
 lowerPlateRestFn = gSwarm.add_variable( dataType="double", count=1 )
 lowerPlateRestFn.data[:] = 0.0
 
