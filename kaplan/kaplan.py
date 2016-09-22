@@ -1749,11 +1749,11 @@ respltconditions = [
 respltFn = fn.branching.conditional(respltconditions )
 
 
-# In[199]:
+# In[204]:
 
-fig= glucifer.Figure()
-fig.append( glucifer.objects.Points(gSwarm,respltFn))
-fig.show()
+#fig= glucifer.Figure()
+#fig.append( glucifer.objects.Points(gSwarm,respltFn))
+#fig.show()
 
 
 # In[83]:
