@@ -16,7 +16,7 @@
 # 
 # Kaplan, Michael. Numerical Geodynamics of Solid Planetary Deformation. Diss. University of Southern California, 2015.
 
-# In[1]:
+# In[134]:
 
 import numpy as np
 import underworld as uw
@@ -47,7 +47,7 @@ rank = comm.Get_rank()
 # Model name and directories
 # -----
 
-# In[2]:
+# In[135]:
 
 ############
 #Model letter and number
@@ -75,7 +75,7 @@ else:
                 Model  = farg
 
 
-# In[3]:
+# In[136]:
 
 ###########
 #Standard output directory setup
@@ -106,7 +106,7 @@ if uw.rank()==0:
 comm.Barrier() #Barrier here so no procs run the check in the next cell too early
 
 
-# In[4]:
+# In[137]:
 
 ###########
 #Check if starting from checkpoint
@@ -123,7 +123,7 @@ for dirpath, dirnames, files in os.walk(checkpointPath):
         checkpointLoad = False
 
 
-# In[5]:
+# In[141]:
 
 # setup summary output file (name above)
 if checkpointLoad:
@@ -134,9 +134,9 @@ if checkpointLoad:
     f_o = open(os.path.join(outputPath, outputFile), 'a')
     prevdata = np.genfromtxt(os.path.join(outputPath, outputFile), skip_header=0, skip_footer=0)
     if len(prevdata.shape) == 1: #this is in case there is only one line in previous file
-        realtime = prevdata[0]
+        realtime = prevdata[-1]
     else:
-        realtime = prevdata[prevdata.shape[0]-1, 0]
+        realtime = prevdata[prevdata.shape[0]-1, -1]
     step = int(checkpointLoadDir.split('/')[-1])
     timevals = [0.]
 else:
@@ -188,15 +188,15 @@ print(cmperyear, mpersec )
 dp = edict({}) #dimensional parameters
 sf = edict({}) #scaling factors
 ndp = edict({}) #dimensionless paramters
-#md = edict({}) #model paramters, flags etc
+md = edict({}) #model paramters, flags etc
 #od = edict({}) #output frequencies
 
 
 
 # In[9]:
 
-dict_list = [dp, sf, ndp]
-dict_names = ['dp.pkl', 'sf.pkl', 'ndp.pkl']
+dict_list = [dp, sf, ndp, md]
+dict_names = ['dp.pkl', 'sf.pkl', 'ndp.pkl', 'md.pkl']
 
 def save_pickles(dict_list, dict_names, dictPath):
     import pickle
@@ -224,10 +224,13 @@ def load_pickles():
     #
     sffile = open(os.path.join(dirpath, 'sf.pkl'), 'r')
     sf = edict(pickle.load(sffile))
-    return dp, ndp, sf
+    #
+    mdfile = open(os.path.join(dirpath, 'md.pkl'), 'r')
+    md = edict(pickle.load(mdfile))
+    return dp, ndp, sf, md
 
 
-# In[111]:
+# In[92]:
 
 ###########
 #Store the physical parameters, scale factors and dimensionless pramters in easyDicts
@@ -301,27 +304,33 @@ dp.deltaT = dp.TP - dp.TS
 
 
 
-# In[ ]:
+# In[93]:
+
+#Modelling and Physics switches
+
+md = edict({'refineMesh':True,
+            'stickyAir':False,
+            'subductionFault':True,
+            'symmetricIcs':False,
+            'velBcs':False,
+            'aspectRatio':4,
+            'compBuoyancy':False, #use compositional & phase buoyancy, or simply thermal
+            'periodicBcs':False,
+            'RES':128
+            })
 
 
-
-
-# In[113]:
-
-##Model dict will go here, once I collect those params and put them in dict. 
-
-
-# In[114]:
+# In[94]:
 
 ###########
 #If starting from a checkpoint load params from file
 ###########
 
 if checkpointLoad:
-    dp, ndp, sf = load_pickles()  #remember to add any extra dictionaries
+    dp, ndp, sf, md = load_pickles()  #remember to add any extra dictionaries
 
 
-# In[115]:
+# In[95]:
 
 ###########
 #If command line args are given, overwrite
@@ -375,12 +384,16 @@ for farg in sys.argv[1:]:
 comm.barrier()
 
 
-# In[116]:
+# In[96]:
 
 #Only build these guys first time around, otherwise the read from checkpoints
 #Important because some of these params (like SZ location) may change during model evolution
 
+
 if not checkpointLoad:
+
+    
+    
     sf = edict({'stress':dp.LS**2/(dp.k*dp.eta0),
                 'lith_grad':dp.rho*dp.g*(dp.LS)**3/(dp.eta0*dp.k) , 
                 'vel':dp.LS/dp.k,
@@ -446,7 +459,7 @@ if not checkpointLoad:
     ndp.CVR = dp.CVR*sf.vel #characteristic velocity
 
 
-# In[15]:
+# In[97]:
 
 ndp.plate_vel, sf.vel, (cmpery.to(u.m/u.second)).magnitude
 
@@ -458,16 +471,6 @@ ndp.plate_vel, sf.vel, (cmpery.to(u.m/u.second)).magnitude
 ###########
 #Model setup parameters
 ###########
-
-#Modelling and Physics switches
-refineMesh = True
-stickyAir = False
-subductionFault = True
-symmetricIC = False
-VelBC = False
-aspectRatio = 4
-compBuoyancy = False #use compositional & phase buoyancy, or simply thermal
-RES = 128
 
 #Domain and Mesh paramters
 dim = 2          # number of spatial dimensions
@@ -487,9 +490,9 @@ elif tot_depth < 1.: #Depth smaller to length scale
     MINY = np.round(1. - tot_depth, 2)
     MAXY = 1.
     
-MINX = np.round(-1.*tot_depth*aspectRatio/2., 2)  #Aspect ratio is fixed, x-domain shifts according to system depth and length scale
+MINX = np.round(-1.*tot_depth*md.aspectRatio/2., 2)  #Aspect ratio is fixed, x-domain shifts according to system depth and length scale
 
-MAXX = np.round(1.*tot_depth*aspectRatio/2., 2)
+MAXX = np.round(1.*tot_depth*md.aspectRatio/2., 2)
 
 if MINX == 0.:
     squareModel = True
@@ -498,20 +501,23 @@ else:
     
     
 
-Xres = int(RES*aspectRatio)
+Xres = int(md.RES*md.aspectRatio)
 #if MINY == 0.5:
 #    Xres = int(2.*RES*aspectRatio)
     
 
-if stickyAir:
-    Yres = RES
+if md.stickyAir:
+    Yres = md.RES
     MAXY = np.round(MAXY + dp.StALS/dp.LS, 2)
     
 else:
-    Yres = RES
+    Yres = md.RES
     MAXY = np.round(MAXY, 2)
 
 periodic = [False, False]
+if md.periodicBcs:
+    periodic = [True, False]
+    
 elementType = "Q1/dQ0"
 #elementType ="Q2/DPC1"
 
@@ -523,9 +529,9 @@ ppc = 25
 #Metric output stuff
 figures =  'gldb' #glucifer Store won't work on all machines, if not, set to 'gldb' 
 swarm_repop, swarm_update = 10, 10
-gldbs_output = 10
-checkpoint_every, files_output = 20, 100
-metric_output = 2
+gldbs_output = 5
+checkpoint_every, files_output = 10, 100
+metric_output = 1
 sticky_air_temp = 1e6
 
 
@@ -558,7 +564,7 @@ mesh.reset()
 
 #X-Axis
 
-if refineMesh:
+if md.refineMesh:
     mesh.reset()
     axis = 0
     origcoords = np.linspace(mesh.minCoord[axis], mesh.maxCoord[axis], mesh.elementRes[axis] + 1)
@@ -593,7 +599,7 @@ yconst = [(spmesh.find_closest(orgs, value_to_constrain), np.array([value_to_con
 #Mesh refinement
 ###########
 
-if refineMesh:
+if md.refineMesh:
     #Y-Axis
     axis = 1
     origcoords = np.linspace(mesh.minCoord[axis], mesh.maxCoord[axis], mesh.elementRes[axis] + 1)
@@ -625,7 +631,7 @@ if refineMesh:
 
 #THis is a hack for adding a sticky air domain, we refine MAXY and things like the temperature stencil work from Y = 1. 
 
-if stickyAir:
+if md.stickyAir:
     MAXY = 1.
 
 
@@ -701,7 +707,7 @@ tempBL = (ndp.TP - ndp.TS) *fn.math.erf((depthFn*dp.LS)/(2.*fn.math.sqrt(dp.k*ag
 tempTBL =  fn.branching.conditional([(depthFn < w0, tempBL),
                           (True, ndp.TPP)])
 
-if not symmetricIC:
+if not md.symmetricIcs:
     if not checkpointLoad:
         out = uw.utils.MeshVariable_Projection( temperatureField, tempTBL) #apply function with projection
         out.solve()
@@ -734,7 +740,7 @@ coords = ((0.+ ndp.subzone, MAXY), (0.+ ndp.subzone, MAXY-ndp.roc), (ptx, MAXY))
 Tri = fn.shape.Polygon(np.array(coords))
 
 #Actually apply the perturbation - could probably avoid particle walk here
-if not symmetricIC:
+if not md.symmetricIcs:
     if not checkpointLoad:
         sdFn = ((ndp.roc - fn.math.sqrt((coordinate[0] - Org[0])**2. + (coordinate[1] - Org[1])**2.)))
         slabFn = ndp.TPP*fn.math.erf((sdFn*dp.LS)/(2.*math.sqrt(dp.k*ageAtTrenchSeconds))) + ndp.TSP
@@ -841,7 +847,7 @@ VelBCs = mesh.specialSets["Empty"]
 
 
 
-if VelBC:
+if md.velBcs:
     for index in list(tWalls.data):
 
         if (mesh.data[int(index)][0] < (ndp.subzone - 0.05*aspectRatio) and 
@@ -865,7 +871,7 @@ Fixed.add(int(0))
         
 
 if periodic[0] == False:
-    if VelBC:
+    if md.velBcs:
         print(1)
         freeslipBC = uw.conditions.DirichletCondition( variable      = velocityField, 
                                                indexSetsPerDof = ( iWalls + VelBCs, jWalls) )
@@ -880,7 +886,7 @@ if periodic[0] == False:
 
 
 if periodic[0] == True:
-    if VelBC:
+    if md.velBcs:
         print(3)
         freeslipBC = uw.conditions.DirichletCondition( variable      = velocityField, 
                                                indexSetsPerDof = ( Fixed + VelBCs , jWalls) )
@@ -1122,7 +1128,7 @@ DG.add_transition((harzIndex,airIndex), depthFn, operator.lt, 0. )
 ##############
 
 if checkpointLoad != True:
-    if not symmetricIC:
+    if not md.symmetricIcs:
         for particleID in range(gSwarm.particleCoordinates.data.shape[0]):
             if gSwarm.particleCoordinates.data[particleID][1] < 0.:
                 materialVariable.data[particleID] = airIndex
@@ -1253,20 +1259,6 @@ def fault_strainrate_fns(fault_list, velocityField, faultNormalVariable, proximi
     
     strainRateFn = fn.tensor.symmetric( velocityField.fn_gradient )
 
-
-    #  n1 * edot_11 * n1 + 
-    #  n2 * edot_21 * n1 + 
-    #  n1 * edot_21 * n2 +
-    #  n2 * edot_22 * n2 
-
-#     _edotn_SFn = ( directorVector[0] * strainRateFn[0] * directorVector[0] + 
-#                    directorVector[1] * strainRateFn[2] * directorVector[0] + # Symmetry !! 
-#                    directorVector[0] * strainRateFn[2] * directorVector[1] + 
-#                    directorVector[1] * strainRateFn[1] * directorVector[1]                          
-#                 )
-    
-    
-    ## "OPTIMIZED" VERSION
     
     _edotn_SFn = (        directorVector[0]**2 * strainRateFn[0]  + 
                     2.0 * directorVector[1]    * strainRateFn[2] * directorVector[0] + 
@@ -1280,21 +1272,6 @@ def fault_strainrate_fns(fault_list, velocityField, faultNormalVariable, proximi
         _edotn_SFn_Map[f.ID] =  _edotn_SFn
 
 
-    #  s1 = -n2
-    #  s2 =  n1
-    #
-    # -n2 * edot_11 * n1 + 
-    #  n1 * edot_21 * n1 + 
-    # -n2 * edot_21 * n2 + 
-    #  n1 * edot_22 * n2     
-
-#     _edots_SFn = ( -directorVector[1] * strainRateFn[0] * directorVector[0] + 
-#                     directorVector[0] * strainRateFn[2] * directorVector[0] + 
-#                    -directorVector[1] * strainRateFn[2] * directorVector[1] + 
-#                     directorVector[0] * strainRateFn[1] * directorVector[1] 
-#                 )
-    
-    ## "OPTIMIZED" VERSION
 
    
     _edots_SFn = (  directorVector[0] *  directorVector[1] *(strainRateFn[1] - strainRateFn[0]) +
@@ -1457,7 +1434,7 @@ figMaterials.append( glucifer.objects.Points(gSwarm, proximityVariable,
 # 
 # 
 
-# In[52]:
+# In[98]:
 
 ##############
 #Set up any functions required by the rheology
@@ -1470,17 +1447,17 @@ def safe_visc(func, viscmin=ndp.eta_min, viscmax=ndp.eta_max):
     return fn.misc.max(viscmin, fn.misc.min(viscmax, func))
 
 
-# In[53]:
+# In[99]:
 
 #strainRate_2ndInvariant = fn.misc.constant(ndp.SR) #dummy fucntion to check which mechanisms are at active are reference strain rate
 
 
-# In[54]:
+# In[100]:
 
 #ndp.crust_cohesion_fac
 
 
-# In[55]:
+# In[101]:
 
 ############
 #Rheology: create UW2 functions for all viscous mechanisms
@@ -1490,7 +1467,6 @@ omega = fn.misc.constant(1.) #this function can hold any arbitary viscosity modi
 
 
 ##Diffusion Creep
-
 diffusion = fn.misc.min(ndp.eta_max, fn.math.exp(-1*ndp.Edf + ndp.Edf / (temperatureField + 1e-8)))
 
 
@@ -1513,7 +1489,7 @@ interfacevisc = interfaceys/(2.*(strainRate_2ndInvariant))
 
 
 
-# In[56]:
+# In[102]:
 
 ############
 #Rheology: combine viscous mechanisms in various ways 
@@ -1531,8 +1507,6 @@ interfaceCond = operator.and_((depthFn < ndp.CRUSTVISCUTOFF), (depthFn > ndp.MAN
 
 
 #combined rheology    
-
-
 finalviscosityFn  = fn.branching.conditional([(depthFn < ndp.LOWMANTLEDEPTH, safe_visc(fn.misc.min(diffusion, yielding))),
                                   (True, safe_visc(safe_visc(diffusion*ndp.low_mantle_visc_fac)))])
 
@@ -1560,12 +1534,12 @@ finalcrustviscosityFn  = fn.branching.conditional([(depthFn < ndp.MANTLETOCRUST,
 # -----
 # 
 
-# In[57]:
+# In[103]:
 
 buoyancyFn =  ndp.RA*temperatureField
 
 
-# In[58]:
+# In[104]:
 
 densityMapFn = fn.branching.map( fn_key = materialVariable,
                          mapping = {airIndex:ndp.StRA,
@@ -1574,7 +1548,7 @@ densityMapFn = fn.branching.map( fn_key = materialVariable,
                                     harzIndex:buoyancyFn} )
 
 
-# In[59]:
+# In[105]:
 
 
 # Define our vertical unit vector using a python tuple (this will be automatically converted to a function).
@@ -1605,7 +1579,7 @@ if not checkpointLoad:
 
 
 
-# In[118]:
+# In[106]:
 
 viscosityMapFn1 = fn.branching.map( fn_key = materialVariable,
                          mapping = {crustIndex:finalcrustviscosityFn,
@@ -1617,7 +1591,7 @@ viscosityMapFn1 = fn.branching.map( fn_key = materialVariable,
 delta_Steata2 = ndp.Steta_n - ndp.Steta_s
 delta_eta_fault = 0.
 
-if subductionFault:  
+if md.subductionFault:  
     if ndp.eta_min_fault == ndp.eta_min_fault:#Transverse rheology is isoviscous
         delta_eta_fault = fn.misc.min(0.999, fn.misc.max (0.,   ndp.eta_min_crust - ndp.eta_min_fault))       
         
@@ -1628,12 +1602,12 @@ if subductionFault:
    
 
 
-# In[119]:
+# In[107]:
 
 np.unique(delta_eta_fault.evaluate(gSwarm)), delta_Steata2
 
 
-# In[78]:
+# In[108]:
 
 # This one maps to my fault-proximity variable (which also picks only materialV)
 viscosityMapFn2    = { 0: 0.0, 
@@ -1646,28 +1620,28 @@ viscosityMapFn2  = fn.branching.map( fn_key = proximityVariable,
                                            mapping = viscosityMapFn2)
 
 
-# In[79]:
+# In[109]:
 
 #orientation = -1.*90. * math.pi / 180.0  #vertical
 #math.cos(orientation), math.sin(orientation)
 
 
-# In[80]:
+# In[110]:
 
 #stickyAir
 
 
-# In[81]:
+# In[111]:
 
 #Add the non-linear viscosity to the Stokes system
 stokesPIC.fn_viscosity = viscosityMapFn1
 
-if stickyAir or subductionFault:
+if md.stickyAir or md.subductionFault:
     stokesPIC.fn_viscosity2 = viscosityMapFn2
     stokesPIC._fn_director   = directorVector
 
 
-# In[82]:
+# In[112]:
 
 solver.set_inner_method("mumps")
 solver.options.scr.ksp_type="cg"
@@ -1677,7 +1651,7 @@ solver.solve(nonLinearIterate=True)
 solver.print_stats()
 
 
-# In[83]:
+# In[113]:
 
 #Check which particles are yielding
 #yieldingCheck.data[:] = 0
@@ -1689,10 +1663,23 @@ solver.print_stats()
 #yieldingCheck.data[:] = fn.branching.conditional( yieldconditions ).evaluate(gSwarm)
 
 
-# In[84]:
+# In[114]:
+
+#velocityFieldIso       = uw.mesh.MeshVariable( mesh=mesh,         nodeDofCount=2 )
+#velocityFieldIso.data[:] = velocityField.data.copy()
+
+
+
+#strainRate_2ndInvariantIso = fn.tensor.second_invariant( 
+#                            fn.tensor.symmetric( 
+#                            velocityFieldIso.fn_gradient ))
+
+
+# In[133]:
 
 #fig= glucifer.Figure()
-#fig.append( glucifer.objects.Points(gSwarm,yieldingCheck))
+#fig.append( glucifer.objects.Points(gSwarm,strainRate_2ndInvariant - strainRate_2ndInvariantIso))
+#fig.append( glucifer.objects.VectorArrows(mesh,velocityField -velocityFieldIso))
 
 #fig.append( glucifer.objects.Surface(mesh,ndflm, logScale=True))
 #fig.show()
@@ -1701,7 +1688,7 @@ solver.print_stats()
 # Advection-diffusion System setup
 # -----
 
-# In[85]:
+# In[120]:
 
 advDiff = uw.systems.AdvectionDiffusion( phiField       = temperatureField, 
                                          phiDotField    = temperatureDotField, 
@@ -1716,7 +1703,7 @@ passiveadvector = uw.systems.SwarmAdvector( swarm         = gSwarm,
                                      order         = 1)
 
 
-# In[86]:
+# In[121]:
 
 population_control = uw.swarm.PopulationControl(gSwarm,deleteThreshold=0.2,splitThreshold=1.,maxDeletions=3,maxSplits=0, aggressive=True, particlesPerCell=ppc)
 
@@ -1748,14 +1735,13 @@ population_control = uw.swarm.PopulationControl(gSwarm,deleteThreshold=0.2,split
 
 
 
-# In[87]:
+# In[122]:
 
 ###################
 #Volume Restriction functions
 ###################
 
 #Level 1. Global
-
 globRestFn = fn.misc.constant(1.)
 
 #Level 2. Rock - air:
@@ -1836,7 +1822,7 @@ hingeRestFn*=lowerPlateRestFn #Add next level up in heirarchy
 #Level 6. crust/interface in hinge of lower plate:
 
 
-# In[88]:
+# In[123]:
 
 respltconditions = [ 
                     (                                  hingeRestFn*2. > rockRestFn*1., 1.),
@@ -1847,7 +1833,7 @@ respltconditions = [
 respltFn = fn.branching.conditional(respltconditions )
 
 
-# In[89]:
+# In[124]:
 
 fig= glucifer.Figure()
 fig.append( glucifer.objects.Points(gSwarm,respltFn))
@@ -1855,7 +1841,7 @@ fig.append( glucifer.objects.Points(gSwarm,respltFn))
 #fig.save_database('test_restrict.gldb')
 
 
-# In[90]:
+# In[125]:
 
 ###################
 #Surface Restriction functions
@@ -1875,7 +1861,7 @@ def platenessFn(val = 0.1):
 srRestFn = platenessFn(val = 0.1)
 
 
-# In[91]:
+# In[126]:
 
 ###################
 #Setup any Functions to be integrated
@@ -1892,7 +1878,7 @@ dTdZ = temperatureField.fn_gradient[1]
 
 
 
-# In[92]:
+# In[127]:
 
 ###################
 #Create integral, max/min templates 
@@ -1914,7 +1900,7 @@ def maxMin(Fn = 1.):
     
 
 
-# In[93]:
+# In[128]:
 
 #Setup volume integrals on different sub regions
 
@@ -1948,7 +1934,7 @@ _areaintHinge  = volumeint(hingeRestFn)
 _vdintHinge  = volumeint(vd,hingeRestFn)
 
 
-# In[94]:
+# In[129]:
 
 #Setup surface integrals
 
@@ -1959,7 +1945,7 @@ _nuBottom = surfint(dTdZ, surfaceIndexSet=mesh.specialSets["MinJ_VertexSet"])
 _plateness = surfint(srRestFn)
 
 
-# In[95]:
+# In[130]:
 
 #Setup max min fns (at the moment, we can't pass restriction function to view.min_max, so we're limited to whole volume or surface extrema)
 
@@ -1985,7 +1971,7 @@ _maxMinVxSurf = maxMin(vx)
 dummyFn = _maxMinVxSurf.evaluate(tWalls)
 
 
-# In[96]:
+# In[131]:
 
 #Volume Ints
 areaintRock = _areaintRock.evaluate()[0]
@@ -2022,36 +2008,39 @@ maxVxsurf = _maxMinVxSurf.max_global()
 minVxsurf = _maxMinVxSurf.min_global()
 
 
-# print(areaintRock)
-# print(tempintRock)
-# print(rmsintRock)
-# print(dwintRock)
-# print(vdintRock)
-# print(areaintLith)
-# print(tempintLith )
-# print(rmsintLith)
-# print(dwintLith)
-# print(vdintLith)
-# print(areaintLower)
-# print(tempintLower)
-# print(rmsintLower) 
-# print(dwintLower)
-# print(vdintLower)
-# print(vdintHinge)
-# 
-# print(surfLength)
-# print(rmsSurf)
-# print(nuTop)
-# print(nuBottom)
-# print(plateness)
-# 
-# 
-# print(maxVel)
-# print(minVel)
-# print(maxSr)
-# print(minSr)
-# print(maxVxsurf)
-# print(minVxsurf)
+# In[132]:
+
+print(areaintRock)
+print(tempintRock)
+print(rmsintRock)
+print(dwintRock)
+print(vdintRock)
+print(areaintLith)
+print(tempintLith )
+print(rmsintLith)
+print(dwintLith)
+print(vdintLith)
+print(areaintLower)
+print(tempintLower)
+print(rmsintLower) 
+print(dwintLower)
+print(vdintLower)
+print(vdintHinge)
+
+print(surfLength)
+print(rmsSurf)
+print(nuTop)
+print(nuBottom)
+print(plateness)
+
+
+print(maxVel)
+print(minVel)
+print(maxSr)
+print(minSr)
+print(maxVxsurf)
+print(minVxsurf)
+
 
 # In[ ]:
 
@@ -2061,13 +2050,13 @@ minVxsurf = _maxMinVxSurf.min_global()
 # Viz.
 # -----
 
-# In[97]:
+# In[100]:
 
 #viscVariable = gSwarm.add_variable( dataType="float", count=1 )
 #viscVariable.data[:] = viscosityMapFn1.evaluate(gSwarm)
 
 
-# In[100]:
+# In[101]:
 
 if figures == 'gldb':
     #Pack some stuff into a database as well
@@ -2103,7 +2092,7 @@ elif figures == 'store':
 
 # **Miscellania**
 
-# In[185]:
+# In[102]:
 
 ##############
 #Create a numpy array at the surface to get surface information on (using parallel-friendly evaluate_global)
@@ -2118,7 +2107,7 @@ dummy = tempMM.evaluate(mesh)
 
 
 
-# In[186]:
+# In[103]:
 
 ##############
 #These functions handle checkpointing
@@ -2155,12 +2144,12 @@ def checkpoint2(step, checkpointPath, swarm, filename, varlist = [materialVariab
         varb.save(os.path.join(path,varnames[ix] + ".h5"))
     
     #Save the parameters
-    dict_list = [dp, sf, ndp] #if any of the dictionaries have changed, this list needs to be rebuilt
+    dict_list = [dp, sf, ndp, md] #if any of the dictionaries have changed, this list needs to be rebuilt
     save_pickles(dict_list, dict_names, path)
     
 
 
-# In[187]:
+# In[104]:
 
 ##############
 #These functions handle checkpointing
@@ -2193,13 +2182,13 @@ def plate_info(srfilename, minx, maxx,  searchdx, oldszloc = 0.0):
     return newszLoc 
 
 
-# In[188]:
+# In[105]:
 
 # initialise timer for computation
 start = time.clock()
 
 
-# In[118]:
+# In[106]:
 
 #max_vx_surf(velocityField, mesh)
 
@@ -2211,7 +2200,7 @@ start = time.clock()
 # In[190]:
 
 #while step < 6:
-while realtime < 0.001:
+while realtime < 0.002:
 
     # solve Stokes and advection systems
     solver.solve(nonLinearIterate=True)
