@@ -16,7 +16,7 @@
 # 
 # Kaplan, Michael. Numerical Geodynamics of Solid Planetary Deformation. Diss. University of Southern California, 2015.
 
-# In[1]:
+# In[112]:
 
 import numpy as np
 import underworld as uw
@@ -47,7 +47,7 @@ rank = comm.Get_rank()
 # Model name and directories
 # -----
 
-# In[2]:
+# In[113]:
 
 ############
 #Model letter and number
@@ -75,7 +75,7 @@ else:
                 Model  = farg
 
 
-# In[3]:
+# In[114]:
 
 ###########
 #Standard output directory setup
@@ -106,7 +106,7 @@ if uw.rank()==0:
 comm.Barrier() #Barrier here so no procs run the check in the next cell too early
 
 
-# In[4]:
+# In[115]:
 
 ###########
 #Check if starting from checkpoint
@@ -123,7 +123,7 @@ for dirpath, dirnames, files in os.walk(checkpointPath):
         checkpointLoad = False
 
 
-# In[5]:
+# In[116]:
 
 # setup summary output file (name above)
 if checkpointLoad:
@@ -153,7 +153,7 @@ else:
 
 # **Use pint to setup any unit conversions we'll need**
 
-# In[6]:
+# In[117]:
 
 u = pint.UnitRegistry()
 cmpery = 1.*u.cm/u.year
@@ -163,7 +163,7 @@ spery = year.to(u.sec)
 cmpery.to(mpermy)
 
 
-# In[7]:
+# In[118]:
 
 box_half_width =4000e3
 age_at_trench = 100e6
@@ -179,7 +179,7 @@ print(cmperyear, mpersec )
 # * If params are passed in as flags to the script, they overwrite 
 # 
 
-# In[8]:
+# In[119]:
 
 ###########
 #Parameter / settings dictionaries get saved&loaded using pickle
@@ -193,7 +193,7 @@ md = edict({}) #model paramters, flags etc
 
 
 
-# In[9]:
+# In[120]:
 
 dict_list = [dp, sf, ndp, md]
 dict_names = ['dp.pkl', 'sf.pkl', 'ndp.pkl', 'md.pkl']
@@ -230,7 +230,7 @@ def load_pickles():
     return dp, ndp, sf, md
 
 
-# In[10]:
+# In[121]:
 
 ###########
 #Store the physical parameters, scale factors and dimensionless pramters in easyDicts
@@ -304,7 +304,7 @@ dp.deltaT = dp.TP - dp.TS
 
 
 
-# In[11]:
+# In[122]:
 
 #Modelling and Physics switches
 
@@ -320,7 +320,7 @@ md = edict({'refineMesh':False,
             })
 
 
-# In[12]:
+# In[123]:
 
 ###########
 #If starting from a checkpoint load params from file
@@ -330,7 +330,7 @@ if checkpointLoad:
     dp, ndp, sf, md = load_pickles()  #remember to add any extra dictionaries
 
 
-# In[111]:
+# In[124]:
 
 ###########
 #If command line args are given, overwrite
@@ -389,12 +389,12 @@ for farg in sys.argv[1:]:
 comm.barrier()
 
 
-# In[ ]:
+# In[125]:
 
 #print('refine Mesh is: ', md.refineMesh)
 
 
-# In[14]:
+# In[126]:
 
 #Only build these guys first time around, otherwise the read from checkpoints
 #Important because some of these params (like SZ location) may change during model evolution
@@ -469,19 +469,19 @@ if not checkpointLoad:
     ndp.CVR = dp.CVR*sf.vel #characteristic velocity
 
 
-# In[15]:
+# In[127]:
 
 ndp.Edf
 
 
-# In[16]:
+# In[128]:
 
 ndp.plate_vel, sf.vel, (cmpery.to(u.m/u.second)).magnitude
 
 
 # **Model setup parameters**
 
-# In[17]:
+# In[129]:
 
 ###########
 #Model setup parameters
@@ -553,7 +553,7 @@ sticky_air_temp = 1e6
 # Create mesh and finite element variables
 # ------
 
-# In[18]:
+# In[130]:
 
 mesh = uw.mesh.FeMesh_Cartesian( elementType = (elementType),
                                  elementRes  = (Xres, Yres), 
@@ -566,12 +566,12 @@ temperatureField    = uw.mesh.MeshVariable( mesh=mesh,         nodeDofCount=1 )
 temperatureDotField = uw.mesh.MeshVariable( mesh=mesh,         nodeDofCount=1 )
 
 
-# In[19]:
+# In[131]:
 
 mesh.reset()
 
 
-# In[20]:
+# In[132]:
 
 ###########
 #Mesh refinement
@@ -597,7 +597,7 @@ if md.refineMesh:
     spmesh.deform_1d(deform_lengths, mesh,axis = 'x',norm = 'Min', constraints = [])
 
 
-# In[21]:
+# In[133]:
 
 axis = 1
 orgs = np.linspace(mesh.minCoord[axis], mesh.maxCoord[axis], mesh.elementRes[axis] + 1)
@@ -608,7 +608,7 @@ value_to_constrain = MAXY #nodes will remain along this line
 yconst = [(spmesh.find_closest(orgs, value_to_constrain), np.array([value_to_constrain,0]))]
 
 
-# In[22]:
+# In[134]:
 
 ###########
 #Mesh refinement
@@ -632,7 +632,7 @@ if md.refineMesh:
     spmesh.deform_1d(deform_lengths, mesh,axis = 'y',norm = 'Min', constraints = yconst)
 
 
-# In[23]:
+# In[135]:
 
 #fig= glucifer.Figure()
 
@@ -642,7 +642,7 @@ if md.refineMesh:
 #fig.save_database('test.gldb')
 
 
-# In[24]:
+# In[136]:
 
 #THis is a hack for adding a sticky air domain, we refine MAXY and things like the temperature stencil work from Y = 1. 
 
@@ -654,7 +654,7 @@ if md.stickyAir:
 # -------
 # 
 
-# In[25]:
+# In[137]:
 
 coordinate = fn.input()
 depthFn = MAXY - coordinate[1] #a function providing the depth
@@ -664,7 +664,7 @@ xFn = coordinate[0]  #a function providing the x-coordinate
 yFn = coordinate[1]
 
 
-# In[26]:
+# In[138]:
 
 
 def age_fn(xFn, sz = 0.0, lMOR=MINX, rMOR=MAXX, opFac=1., conjugate_plate = False):
@@ -699,7 +699,7 @@ def age_fn(xFn, sz = 0.0, lMOR=MINX, rMOR=MAXX, opFac=1., conjugate_plate = Fals
     return ageFn
 
 
-# In[27]:
+# In[139]:
 
 ###########
 #Thermal initial condition - half-space coooling
@@ -729,7 +729,7 @@ if not md.symmetricIcs:
 
 
 
-# In[28]:
+# In[140]:
 
 #Now build the perturbation part
 def inCircleFnGenerator(centre, radius):
@@ -769,14 +769,14 @@ if not md.symmetricIcs:
                 temperatureField.data[index] = slabFn.evaluate(mesh)[index]
 
 
-# In[29]:
+# In[141]:
 
 #sdFn = ((RocM - fn.math.sqrt((coordinate[0] - Org[0])**2. + (coordinate[1] - Org[1])**2.)))
 #slabFn = ndp.TPP*fn.math.erf((sdFn*dp.LS)/(2.*math.sqrt(dp.k*ageAtTrenchSeconds))) + ndp.TSP
 #sdFn, slabFn
 
 
-# In[30]:
+# In[142]:
 
 #Make sure material in sticky air region is at the surface temperature.
 for index, coord in enumerate(mesh.data):
@@ -784,7 +784,7 @@ for index, coord in enumerate(mesh.data):
                 temperatureField.data[index] = ndp.TSP
 
 
-# In[31]:
+# In[143]:
 
 #fn.math.erf((sdFn*dp.LS)/(2.*fn.math.sqrt(dp.k*(slabmaxAge*(3600*24*365))))) 
 #CRUSTVISCUTOFF, MANTLETOCRUST*3
@@ -814,7 +814,7 @@ for index, coord in enumerate(mesh.data):
 # fig, ax = matplot_field(temperatureField, dp)
 # fig.savefig('test.png')       
 
-# In[32]:
+# In[144]:
 
 temperatureField.data.min(), temperatureField.data.max()
 
@@ -824,18 +824,19 @@ temperatureField.data.min(), temperatureField.data.max()
 
 
 
-# In[33]:
+# In[145]:
 
 
 #ageFn = age_fn(xFn)
 
 
-# In[34]:
+# In[150]:
 
 
 #fig= glucifer.Figure(quality=3)
 
 #fig.append( glucifer.objects.Surface(mesh,temperatureField ))
+#fig.append( glucifer.objects.Points(gSwarm,temperatureField ))
 #fig.append( glucifer.objects.Mesh(mesh))
 #fig.show()
 
@@ -846,7 +847,7 @@ temperatureField.data.min(), temperatureField.data.max()
 # Boundary conditions
 # -------
 
-# In[35]:
+# In[147]:
 
 for index in mesh.specialSets["MinJ_VertexSet"]:
     temperatureField.data[index] = ndp.TBP
@@ -929,7 +930,7 @@ neumannTempBC = uw.conditions.NeumannCondition( dT_dy, variable=temperatureField
 
 
 
-# In[36]:
+# In[148]:
 
 #check VelBCs are where we want them
 #test = np.zeros(len(tWalls.data))
