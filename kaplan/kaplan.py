@@ -308,9 +308,9 @@ dp.deltaT = dp.TP - dp.TS
 
 #Modelling and Physics switches
 
-md = edict({'refineMesh':False,
+md = edict({'refineMesh':True,
             'stickyAir':False,
-            'subductionFault':True,
+            'subductionFault':False,
             'symmetricIcs':False,
             'velBcs':False,
             'aspectRatio':4,
