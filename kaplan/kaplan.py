@@ -545,8 +545,8 @@ ppc = 25
 figures =  'gldb' #glucifer Store won't work on all machines, if not, set to 'gldb' 
 swarm_repop, swarm_update = 10, 10
 gldbs_output = 50
-checkpoint_every, files_output = 50, 100
-metric_output = 2
+checkpoint_every, files_output = 50, 50
+metric_output = 10
 sticky_air_temp = 1e6
 
 
@@ -1619,11 +1619,6 @@ if md.subductionFault:
         delta_eta_fault = fn.misc.min(0.999, fn.misc.max (0., 
         viscosityMapFn1 - ((edotn_SFn*viscosityMapFn1 + ndp.fcfd * pressureField)  + ndp.cf)/edots_SFn))
    
-
-
-# In[65]:
-
-np.unique(delta_eta_fault.evaluate(gSwarm)), delta_Steata2
 
 
 # In[66]:
