@@ -1683,19 +1683,14 @@ solver.print_stats()
 #                            velocityFieldIso.fn_gradient ))
 
 
-# In[73]:
+# In[107]:
 
 fig= glucifer.Figure()
-fig.append( glucifer.objects.Points(gSwarm, strainRate_2ndInvariant))
+#fig.append( glucifer.objects.Points(gSwarm, strainRate_2ndInvariant, logScale=True))
 #fig.append( glucifer.objects.VectorArrows(mesh,velocityField -velocityFieldIso))
 
 #fig.append( glucifer.objects.Surface(mesh,ndflm, logScale=True))
-fig.show()
-
-
-# In[74]:
-
-fig.save_database('test.gldb')
+#fig.show()
 
 
 # Advection-diffusion System setup
@@ -2132,6 +2127,10 @@ elif figures == 'store':
 
     figVisc= glucifer.Figure(store, figsize=(300*np.round(md.aspectRatio,2),300))
     figVisc.append( glucifer.objects.Points(gSwarm,viscosityMapFn1, logScale=True, valueRange =[1e-3,1e5]))
+    
+    figSr= glucifer.Figure(store, figsize=(300*np.round(md.aspectRatio,2),300))
+    figSr.append( glucifer.objects.Points(gSwarm,strainRate_2ndInvariant, logScale=True))
+    figSr.append( glucifer.objects.VectorArrows(mesh,velocityField, scaling=0.0005))
 
     #figMech= glucifer.Figure(store, figsize=(300*np.round(md.aspectRatio,2),300))
     #figMech.append( glucifer.objects.Points(gSwarm,fnViscMin))
@@ -2374,6 +2373,7 @@ while realtime < 0.002:
             figVisc.save( fullpath + "Visc" + str(step).zfill(4))
             #figMech.save( fullPath + "Mech" + str(step).zfill(4))
             figTemp.save( fullpath + "Temp"    + str(step).zfill(4))
+            figSr.save( fullpath + "Str_rte"    + str(step).zfill(4))
     ################
     #Files output
     ################ 

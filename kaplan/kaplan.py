@@ -508,7 +508,7 @@ else:
 
 Xres = int(md.RES*md.aspectRatio)
 #if MINY == 0.5:
-#    Xres = int(2.*RES*aspectRatio)
+#    Xres = int(2.*RES*md.aspectRatio)
     
 
 if md.stickyAir:
@@ -534,9 +534,9 @@ ppc = 25
 #Metric output stuff
 figures =  'gldb' #glucifer Store won't work on all machines, if not, set to 'gldb' 
 swarm_repop, swarm_update = 10, 10
-gldbs_output = 2
-checkpoint_every, files_output = 2, 100
-metric_output = 1
+gldbs_output = 50
+checkpoint_every, files_output = 50, 100
+metric_output = 2
 sticky_air_temp = 1e6
 
 
@@ -855,15 +855,15 @@ VelBCs = mesh.specialSets["Empty"]
 if md.velBcs:
     for index in list(tWalls.data):
 
-        if (mesh.data[int(index)][0] < (ndp.subzone - 0.05*aspectRatio) and 
-            mesh.data[int(index)][0] > (mesh.minCoord[0] + 0.05*aspectRatio)): #Only push with a portion of teh overiding plate
+        if (mesh.data[int(index)][0] < (ndp.subzone - 0.05*md.aspectRatio) and 
+            mesh.data[int(index)][0] > (mesh.minCoord[0] + 0.05*md.aspectRatio)): #Only push with a portion of teh overiding plate
             #print "first"
             VelBCs.add(int(index))
             #Set the plate velocities for the kinematic phase
             velocityField.data[index] = [ndp.plate_vel, 0.]
         
-        elif (mesh.data[int(index)][0] > (ndp.subzone + 0.05*aspectRatio) and 
-            mesh.data[int(index)][0] < (mesh.maxCoord[0] - 0.05*aspectRatio)):
+        elif (mesh.data[int(index)][0] > (ndp.subzone + 0.05*md.aspectRatio) and 
+            mesh.data[int(index)][0] < (mesh.maxCoord[0] - 0.05*md.aspectRatio)):
             #print "second"
             VelBCs.add(int(index))
             #Set the plate velocities for the kinematic phase
@@ -1683,19 +1683,14 @@ solver.print_stats()
 #                            velocityFieldIso.fn_gradient ))
 
 
-# In[73]:
+# In[107]:
 
 fig= glucifer.Figure()
-fig.append( glucifer.objects.Points(gSwarm, strainRate_2ndInvariant))
+#fig.append( glucifer.objects.Points(gSwarm, strainRate_2ndInvariant, logScale=True))
 #fig.append( glucifer.objects.VectorArrows(mesh,velocityField -velocityFieldIso))
 
 #fig.append( glucifer.objects.Surface(mesh,ndflm, logScale=True))
-fig.show()
-
-
-# In[74]:
-
-fig.save_database('test.gldb')
+#fig.show()
 
 
 # Advection-diffusion System setup
@@ -2101,7 +2096,7 @@ print(vdintHinge60/vdintInterface)
 #viscVariable.data[:] = viscosityMapFn1.evaluate(gSwarm)
 
 
-# In[235]:
+# In[101]:
 
 if figures == 'gldb':
     #Pack some stuff into a database as well
@@ -2119,19 +2114,25 @@ if figures == 'gldb':
     
     figRestrict= glucifer.Figure()
     figRestrict.append( glucifer.objects.Points(gSwarm,respltFn))
+    figRestrict.append( glucifer.objects.Points(faults[0].swarm, colours="Blue Blue", pointSize=2.0, colourBar=False) )
+    figRestrict.append( glucifer.objects.Points(faults[1].swarm, colours="Red Red", pointSize=2.0, colourBar=False) )
     figRestrict.append( glucifer.objects.Points(slab_line.swarm, colours="Black Black", pointSize=2.0, colourBar=False) )
 
 elif figures == 'store':
     fullpath = os.path.join(outputPath + "gldbs/")
     store = glucifer.Store(fullpath + 'subduction.gldb')
 
-    figTemp = glucifer.Figure(store,figsize=(300*np.round(aspectRatio,2),300))
+    figTemp = glucifer.Figure(store,figsize=(300*np.round(md.aspectRatio,2),300))
     figTemp.append( glucifer.objects.Points(gSwarm,temperatureField))
 
-    figVisc= glucifer.Figure(store, figsize=(300*np.round(aspectRatio,2),300))
+    figVisc= glucifer.Figure(store, figsize=(300*np.round(md.aspectRatio,2),300))
     figVisc.append( glucifer.objects.Points(gSwarm,viscosityMapFn1, logScale=True, valueRange =[1e-3,1e5]))
+    
+    figSr= glucifer.Figure(store, figsize=(300*np.round(md.aspectRatio,2),300))
+    figSr.append( glucifer.objects.Points(gSwarm,strainRate_2ndInvariant, logScale=True))
+    figSr.append( glucifer.objects.VectorArrows(mesh,velocityField, scaling=0.0005))
 
-    #figMech= glucifer.Figure(store, figsize=(300*np.round(aspectRatio,2),300))
+    #figMech= glucifer.Figure(store, figsize=(300*np.round(md.aspectRatio,2),300))
     #figMech.append( glucifer.objects.Points(gSwarm,fnViscMin))
 
 
@@ -2332,7 +2333,7 @@ while realtime < 0.002:
         minVxsurf = _maxMinVxSurf.min_global()
         # output to summary text file
         if uw.rank()==0:
-            f_o.write((22*'%-15s ' + '\n') % (areaintRock, tempintRock, rmsintRock, dwintRock, vdintRock,
+            f_o.write((28*'%-15s ' + '\n') % (areaintRock, tempintRock, rmsintRock, dwintRock, vdintRock,
                                   areaintLith, tempintLith,rmsintLith, dwintLith, vdintLith,
                                   areaintLower, tempintLower, rmsintLower, dwintLower, vdintLower, 
                                   areaintHinge180,vdintHinge180, areaintHinge60, vdintHinge60, 
@@ -2372,6 +2373,7 @@ while realtime < 0.002:
             figVisc.save( fullpath + "Visc" + str(step).zfill(4))
             #figMech.save( fullPath + "Mech" + str(step).zfill(4))
             figTemp.save( fullpath + "Temp"    + str(step).zfill(4))
+            figSr.save( fullpath + "Str_rte"    + str(step).zfill(4))
     ################
     #Files output
     ################ 
@@ -2514,6 +2516,11 @@ print 'step =',step
 # In[249]:
 
 
+
+
+# In[102]:
+
+figRestrict.show()
 
 
 # In[ ]:
