@@ -316,7 +316,7 @@ md = edict({'refineMesh':False,
             'aspectRatio':4,
             'compBuoyancy':False, #use compositional & phase buoyancy, or simply thermal
             'periodicBcs':False,
-            'RES':64
+            'RES':128
             })
 
 
