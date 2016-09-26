@@ -2117,8 +2117,8 @@ if figures == 'gldb':
     figDb.append( glucifer.objects.Points(gSwarm,materialVariable))
     #figDb.append( glucifer.objects.Points(gSwarm,viscMinVariable))
     #figDb.append( glucifer.objects.Points(gSwarm,fnViscMin))
-    #figDb.append( glucifer.objects.Points(gSwarm,viscosityMapFn1, logScale=True))
-    figDb.append( glucifer.objects.Points(gSwarm, strainRate_2ndInvariant))
+    figDb.append( glucifer.objects.Points(gSwarm,viscosityMapFn1, logScale=True))
+    figDb.append( glucifer.objects.Points(gSwarm, strainRate_2ndInvariant, logScale=True))
     figDb.append( glucifer.objects.Points(gSwarm,temperatureField))
     
     
