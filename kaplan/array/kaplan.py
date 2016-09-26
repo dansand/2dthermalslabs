@@ -330,7 +330,7 @@ if checkpointLoad:
     dp, ndp, sf, md = load_pickles()  #remember to add any extra dictionaries
 
 
-# In[13]:
+# In[111]:
 
 ###########
 #If command line args are given, overwrite
@@ -360,11 +360,16 @@ for farg in sys.argv[1:]:
         if '*=' in farg:
             (dicitem,val) = farg.split("*=") #If in-place multiplication, split on '*='
             (dic,arg) = dicitem.split(".")
-        
-        try:
-            val = float(val) #try to convert everything to a float, else remains string
-        except ValueError:
-            pass
+            
+        if val == 'True': 
+            val = True
+        elif val == 'False':     #First check if args are boolean
+            val = False
+        else:
+            try:
+                val = float(val) #next try to convert  to a float,
+            except ValueError:
+                pass             #otherwise leave as string
         #Update the dictionary
         if farg.startswith('dp'):
             if '*=' in farg:
@@ -382,6 +387,11 @@ for farg in sys.argv[1:]:
             
 
 comm.barrier()
+
+
+# In[ ]:
+
+#print('refine Mesh is: ', md.refineMesh)
 
 
 # In[14]:
@@ -512,11 +522,11 @@ Xres = int(md.RES*md.aspectRatio)
     
 
 if md.stickyAir:
-    Yres = md.RES
+    Yres = int(md.RES)
     MAXY = np.round(MAXY + dp.StALS/dp.LS, 2)
     
 else:
-    Yres = md.RES
+    Yres = int(md.RES)
     MAXY = np.round(MAXY, 2)
 
 periodic = [False, False]
