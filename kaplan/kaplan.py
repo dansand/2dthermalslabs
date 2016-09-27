@@ -316,7 +316,7 @@ md = edict({'refineMesh':True,
             'aspectRatio':4,
             'compBuoyancy':False, #use compositional & phase buoyancy, or simply thermal
             'periodicBcs':False,
-            'RES':72
+            'RES':128
             })
 
 
@@ -699,12 +699,16 @@ def age_fn(xFn, sz = 0.0, lMOR=MINX, rMOR=MAXX, opFac=1., conjugate_plate = Fals
     return ageFn
 
 
-# In[28]:
+# In[41]:
+
+ndp.TPP
+
+
+# In[51]:
 
 ###########
-#Thermal initial condition - half-space coooling
+#Thermal initial condition - half-space cooling
 ###########
-
 
 #  a few conversions
 ageAtTrenchSeconds = min(dp.platemaxAge*(3600*24*365), dp.slabmaxAge*(3600*24*365))
@@ -716,9 +720,9 @@ Org = (ndp.subzone, MAXY-ndp.roc)
 ageFn = age_fn(xFn, sz =ndp.subzone, lMOR=ndp.lRidge,rMOR=ndp.rRidge, conjugate_plate=True, opFac = dp.op_age_fac)
 #dimensionlize the age function
 ageFn *= ageAtTrenchSeconds #seconds to year
-w0 = (2.*math.sqrt(dp.k*ageAtTrenchSeconds))/dp.LS #diffusion depth of plate at the trench
+w0 = (2.3*math.sqrt(dp.k*ageAtTrenchSeconds))/dp.LS #diffusion depth of plate at the trench
 
-tempBL = (ndp.TP - ndp.TS) *fn.math.erf((depthFn*dp.LS)/(2.*fn.math.sqrt(dp.k*ageFn))) + ndp.TSP #boundary layer function
+tempBL = (ndp.TPP - ndp.TSP)*fn.math.erf((depthFn*dp.LS)/(2.*fn.math.sqrt(dp.k*ageFn))) + ndp.TSP #boundary layer function
 tempTBL =  fn.branching.conditional([(depthFn < w0, tempBL),
                           (True, ndp.TPP)])
 
@@ -729,7 +733,12 @@ if not md.symmetricIcs:
 
 
 
-# In[29]:
+# In[53]:
+
+#w0*dp.LS
+
+
+# In[43]:
 
 #Now build the perturbation part
 def inCircleFnGenerator(centre, radius):
@@ -769,14 +778,14 @@ if not md.symmetricIcs:
                 temperatureField.data[index] = slabFn.evaluate(mesh)[index]
 
 
-# In[30]:
+# In[44]:
 
 #sdFn = ((RocM - fn.math.sqrt((coordinate[0] - Org[0])**2. + (coordinate[1] - Org[1])**2.)))
 #slabFn = ndp.TPP*fn.math.erf((sdFn*dp.LS)/(2.*math.sqrt(dp.k*ageAtTrenchSeconds))) + ndp.TSP
 #sdFn, slabFn
 
 
-# In[31]:
+# In[45]:
 
 #Make sure material in sticky air region is at the surface temperature.
 for index, coord in enumerate(mesh.data):
@@ -784,7 +793,7 @@ for index, coord in enumerate(mesh.data):
                 temperatureField.data[index] = ndp.TSP
 
 
-# In[32]:
+# In[46]:
 
 #fn.math.erf((sdFn*dp.LS)/(2.*fn.math.sqrt(dp.k*(slabmaxAge*(3600*24*365))))) 
 #CRUSTVISCUTOFF, MANTLETOCRUST*3
@@ -814,23 +823,12 @@ for index, coord in enumerate(mesh.data):
 # fig, ax = matplot_field(temperatureField, dp)
 # fig.savefig('test.png')       
 
-# In[33]:
+# In[47]:
 
 temperatureField.data.min(), temperatureField.data.max()
 
 
-# In[ ]:
-
-
-
-
-# In[34]:
-
-
-#ageFn = age_fn(xFn)
-
-
-# In[35]:
+# In[48]:
 
 
 #fig= glucifer.Figure(quality=3)
@@ -1413,7 +1411,6 @@ edotn_SFn, edots_SFn = fault_strainrate_fns(faults, velocityField, directorVecto
 
 ## Take a look at the locations of the materials
 
-
 #Note we only use this mesh director for visualizing the directorVector (vector-on-swarm viewing not suppoted yet)
 meshDirector = uw.mesh.MeshVariable( mesh, 2 )
 projectDirector = uw.utils.MeshVariable_Projection( meshDirector, directorVector, type=1 )
@@ -1689,16 +1686,9 @@ solver.print_stats()
 #                            velocityFieldIso.fn_gradient ))
 
 
-# In[94]:
+# In[ ]:
 
-fig= glucifer.Figure()
-#fig.append( glucifer.objects.Points(gSwarm, strainRate_2ndInvariant, logScale=True))
-#fig.append( glucifer.objects.Points(gSwarm, viscosityMapFn1, logScale=True))
-#fig.append( glucifer.objects.Points(gSwarm,viscosityMapFn1, logScale=True, valueRange =[1e-3,1e5]))
-#fig.append( glucifer.objects.VectorArrows(mesh,velocityField -velocityFieldIso))
 
-#fig.append( glucifer.objects.Surface(mesh,ndflm, logScale=True))
-#fig.show()
 
 
 # Advection-diffusion System setup
@@ -1866,10 +1856,10 @@ respltFn = fn.branching.conditional(respltconditions )
 
 fig= glucifer.Figure()
 #fig.append( glucifer.objects.Points(gSwarm,respltFn))
-fig.append( glucifer.objects.Points(gSwarm,lithRestFn))
-fig.append( glucifer.objects.Points(gSwarm,lowerPlateRestFn))
-fig.append( glucifer.objects.Points(gSwarm,hinge180RestFn))
-fig.append( glucifer.objects.Points(gSwarm,interfaceRestFn))
+#fig.append( glucifer.objects.Points(gSwarm,lithRestFn))
+#fig.append( glucifer.objects.Points(gSwarm,lowerPlateRestFn))
+#fig.append( glucifer.objects.Points(gSwarm,hinge180RestFn))
+#fig.append( glucifer.objects.Points(gSwarm,interfaceRestFn))
 #fig.show()
 #fig.save_database('test.gldb')
 
@@ -2564,5 +2554,5 @@ figDb.save_database('test.gldb')
 
 # In[ ]:
 
-
+slab_line.add_points
 
