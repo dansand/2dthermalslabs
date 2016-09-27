@@ -1336,6 +1336,11 @@ def faults_advance_in_time(faults,proximityVariable, directorVector, signedDista
     mask_materials(materialV, materialVariable, proximityVariable, directorVector, signedDistanceVariable)
 
 
+# In[122]:
+
+
+
+
 # In[80]:
 
 ###########
@@ -1355,13 +1360,13 @@ for index, xval in np.ndenumerate(faultCoords[:,0]):
     #print index, xval
     #swarmCoords[index[0], 1] = 1. - isodepthFn.evaluate((xval, 0.)) #This bit for the plate 
     if  xval < ndp.subzone:
-        faultCoords[index[0], 1] = 1. - faultthickness #This bit for the plate 
+        faultCoords[index[0], 1] = MAXY - faultthickness #This bit for the plate 
         
     else:
-        faultCoords[index[0], 1] = (1. - (faultthickness) - (reducedRocM - ( math.sqrt((reducedRocM**2 - (xval-ndp.subzone)**2)))))
+        faultCoords[index[0], 1] = (MAXY - (faultthickness) - (reducedRocM - ( math.sqrt((reducedRocM**2 - (xval-ndp.subzone)**2)))))
         
     
-faultCoords = faultCoords[faultCoords[:,1] > (1. - ndp.maxDepth)] #kill any deeper than cutoff
+faultCoords = faultCoords[faultCoords[:,1] > (MAXY - ndp.maxDepth)] #kill any deeper than cutoff
 
 
 #surface tracer interface:
@@ -1387,12 +1392,12 @@ for index, xval in np.ndenumerate(slabCoords[:,0]):
     #print index, xval
     #swarmCoords[index[0], 1] = 1. - isodepthFn.evaluate((xval, 0.)) #This bit for the plate 
     if  xval < ndp.subzone:
-        slabCoords[index[0], 1] = 1. - midthickness #This bit for the plate 
+        slabCoords[index[0], 1] = MAXY - midthickness #This bit for the plate 
         
     else:
-        slabCoords[index[0], 1] = (1. - (midthickness) - (reducedRocM - ( math.sqrt((reducedRocM**2 - (xval-ndp.subzone)**2)))))
+        slabCoords[index[0], 1] = (MAXY - (midthickness) - (reducedRocM - ( math.sqrt((reducedRocM**2 - (xval-ndp.subzone)**2)))))
         
-slabCoords = slabCoords[slabCoords[:,1] > (1. - ndp.maxDepth)] #kill any deeper than cutoff
+slabCoords = slabCoords[slabCoords[:,1] > (MAXY - ndp.maxDepth)] #kill any deeper than cutoff
 
 
 # In[113]:
@@ -1549,13 +1554,11 @@ def safe_visc(func, viscmin=ndp.eta_min, viscmax=ndp.eta_max):
 ############
 #Rheology: create UW2 functions for all viscous mechanisms
 #############
-
 omega = fn.misc.constant(1.) #this function can hold any arbitary viscosity modifications 
 
 
 ##Diffusion Creep
 diffusion = fn.misc.min(ndp.eta_max, fn.math.exp(-1*ndp.Edf + ndp.Edf / (temperatureField + 1e-8)))
-
 
 
 ##Define the Plasticity
@@ -1573,7 +1576,6 @@ crustvisc = crustys/(2.*(strainRate_2ndInvariant))
 ##Interface rheology
 interfaceys =  ndp.ci + (depthFn*ndp.fcid) #only weakened cohesion is discussed, not fc
 interfacevisc = interfaceys/(2.*(strainRate_2ndInvariant))
-
 
 
 # In[59]:
@@ -2523,8 +2525,13 @@ while realtime < 0.002:
         #And add extra particles to interfaces as necessary
         #subduction fault
         introPoint = ndp.subzone - abs(ndp.subzone - ndp.lRidge)/2. #half way between ridge and Sz
-        fault_seg.add_points([0.],[1.])
-            
+        fault_seg.add_points([introPoint],[MAXY - faultthickness])
+        #Slab / mid swarm
+        if dp.sense == 'Right':
+            introPoint = ndp.lRidge + midthickness #
+        else:
+            introPoint = ndp.rRidge - midthickness #
+        slab_seg.add_points([introPoint],[MAXY - midthickness])
     ################
     #Checkpoint
     ################
