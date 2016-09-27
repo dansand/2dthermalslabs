@@ -1862,12 +1862,16 @@ respltconditions = [
 respltFn = fn.branching.conditional(respltconditions )
 
 
-# In[79]:
+# In[95]:
 
 fig= glucifer.Figure()
-fig.append( glucifer.objects.Points(gSwarm,respltFn))
+#fig.append( glucifer.objects.Points(gSwarm,respltFn))
+fig.append( glucifer.objects.Points(gSwarm,lithRestFn))
+fig.append( glucifer.objects.Points(gSwarm,lowerPlateRestFn))
+fig.append( glucifer.objects.Points(gSwarm,hinge180RestFn))
+fig.append( glucifer.objects.Points(gSwarm,interfaceRestFn))
 #fig.show()
-#fig.save_database('test_restrict.gldb')
+#fig.save_database('test.gldb')
 
 
 # In[80]:
@@ -2121,7 +2125,11 @@ if figures == 'gldb':
     
     
     figRestrict= glucifer.Figure()
-    figRestrict.append( glucifer.objects.Points(gSwarm,respltFn))
+    #figRestrict.append( glucifer.objects.Points(gSwarm,respltFn))
+    figRestrict.append( glucifer.objects.Points(gSwarm,lithRestFn))
+    figRestrict.append( glucifer.objects.Points(gSwarm,lowerPlateRestFn))
+    figRestrict.append( glucifer.objects.Points(gSwarm,hinge180RestFn))
+    figRestrict.append( glucifer.objects.Points(gSwarm,interfaceRestFn))
     figRestrict.append( glucifer.objects.Points(faults[0].swarm, colours="Blue Blue", pointSize=2.0, colourBar=False) )
     figRestrict.append( glucifer.objects.Points(faults[1].swarm, colours="Red Red", pointSize=2.0, colourBar=False) )
     figRestrict.append( glucifer.objects.Points(slab_line.swarm, colours="Black Black", pointSize=2.0, colourBar=False) )
@@ -2274,8 +2282,7 @@ while realtime < 0.002:
     for f in faults:
         f.advection(dt)
         
-    
- 
+
     
     # Increment
     realtime += dt
@@ -2302,6 +2309,20 @@ while realtime < 0.002:
         lowerPlateRestFn.data[np.where(lowerPlateRestFn.data >= -1.*fthickness)] = 1.
         lowerPlateRestFn.data[np.where(lowerPlateRestFn.data < -1.*fthickness)] = 0. 
         lowerPlateRestFn *= lithRestFn #Add next level up in hierarchy
+        
+        #Hinge
+        
+        hinge60Spatialconditions = [ (           operator.and_( (depthFn < MAXY - (60e3/dp.LS)),  (xFn > ndp.subzone - 60e3/dp.LS)), 1.),
+                   (                                                   True , 0.) ]
+        hinge60RestFn = fn.branching.conditional(hinge60Spatialconditions)
+        hinge60RestFn*=lowerPlateRestFn #Add next level up in hierarchy
+
+
+
+        hinge180Spatialconditions = [ (           operator.and_( (depthFn < MAXY - (180e3/dp.LS)),  (xFn > ndp.subzone - 180e3/dp.LS)), 1.),
+                           (                                                   True , 0.) ]
+        hinge180RestFn = fn.branching.conditional(hinge180Spatialconditions)
+        hinge180RestFn*=lowerPlateRestFn #Add next level up in hierarchy
         
         ###############
         #Metrics
