@@ -316,7 +316,7 @@ md = edict({'refineMesh':True,
             'aspectRatio':4,
             'compBuoyancy':False, #use compositional & phase buoyancy, or simply thermal
             'periodicBcs':False,
-            'RES':128
+            'RES':64
             })
 
 
@@ -544,8 +544,8 @@ ppc = 25
 #Metric output stuff
 figures =  'gldb' #glucifer Store won't work on all machines, if not, set to 'gldb' 
 swarm_repop, swarm_update = 10, 10
-gldbs_output = 50
-checkpoint_every, files_output = 50, 50
+gldbs_output = 200
+checkpoint_every, files_output = 200, 50
 metric_output = 10
 sticky_air_temp = 1e6
 
@@ -699,12 +699,12 @@ def age_fn(xFn, sz = 0.0, lMOR=MINX, rMOR=MAXX, opFac=1., conjugate_plate = Fals
     return ageFn
 
 
-# In[41]:
+# In[28]:
 
 ndp.TPP
 
 
-# In[51]:
+# In[29]:
 
 ###########
 #Thermal initial condition - half-space cooling
@@ -733,12 +733,12 @@ if not md.symmetricIcs:
 
 
 
-# In[53]:
+# In[30]:
 
 #w0*dp.LS
 
 
-# In[43]:
+# In[31]:
 
 #Now build the perturbation part
 def inCircleFnGenerator(centre, radius):
@@ -778,14 +778,14 @@ if not md.symmetricIcs:
                 temperatureField.data[index] = slabFn.evaluate(mesh)[index]
 
 
-# In[44]:
+# In[32]:
 
 #sdFn = ((RocM - fn.math.sqrt((coordinate[0] - Org[0])**2. + (coordinate[1] - Org[1])**2.)))
 #slabFn = ndp.TPP*fn.math.erf((sdFn*dp.LS)/(2.*math.sqrt(dp.k*ageAtTrenchSeconds))) + ndp.TSP
 #sdFn, slabFn
 
 
-# In[45]:
+# In[33]:
 
 #Make sure material in sticky air region is at the surface temperature.
 for index, coord in enumerate(mesh.data):
@@ -793,7 +793,7 @@ for index, coord in enumerate(mesh.data):
                 temperatureField.data[index] = ndp.TSP
 
 
-# In[46]:
+# In[34]:
 
 #fn.math.erf((sdFn*dp.LS)/(2.*fn.math.sqrt(dp.k*(slabmaxAge*(3600*24*365))))) 
 #CRUSTVISCUTOFF, MANTLETOCRUST*3
@@ -823,17 +823,16 @@ for index, coord in enumerate(mesh.data):
 # fig, ax = matplot_field(temperatureField, dp)
 # fig.savefig('test.png')       
 
-# In[47]:
+# In[35]:
 
 temperatureField.data.min(), temperatureField.data.max()
 
 
-# In[48]:
+# In[36]:
 
 
 #fig= glucifer.Figure(quality=3)
-
-#fig.append( glucifer.objects.Surface(mesh,temperatureField ))
+#fig.append( glucifer.objects.Surface(mesh,depthFn < 180e3/dp.LS ))
 #fig.append( glucifer.objects.Points(gSwarm,temperatureField ))
 #fig.append( glucifer.objects.Mesh(mesh))
 #fig.show()
@@ -845,7 +844,7 @@ temperatureField.data.min(), temperatureField.data.max()
 # Boundary conditions
 # -------
 
-# In[36]:
+# In[37]:
 
 for index in mesh.specialSets["MinJ_VertexSet"]:
     temperatureField.data[index] = ndp.TBP
@@ -928,7 +927,7 @@ neumannTempBC = uw.conditions.NeumannCondition( dT_dy, variable=temperatureField
 
 
 
-# In[37]:
+# In[38]:
 
 #check VelBCs are where we want them
 #test = np.zeros(len(tWalls.data))
@@ -949,7 +948,7 @@ neumannTempBC = uw.conditions.NeumannCondition( dT_dy, variable=temperatureField
 # -----
 # 
 
-# In[38]:
+# In[39]:
 
 ###########
 #Material Swarm and variables
@@ -971,7 +970,7 @@ varlist = [materialVariable, yieldingCheck, ageVariable]
 varnames = ['materialVariable', 'yieldingCheck', 'ageVariable']
 
 
-# In[39]:
+# In[40]:
 
 mantleIndex = 0
 crustIndex = 1
@@ -1039,7 +1038,7 @@ else:
 
 
 
-# In[40]:
+# In[41]:
 
 ##############
 #Set the initial particle age for particles above the critical depth; 
@@ -1061,7 +1060,7 @@ ageVariable.data[:] = fn.branching.conditional( ageConditions ).evaluate(gSwarm)
 ageDT = 0.#this is used in the main loop for short term time increments
 
 
-# In[41]:
+# In[42]:
 
 #fig= glucifer.Figure()
 #fig.append( glucifer.objects.Points(gSwarm,ageVariable))
@@ -1071,7 +1070,7 @@ ageDT = 0.#this is used in the main loop for short term time increments
 #fig.show()
 
 
-# In[42]:
+# In[43]:
 
 ##############
 #Here we set up a directed graph object that we we use to control the transformation from one material type to another
@@ -1118,24 +1117,23 @@ DG.add_transition((mantleIndex,harzIndex), depthFn, operator.gt, ndp.MANTLETOCRU
 DG.add_transition((mantleIndex,harzIndex), ageVariable, operator.gt, crustageCond) #Note we can mix functions and swarm variabls
 
 
-
 #... to air
 DG.add_transition((mantleIndex,airIndex), depthFn, operator.lt,0.)
 DG.add_transition((crustIndex,airIndex), depthFn, operator.lt, 0. )
 DG.add_transition((harzIndex,airIndex), depthFn, operator.lt, 0. )
 
 
-# In[43]:
+# In[44]:
 
 #CRUSTTOMANTLE, HARZBURGDEPTH, 0. + 7.*MANTLETOCRUST
 
 
-# In[44]:
+# In[45]:
 
 #gSwarm.particleCoordinates.data[particleID][1]
 
 
-# In[45]:
+# In[46]:
 
 ##############
 #For the slab_IC, we'll also add a crustal weak zone following the dipping perturbation
@@ -1166,7 +1164,7 @@ if checkpointLoad != True:
                 materialVariable.data[particleID] = harzIndex
 
 
-# In[46]:
+# In[47]:
 
 ##############
 #This is how we use the material graph object to test / apply material transformations
@@ -1177,12 +1175,12 @@ for i in range(2): #Need to go through a number of times
     materialVariable.data[:] = fn.branching.conditional(DG.condition_list).evaluate(gSwarm)
 
 
-# In[47]:
+# In[48]:
 
 #maxDepth
 
 
-# In[48]:
+# In[49]:
 
 #fig2= glucifer.Figure()
 #fig2.append( glucifer.objects.Points(gSwarm,materialVariable))
@@ -1196,12 +1194,12 @@ for i in range(2): #Need to go through a number of times
 # 
 # 
 
-# In[49]:
+# In[50]:
 
 import marker2D
 
 
-# In[50]:
+# In[71]:
 
 def update_swarm_from_faults(faults, proximityVariable, normalVectorVariable, signedDistanceVariable):
     """
@@ -1216,10 +1214,23 @@ def update_swarm_from_faults(faults, proximityVariable, normalVectorVariable, si
       
     """
     
-    for fault_seg in faults:
+    if type(faults) == list:
+    
+        for fault_seg in faults:
+            swarm = proximityVariable.swarm
 
+            f, nz = fault_seg.compute_marker_proximity(swarm.particleCoordinates.data)    
+            proximityVariable.data[nz] = f[nz]
+
+            dv, nzv = fault_seg.compute_normals(swarm.particleCoordinates.data)
+            normalVectorVariable.data[nzv] = dv[nzv]
+
+            sd, dnz = fault_seg.compute_signed_distance(swarm.particleCoordinates.data)
+            signedDistanceVariable.data[dnz] = sd[dnz]
+    else:
+        fault_seg = faults
         swarm = proximityVariable.swarm
-        
+
         f, nz = fault_seg.compute_marker_proximity(swarm.particleCoordinates.data)    
         proximityVariable.data[nz] = f[nz]
 
@@ -1325,50 +1336,100 @@ def faults_advance_in_time(faults,proximityVariable, directorVector, signedDista
     mask_materials(materialV, materialVariable, proximityVariable, directorVector, signedDistanceVariable)
 
 
-# In[51]:
-
-3**4
+# In[122]:
 
 
-# In[52]:
 
+
+# In[80]:
+
+###########
+#Initial Coordinates for inerfaces and faults
+###########
+
+#subduction fault
 introPoint = ndp.subzone - abs(ndp.subzone - ndp.lRidge)/2. #half way between ridge and Sz
-fthickness = ndp.MANTLETOCRUST/2. #initiale fault at half-depth of crust
+faultthickness = ndp.MANTLETOCRUST/2. #initiale fault at half-depth of crust
 nfault = 200
 faultCoords =np.zeros((nfault, 2))
 
-reducedRocM = ndp.roc  - fthickness
+reducedRocM = ndp.roc  - faultthickness
 xlimslab = reducedRocM*math.cos(math.pi*(90. - dp.theta)/180)
 faultCoords[:, 0] = np.linspace(introPoint, ndp.subzone + xlimslab, nfault) #note SZ location is hardcoded here 
 for index, xval in np.ndenumerate(faultCoords[:,0]):
     #print index, xval
     #swarmCoords[index[0], 1] = 1. - isodepthFn.evaluate((xval, 0.)) #This bit for the plate 
     if  xval < ndp.subzone:
-        faultCoords[index[0], 1] = 1. - fthickness #This bit for the plate 
+        faultCoords[index[0], 1] = MAXY - faultthickness #This bit for the plate 
         
     else:
-        faultCoords[index[0], 1] = (1. - (fthickness) - (reducedRocM - ( math.sqrt((reducedRocM**2 - (xval-ndp.subzone)**2)))))
+        faultCoords[index[0], 1] = (MAXY - (faultthickness) - (reducedRocM - ( math.sqrt((reducedRocM**2 - (xval-ndp.subzone)**2)))))
         
     
-faultCoords = faultCoords[faultCoords[:,1] > (1. - ndp.maxDepth)] #kill any deeper than cutoff
+faultCoords = faultCoords[faultCoords[:,1] > (MAXY - ndp.maxDepth)] #kill any deeper than cutoff
 
 
-#surface tracer:
-
+#surface tracer interface:
 surfaceCoords =np.ones((nfault, 2))*1.
 surfaceCoords[:,0] = np.linspace(MINX, MAXX, nfault)
 
 
-# In[53]:
 
-#from unsupported.interfaces import markerLine2D
-faults = []
-fault_seg  = marker2D.markerLine2D(mesh, velocityField, faultCoords[:, 0], faultCoords[:, 1], fthickness, 0.0, 0.0, crustIndex)
-faults.append(fault_seg)
+#interface that tracks the shape and position of the slab
+midthickness = 20e3/dp.LS #initialize tracking swarm at ~ mid lithosphere depth
 
-fault_seg  = marker2D.markerLine2D(mesh, velocityField, surfaceCoords[:, 0], surfaceCoords[:, 1], ndp.StALS, 0.0, 0.0, airIndex)
-faults.append(fault_seg)
+if dp.sense == 'Right':
+    introPoint = ndp.lRidge + midthickness #
+else:
+    introPoint = ndp.rRidge - midthickness #
+nfault = 200
+slabCoords =np.zeros((nfault, 2))
 
+reducedRocM = ndp.roc  - midthickness
+xlimslab = reducedRocM*math.cos(math.pi*(90. - dp.theta)/180)
+slabCoords[:, 0] = np.linspace(introPoint, ndp.subzone + xlimslab, nfault) #note SZ location is hardcoded here 
+for index, xval in np.ndenumerate(slabCoords[:,0]):
+    #print index, xval
+    #swarmCoords[index[0], 1] = 1. - isodepthFn.evaluate((xval, 0.)) #This bit for the plate 
+    if  xval < ndp.subzone:
+        slabCoords[index[0], 1] = MAXY - midthickness #This bit for the plate 
+        
+    else:
+        slabCoords[index[0], 1] = (MAXY - (midthickness) - (reducedRocM - ( math.sqrt((reducedRocM**2 - (xval-ndp.subzone)**2)))))
+        
+slabCoords = slabCoords[slabCoords[:,1] > (MAXY - ndp.maxDepth)] #kill any deeper than cutoff
+
+
+# In[113]:
+
+#Initiaze the swarms in a 
+fault_seg  = marker2D.markerLine2D(mesh, velocityField, [], [], faultthickness, 0.0, 0.0, crustIndex)
+surface_seg  = marker2D.markerLine2D(mesh, velocityField, [], [], ndp.StALS, 0.0, 0.0, airIndex)
+slab_seg  = marker2D.markerLine2D(mesh, velocityField, [], [], 1e9/dp.LS, 0.0, 0.0, crustIndex)   #Note very large fault thickness 
+
+
+#These lists are used to checkpoint the marker lines, similar to the swarm variables.        
+interfaces = []
+interfaces.append(fault_seg)
+interfaces.append(surface_seg)
+interfaces.append(slab_seg)
+interfacenames = ['fault_seg', 'surface_seg', 'slab_seg']
+
+#If restarting, load the swarms from file Interfaces are just swarms, so should be fine to rely on parallel h5 machinery here
+if checkpointLoad:
+    for ix in range(len(interfaces)):
+        tempname = interfacenames[ix]
+        interfaces[ix].swarm.load(os.path.join(checkpointLoadDir,  tempname + ".h5"))
+
+#otherwise add the point from at the initial locations
+else:
+    fault_seg.add_points(faultCoords[:, 0], faultCoords[:, 1])
+    surface_seg.add_points(surfaceCoords[:, 0], surfaceCoords[:, 1])
+    slab_seg.add_points(slabCoords[:, 0], slabCoords[:, 1]) 
+    
+
+
+# In[84]:
 
 #Add the necessary swarm variables
 
@@ -1383,54 +1444,69 @@ signedDistanceVariable.data[:] = 0.0
 
 
 # Call the Fault helper functions to initialize this info on the main material swarm
-
     
-    
-update_swarm_from_faults(faults[1:], proximityVariable, directorVector, signedDistanceVariable)
-mask_materials(faults[1], airIndex, materialVariable, proximityVariable, directorVector, signedDistanceVariable)
+update_swarm_from_faults(surface_seg, proximityVariable, directorVector, signedDistanceVariable)
+mask_materials(surface_seg, airIndex, materialVariable, proximityVariable, directorVector, signedDistanceVariable)
 
 
-update_swarm_from_faults(faults[0:-1], proximityVariable, directorVector, signedDistanceVariable)
-mask_materials(faults[0], crustIndex, materialVariable, proximityVariable, directorVector, signedDistanceVariable)
+update_swarm_from_faults(fault_seg, proximityVariable, directorVector, signedDistanceVariable)
+mask_materials(fault_seg, crustIndex, materialVariable, proximityVariable, directorVector, signedDistanceVariable)
 
 #Also switch off proximity beneath ndp.CRUSTVISCUTOFF depth
 proximityVariable.data[gSwarm.particleCoordinates.data[:,1]  < (1. - ndp.CRUSTVISCUTOFF)] = 0. 
 
-
 # These should be general enough not to need updating when the faults move etc..
 #ie they should update as the fields/functions/swarm variables they are built on update
-edotn_SFn, edots_SFn = fault_strainrate_fns(faults, velocityField, directorVector, proximityVariable)
+edotn_SFn, edots_SFn = fault_strainrate_fns(interfaces, velocityField, directorVector, proximityVariable)
 
 
-# In[ ]:
+# In[79]:
+
+#Have to add these new swarm variable to our variable lists if we want them to get checkpointed
+
+varlist.append(proximityVariable )
+varlist.append(signedDistanceVariable)
+varlist.append(directorVector)
+
+varnames.append('proximityVariable')
+varnames.append('signedDistanceVariable')
+varnames.append('directorVector')
 
 
+if checkpointLoad:                              #Reload all swarm variables 
+    for ix in range(len(varlist)):
+        varb = varlist[ix]
+        varb.load(os.path.join(checkpointLoadDir,varnames[ix] + ".h5"))
+        
+ 
+
+ 
 
 
-# In[54]:
+# In[78]:
 
 ## Take a look at the locations of the materials
 
 #Note we only use this mesh director for visualizing the directorVector (vector-on-swarm viewing not suppoted yet)
-meshDirector = uw.mesh.MeshVariable( mesh, 2 )
-projectDirector = uw.utils.MeshVariable_Projection( meshDirector, directorVector, type=1 )
-projectDirector.solve()    
+#meshDirector = uw.mesh.MeshVariable( mesh, 2 )
+#projectDirector = uw.utils.MeshVariable_Projection( meshDirector, directorVector, type=1 )
+#projectDirector.solve()    
 
-figMaterials = glucifer.Figure( figsize=(1200,400), boundingBox=((-2.0, -0.0, 0.0), (2.0, 1.0, 0.0)) )
+#figMaterials = glucifer.Figure( figsize=(1200,400), boundingBox=((-2.0, -0.0, 0.0), (2.0, 1.0, 0.0)) )
 
 #Plot swarm associated with each fault
-for f in faults:
-    figMaterials.append( glucifer.objects.Points(f.swarm, colours="Black Black", pointSize=2.0, colourBar=False) )
+#for f in faults:
+#    figMaterials.append( glucifer.objects.Points(f.swarm, colours="Black Black", pointSize=2.0, colourBar=False) )
 
 
 #plot mesh director viz. guy
-figMaterials.append( glucifer.objects.VectorArrows(mesh, meshDirector, scaling=.08, 
-                                               resolutionI=100, resolutionJ=20, opacity=0.25) )
+#figMaterials.append( glucifer.objects.VectorArrows(mesh, meshDirector, scaling=.08, 
+#                                               resolutionI=100, resolutionJ=20, opacity=0.25) )
 
 
 #Proximity variable - this is the colour
-figMaterials.append( glucifer.objects.Points(gSwarm, proximityVariable, 
-                                             pointSize=5.0,  opacity=0.75) )
+#figMaterials.append( glucifer.objects.Points(gSwarm, proximityVariable, 
+#                                             pointSize=5.0,  opacity=0.75) )
 
 
 #signedDistanceVariable - this variable goes to zero where the proximity cutoff is
@@ -1478,13 +1554,11 @@ def safe_visc(func, viscmin=ndp.eta_min, viscmax=ndp.eta_max):
 ############
 #Rheology: create UW2 functions for all viscous mechanisms
 #############
-
 omega = fn.misc.constant(1.) #this function can hold any arbitary viscosity modifications 
 
 
 ##Diffusion Creep
 diffusion = fn.misc.min(ndp.eta_max, fn.math.exp(-1*ndp.Edf + ndp.Edf / (temperatureField + 1e-8)))
-
 
 
 ##Define the Plasticity
@@ -1502,7 +1576,6 @@ crustvisc = crustys/(2.*(strainRate_2ndInvariant))
 ##Interface rheology
 interfaceys =  ndp.ci + (depthFn*ndp.fcid) #only weakened cohesion is discussed, not fc
 interfacevisc = interfaceys/(2.*(strainRate_2ndInvariant))
-
 
 
 # In[59]:
@@ -1686,11 +1759,6 @@ solver.print_stats()
 #                            velocityFieldIso.fn_gradient ))
 
 
-# In[ ]:
-
-
-
-
 # Advection-diffusion System setup
 # -----
 
@@ -1736,12 +1804,7 @@ population_control = uw.swarm.PopulationControl(gSwarm,deleteThreshold=0.2,split
 
 
 
-# In[ ]:
-
-
-
-
-# In[77]:
+# In[54]:
 
 ###################
 #Volume Restriction functions
@@ -1773,52 +1836,26 @@ lithRestFn*=rockRestFn #Add next level up in heirarchy
 #This whole section simply builds a restriction Fn that separates the upper and lower plate 
 #It's pretty cumbersome, and will need to advected, rebuilt
 #can YOU think of a better way?
-
-
-    
-fthickness = 20e3/dp.LS #initialize tracking swarm at ~ mid lithosphere depth
-
-if dp.sense == 'Right':
-    introPoint = ndp.lRidge + fthickness #
-else:
-    introPoint = ndp.rRidge - fthickness #
-nfault = 200
-slabCoords =np.zeros((nfault, 2))
-
-reducedRocM = ndp.roc  - fthickness
-xlimslab = reducedRocM*math.cos(math.pi*(90. - dp.theta)/180)
-slabCoords[:, 0] = np.linspace(introPoint, ndp.subzone + xlimslab, nfault) #note SZ location is hardcoded here 
-for index, xval in np.ndenumerate(slabCoords[:,0]):
-    #print index, xval
-    #swarmCoords[index[0], 1] = 1. - isodepthFn.evaluate((xval, 0.)) #This bit for the plate 
-    if  xval < ndp.subzone:
-        slabCoords[index[0], 1] = 1. - fthickness #This bit for the plate 
-        
-    else:
-        slabCoords[index[0], 1] = (1. - (fthickness) - (reducedRocM - ( math.sqrt((reducedRocM**2 - (xval-ndp.subzone)**2)))))
-        
-slabCoords = slabCoords[slabCoords[:,1] > (1. - ndp.maxDepth)] #kill any deeper than cutoff
-
-slab_line  = marker2D.markerLine2D(mesh, velocityField, slabCoords[:, 0], slabCoords[:, 1], 1e9/dp.LS, 0.0, 0.0, crustIndex)
+   
 lowerPlateRestFn = gSwarm.add_variable( dataType="double", count=1 )
 lowerPlateRestFn.data[:] = 0.0
 
-update_swarm_from_line(slab_line, lowerPlateRestFn )
-lowerPlateRestFn.data[np.where(lowerPlateRestFn.data != 0.)] += fthickness #assume instances of 0. are actually where no fault on proc
-lowerPlateRestFn.data[np.where(lowerPlateRestFn.data > 0*fthickness)] = 1.
-lowerPlateRestFn.data[np.where(lowerPlateRestFn.data <= 0.*fthickness)] = 0. 
+update_swarm_from_line(slab_seg, lowerPlateRestFn )
+lowerPlateRestFn.data[np.where(lowerPlateRestFn.data != 0.)] += midthickness #assume instances of 0. are actually where no fault on proc
+lowerPlateRestFn.data[np.where(lowerPlateRestFn.data > 0.*midthickness)] = 1.
+lowerPlateRestFn.data[np.where(lowerPlateRestFn.data <= 0.*midthickness)] = 0. 
 lowerPlateRestFn *= lithRestFn #Add next level up in heirarchy
 
 #Also see if we can stick the the Velocity and coords on to this swarm as well
-tipVar = uw.swarm.SwarmVariable(slab_line.swarm, dataType='double', count=4)
-tipVar.data[:,:2] = velocityField.evaluate(slab_line.swarm)
-tipVar.data[:,2:] = xFn.evaluate(slab_line.swarm)
-tipVar.data[:,3:] = yFn.evaluate(slab_line.swarm)
+tipVar = uw.swarm.SwarmVariable(slab_seg.swarm, dataType='double', count=4)
+tipVar.data[:,:2] = velocityField.evaluate(slab_seg.swarm)
+tipVar.data[:,2:] = xFn.evaluate(slab_seg.swarm)
+tipVar.data[:,3:] = yFn.evaluate(slab_seg.swarm)
 
 
 #Level 5. hinge of lower plate:
 
-hinge60Spatialconditions = [ (           operator.and_( (depthFn < MAXY - (60e3/dp.LS)),  (xFn > ndp.subzone - 60e3/dp.LS)), 1.),
+hinge60Spatialconditions = [ (           operator.and_( (depthFn < (60e3/dp.LS)),  (xFn > ndp.subzone - 60e3/dp.LS)), 1.),
                    (                                                   True , 0.) ]
 
 hinge60RestFn = fn.branching.conditional(hinge60Spatialconditions)
@@ -1826,7 +1863,7 @@ hinge60RestFn*=lowerPlateRestFn #Add next level up in heirarchy
 
 
 
-hinge180Spatialconditions = [ (           operator.and_( (depthFn < MAXY - (180e3/dp.LS)),  (xFn > ndp.subzone - 180e3/dp.LS)), 1.),
+hinge180Spatialconditions = [ (           operator.and_( (depthFn < (180e3/dp.LS)),  (xFn > ndp.subzone - 180e3/dp.LS)), 1.),
                    (                                                   True , 0.) ]
 
 hinge180RestFn = fn.branching.conditional(hinge180Spatialconditions)
@@ -1854,7 +1891,7 @@ respltFn = fn.branching.conditional(respltconditions )
 
 # In[95]:
 
-fig= glucifer.Figure()
+#fig= glucifer.Figure()
 #fig.append( glucifer.objects.Points(gSwarm,respltFn))
 #fig.append( glucifer.objects.Points(gSwarm,lithRestFn))
 #fig.append( glucifer.objects.Points(gSwarm,lowerPlateRestFn))
@@ -2044,50 +2081,38 @@ maxVxsurf = _maxMinVxSurf.max_global()
 minVxsurf = _maxMinVxSurf.min_global()
 
 
-# In[87]:
-
-print(areaintRock)
-print(tempintRock)
-print(rmsintRock)
-print(dwintRock)
-print(vdintRock)
-print(areaintLith)
-print(tempintLith )
-print(rmsintLith)
-print(dwintLith)
-print(vdintLith)
-print(areaintLower)
-print(tempintLower)
-print(rmsintLower) 
-print(dwintLower)
-print(vdintLower)
-print(vdintHinge60)
-print(vdintHinge180)
-print(vdintInterface)
-
-print(surfLength)
-print(rmsSurf)
-print(nuTop)
-print(nuBottom)
-print(plateness)
-
-
-print(maxVel)
-print(minVel)
-print(maxSr)
-print(minSr)
-print(maxVxsurf)
-print(minVxsurf)
-
-
-# In[88]:
-
-print(vdintHinge60/vdintHinge180)
-#print(vdintInterface)
-
-print(vdintHinge60/vdintInterface)
-#print(vdintInterface)
-
+# print(areaintRock)
+# print(tempintRock)
+# print(rmsintRock)
+# print(dwintRock)
+# print(vdintRock)
+# print(areaintLith)
+# print(tempintLith )
+# print(rmsintLith)
+# print(dwintLith)
+# print(vdintLith)
+# print(areaintLower)
+# print(tempintLower)
+# print(rmsintLower) 
+# print(dwintLower)
+# print(vdintLower)
+# print(vdintHinge60)
+# print(vdintHinge180)
+# print(vdintInterface)
+# 
+# print(surfLength)
+# print(rmsSurf)
+# print(nuTop)
+# print(nuBottom)
+# print(plateness)
+# 
+# 
+# print(maxVel)
+# print(minVel)
+# print(maxSr)
+# print(minSr)
+# print(maxVxsurf)
+# print(minVxsurf)
 
 # Viz.
 # -----
@@ -2120,9 +2145,9 @@ if figures == 'gldb':
     figRestrict.append( glucifer.objects.Points(gSwarm,lowerPlateRestFn))
     figRestrict.append( glucifer.objects.Points(gSwarm,hinge180RestFn))
     figRestrict.append( glucifer.objects.Points(gSwarm,interfaceRestFn))
-    figRestrict.append( glucifer.objects.Points(faults[0].swarm, colours="Blue Blue", pointSize=2.0, colourBar=False) )
-    figRestrict.append( glucifer.objects.Points(faults[1].swarm, colours="Red Red", pointSize=2.0, colourBar=False) )
-    figRestrict.append( glucifer.objects.Points(slab_line.swarm, colours="Black Black", pointSize=2.0, colourBar=False) )
+    figRestrict.append( glucifer.objects.Points(interfaces[0].swarm, colours="Blue Blue", pointSize=2.0, colourBar=False) )
+    figRestrict.append( glucifer.objects.Points(interfaces[1].swarm, colours="Red Red", pointSize=2.0, colourBar=False) )
+    figRestrict.append( glucifer.objects.Points(slab_seg.swarm, colours="Black Black", pointSize=2.0, colourBar=False) )
 
 elif figures == 'store':
     fullpath = os.path.join(outputPath + "gldbs/")
@@ -2164,7 +2189,7 @@ dummy = tempMM.evaluate(mesh)
 
 
 
-# In[103]:
+# In[114]:
 
 ##############
 #These functions handle checkpointing
@@ -2206,9 +2231,22 @@ def checkpoint2(step, checkpointPath, swarm, filename, varlist = [materialVariab
     dict_list = [dp, sf, ndp, md] #if any of the dictionaries have changed, this list needs to be rebuilt
     save_pickles(dict_list, dict_names, path)
     
+#Simple Checkpoint function for the faults / interfaces (markerLine2D)
+def checkpoint3(step,  checkpointPath, interfaces,interfacenames ):
+    path = checkpointPath + str(step)
+    for ix in range(len(interfaces)):
+        intf = interfaces[ix]
+        intf.swarm.save(os.path.join(path,interfacenames[ix] + ".h5"))
+    
+    
 
 
-# In[104]:
+# In[ ]:
+
+
+
+
+# In[115]:
 
 ##############
 #These functions handle checkpointing
@@ -2241,13 +2279,13 @@ def plate_info(srfilename, minx, maxx,  searchdx, oldszloc = 0.0):
     return newszLoc 
 
 
-# In[105]:
+# In[116]:
 
 # initialise timer for computation
 start = time.clock()
 
 
-# In[106]:
+# In[117]:
 
 #max_vx_surf(velocityField, mesh)
 
@@ -2268,8 +2306,7 @@ while realtime < 0.002:
         dt = 0.
     advDiff.integrate(dt)
     passiveadvector.integrate(dt)
-    slab_line.advection(dt)
-    for f in faults:
+    for f in interfaces:
         f.advection(dt)
         
 
@@ -2295,9 +2332,9 @@ while realtime < 0.002:
         ###############
         lowerPlateRestFn = gSwarm.add_variable( dataType="double", count=1 )
         lowerPlateRestFn.data[:] = 0.0
-        update_swarm_from_line(slab_line, lowerPlateRestFn )
-        lowerPlateRestFn.data[np.where(lowerPlateRestFn.data >= -1.*fthickness)] = 1.
-        lowerPlateRestFn.data[np.where(lowerPlateRestFn.data < -1.*fthickness)] = 0. 
+        update_swarm_from_line(slab_seg, lowerPlateRestFn )
+        lowerPlateRestFn.data[np.where(lowerPlateRestFn.data >= -1.*midthickness)] = 1.
+        lowerPlateRestFn.data[np.where(lowerPlateRestFn.data < -1.*midthickness)] = 0. 
         lowerPlateRestFn *= lithRestFn #Add next level up in hierarchy
         
         #Hinge
@@ -2364,14 +2401,6 @@ while realtime < 0.002:
     #if step % swarm_repop == 0:
     population_control.repopulate()   
     ################
-    #Checkpoint
-    ################
-    if step % checkpoint_every == 0:
-        if uw.rank() == 0:
-            checkpoint1(step, checkpointPath,f_o, metric_output)           
-        checkpoint2(step, checkpointPath, gSwarm, f_o, varlist = varlist, varnames = varnames)
-        f_o = open(os.path.join(outputPath, outputFile), 'a') #is this line supposed to be here?
-    ################
     #Gldb output
     ################ 
     if (step % gldbs_output == 0): 
@@ -2408,10 +2437,10 @@ while realtime < 0.002:
             fullpath = os.path.join(outputPath + "files/" + fnametemp)
             np.save(fullpath, norm_surface_sr)
             
-        #Save the slab_lineand tipswarm coords 
+        #Save the slab_seg and tipswarm coords 
         fnametemp1 = "midSwarm" + "_" + str(step)
         fullpath1 = os.path.join(outputPath + "files/" + fnametemp1)
-        slab_line.swarm.save(fullpath1)
+        slab_seg.swarm.save(fullpath1)
         #tipVar.data[:,:2] = velocityField.evaluate(tipSwarm)
         #tipVar.data[:,2:] = xFn.evaluate(tipSwarm)
         #tipVar.data[:,3:] = yFn.evaluate(tipSwarm)
@@ -2484,23 +2513,41 @@ while realtime < 0.002:
         for i in range(2): #go through twice
             materialVariable.data[:] = fn.branching.conditional(DG.condition_list).evaluate(gSwarm)
         
-        #Also update any information related to faults:
-        update_swarm_from_faults(faults[1:], proximityVariable, directorVector, signedDistanceVariable)
-        mask_materials(faults[1], airIndex, materialVariable, proximityVariable, directorVector, signedDistanceVariable)
-
-        update_swarm_from_faults(faults[0:-1], proximityVariable, directorVector, signedDistanceVariable)
-        mask_materials(faults[0], crustIndex, materialVariable, proximityVariable, directorVector, signedDistanceVariable)
+        #Also update any information related to faults / interfaces:
+        update_swarm_from_faults(surface_seg, proximityVariable, directorVector, signedDistanceVariable)
+        mask_materials(surface_seg, airIndex, materialVariable, proximityVariable, directorVector, signedDistanceVariable)
+        
+        update_swarm_from_faults(fault_seg, proximityVariable, directorVector, signedDistanceVariable)
+        mask_materials(fault_seg, crustIndex, materialVariable, proximityVariable, directorVector, signedDistanceVariable)
         
         proximityVariable.data[gSwarm.particleCoordinates.data[:,1]  < (1. - ndp.CRUSTVISCUTOFF)] = 0.
-            
-    
+        
+        #And add extra particles to interfaces as necessary
+        #subduction fault
+        introPoint = ndp.subzone - abs(ndp.subzone - ndp.lRidge)/2. #half way between ridge and Sz
+        fault_seg.add_points([introPoint],[MAXY - faultthickness])
+        #Slab / mid swarm
+        if dp.sense == 'Right':
+            introPoint = ndp.lRidge + midthickness #
+        else:
+            introPoint = ndp.rRidge - midthickness #
+        slab_seg.add_points([introPoint],[MAXY - midthickness])
+    ################
+    #Checkpoint
+    ################
+    if step % checkpoint_every == 0:
+        if uw.rank() == 0:
+            checkpoint1(step, checkpointPath,f_o, metric_output)           
+        checkpoint2(step, checkpointPath, gSwarm, f_o, varlist = varlist, varnames = varnames)
+        checkpoint3(step,  checkpointPath, interfaces,interfacenames )
+        f_o = open(os.path.join(outputPath, outputFile), 'a') #is this line supposed to be here?
 
     
 f_o.close()
 print 'step =',step
 
 
-# In[ ]:
+# In[120]:
 
 
 
@@ -2539,12 +2586,12 @@ print 'step =',step
 
 # In[102]:
 
-figRestrict.show()
+#figRestrict.show()
 
 
 # In[91]:
 
-figDb.show()
+#figDb.show()
 
 
 # In[92]:
@@ -2554,5 +2601,10 @@ figDb.save_database('test.gldb')
 
 # In[ ]:
 
-slab_line.add_points
+#slab_seg.swarm.save()
+
+
+# In[ ]:
+
+
 
