@@ -544,8 +544,8 @@ ppc = 25
 #Metric output stuff
 figures =  'gldb' #glucifer Store won't work on all machines, if not, set to 'gldb' 
 swarm_repop, swarm_update = 10, 10
-gldbs_output = 50
-checkpoint_every, files_output = 50, 50
+gldbs_output = 200
+checkpoint_every, files_output = 200, 50
 metric_output = 10
 sticky_air_temp = 1e6
 
