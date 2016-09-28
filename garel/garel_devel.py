@@ -566,9 +566,9 @@ if md.periodicBcs:
 #Metric output stuff
 figures =  'gldb' #glucifer Store won't work on all machines, if not, set to 'gldb' 
 swarm_repop, swarm_update = 10, 10
-gldbs_output = 20
-checkpoint_every, files_output = 20, 20 #checkpoint every needs to be greater or equal to metric_output 
-metric_output = 10
+gldbs_output = 40
+checkpoint_every, files_output = 50, 20 #checkpoint every needs to be greater or equal to metric_output 
+metric_output = 20
 sticky_air_temp = 1e6
 
 
@@ -2506,6 +2506,7 @@ if figures == 'gldb':
     figDb.append( glucifer.objects.Points(gSwarm,materialVariable))
     #figDb.append( glucifer.objects.Points(gSwarm,viscMinVariable))
     #figDb.append( glucifer.objects.Points(gSwarm,fnViscMin))
+    figDb.append( glucifer.objects.Points(gSwarm,fnViscMin))
     figDb.append( glucifer.objects.Points(gSwarm, viscosityMapFn, logScale=True))
     figDb.append( glucifer.objects.Points(gSwarm, strainRate_2ndInvariant, logScale=True))
     figDb.append( glucifer.objects.Points(gSwarm,temperatureField))
