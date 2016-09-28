@@ -1,4 +1,4 @@
-#!/bin/bash
+$MPIRUN -np $PBS_NCPUS --mca mpi_warn_on_fork 0 python kaplan.py C $COUNTER  dp.eta_min_crust=$A dp.eta_max_crust=$B dp.eta_min_interface=$A dp.eta_max_interface=$B dp.cc=$C dp.ci=$C dp.fcc*=$D dp.fcci=$D#!/bin/bash
 #PBS -P m18
 #PBS -q normal
 #PBS -l walltime=12:00:00
