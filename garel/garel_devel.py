@@ -325,7 +325,7 @@ dp = edict({#Main physical paramters
            'Steta_n':1e19, #stick air viscosity, normal
            'Steta_s':1e18, #stick air viscosity, shear 
            'plate_vel':4,
-           'low_mantle_visc_fac':30.
+           'low_mantle_visc_fac':10.
              })
 
 #append any derived parameters to the dictionary
