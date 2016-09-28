@@ -2501,28 +2501,42 @@ if figures == 'gldb':
     #Pack some stuff into a database as well
     figDb = glucifer.Figure()
     #figDb.append( glucifer.objects.Mesh(mesh))
-    figDb.append( glucifer.objects.VectorArrows(mesh,velocityField, scaling=0.00005))
+    figDb.append( glucifer.objects.VectorArrows(mesh,velocityField, scaling=0.0005))
     #figDb.append( glucifer.objects.Points(gSwarm,tracerVariable, colours= 'white black'))
-    #figDb.append( glucifer.objects.Points(gSwarm,materialVariable))
+    figDb.append( glucifer.objects.Points(gSwarm,materialVariable))
     #figDb.append( glucifer.objects.Points(gSwarm,viscMinVariable))
-    figDb.append( glucifer.objects.Points(gSwarm,fnViscMin))
-    figDb.append( glucifer.objects.Points(gSwarm,viscosityMapFn, logScale=True, valueRange =[1e-3,1e5]))
-    #figDb.append( glucifer.objects.Surface(mesh, strainRate_2ndInvariant, logScale=True))
+    #figDb.append( glucifer.objects.Points(gSwarm,fnViscMin))
+    figDb.append( glucifer.objects.Points(gSwarm, viscosityMapFn, logScale=True))
+    figDb.append( glucifer.objects.Points(gSwarm, strainRate_2ndInvariant, logScale=True))
     figDb.append( glucifer.objects.Points(gSwarm,temperatureField))
+    
+    
+    figRestrict= glucifer.Figure()
+    #figRestrict.append( glucifer.objects.Points(gSwarm,respltFn))
+    figRestrict.append( glucifer.objects.Points(gSwarm,lithRestFn))
+    figRestrict.append( glucifer.objects.Points(gSwarm,lowerPlateRestFn))
+    figRestrict.append( glucifer.objects.Points(gSwarm,hinge180RestFn))
+    figRestrict.append( glucifer.objects.Points(gSwarm,interfaceRestFn))
+    figRestrict.append( glucifer.objects.Points(interfaces[0].swarm, colours="Blue Blue", pointSize=2.0, colourBar=False) )
+    figRestrict.append( glucifer.objects.Points(interfaces[1].swarm, colours="Red Red", pointSize=2.0, colourBar=False) )
+    figRestrict.append( glucifer.objects.Points(slab_seg.swarm, colours="Black Black", pointSize=2.0, colourBar=False) )
 
 elif figures == 'store':
     fullpath = os.path.join(outputPath + "gldbs/")
     store = glucifer.Store(fullpath + 'subduction.gldb')
-    
 
-    #figTemp = glucifer.Figure(store,figsize=(300*np.round(aspectRatio,2),300))
-    #figTemp.append( glucifer.objects.Points(gSwarm,temperatureField))
+    figTemp = glucifer.Figure(store,figsize=(300*np.round(md.aspectRatio,2),300))
+    figTemp.append( glucifer.objects.Points(gSwarm,temperatureField))
 
-    figVisc= glucifer.Figure(store, figsize=(300*np.round(aspectRatio,2),300))
+    figVisc= glucifer.Figure(store, figsize=(300*np.round(md.aspectRatio,2),300))
     figVisc.append( glucifer.objects.Points(gSwarm,viscosityMapFn, logScale=True, valueRange =[1e-3,1e5]))
+    
+    figSr= glucifer.Figure(store, figsize=(300*np.round(md.aspectRatio,2),300))
+    figSr.append( glucifer.objects.Points(gSwarm,strainRate_2ndInvariant, logScale=True))
+    figSr.append( glucifer.objects.VectorArrows(mesh,velocityField, scaling=0.0005))
 
-    figMech= glucifer.Figure(store, figsize=(300*np.round(aspectRatio,2),300))
-    figMech.append( glucifer.objects.Points(gSwarm,fnViscMin))
+    #figMech= glucifer.Figure(store, figsize=(300*np.round(md.aspectRatio,2),300))
+    #figMech.append( glucifer.objects.Points(gSwarm,fnViscMin))
 
 
 # **Miscellania**
@@ -2785,16 +2799,22 @@ while realtime < 1.:
     if (step % gldbs_output == 0): 
         if figures == 'gldb':
             #Remember to rebuild any necessary swarm variables
-            fnamedb = "dbFig" + "_" + str(ModIt) + "_" + str(step) + ".gldb"
+            fnamedb = "dbFig" + "_" + str(step) + ".gldb"
             fullpath = os.path.join(outputPath + "gldbs/" + fnamedb)
             figDb.save_database(fullpath)
+            
+            #Temp figure
+            fnamedb = "restrictFig" + "_" + str(step) + ".gldb"
+            fullpath = os.path.join(outputPath + "gldbs/" + fnamedb)
+            figRestrict.save_database(fullpath)
         elif figures == 'store':      
-            fullpath = os.path.join(outputPath + "gldbs/") #in Bec's example pngs get automatically written in fig.Save stor is also uodated
+            fullpath = os.path.join(outputPath + "gldbs/")
             store.step = step
             #Save figures to store
             figVisc.save( fullpath + "Visc" + str(step).zfill(4))
-            figMech.save( fullpath + "Mech" + str(step).zfill(4))
-            #figTemp.save(    outputPath + "Temp"    + str(step).zfill(4))
+            #figMech.save( fullPath + "Mech" + str(step).zfill(4))
+            figTemp.save( fullpath + "Temp"    + str(step).zfill(4))
+            figSr.save( fullpath + "Str_rte"    + str(step).zfill(4))
     ################
     #Files output
     ################ 
