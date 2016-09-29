@@ -6,43 +6,9 @@
 # In this example we compare the zhong model at 129x65 node resolution with the two weak-zone based models. One uses a transversely isotropic viscosity model to impose a frictional-surface contraint on the shear-stress / normal stress ration for integration points close to the fault zone, the other uses an isotropic viscosity to impose a granular-friction constraint on the 2nd invariant of the total stress tensor for points close the the fault zone. 
 # 
 # 
-# ## Results
-# 
-# $\mu = 0.0001$
-# $ C  = 0.0001$
-# 
-# This is essentially a weak zone with the minimum viscosity cutoff as the fault has no strength.
-# 
-# Here we are reporting the $L_2$ norm of the difference between the slippery node value and the weak zone value. To normalise this value, it might be useful to try the magnitude of the difference between the slippery node model and the model with no fault at all. 
-# 
-# $| \Delta V_{\rm z/ref}|$ = 3.76564791018e-07
-# 
-# ### Masking out the whole fault (based on Fwidth)
-# 
-# | Fwidth|  Trans-Iso         | Iso / Dr-Pr       | Notes  | 
-# | ----- | ------------------ | ----------------- | -----  | 
-# | 0.005 |  3.08139617111e-07 | 3.03661999803e-07 |   -    |
-# | 0.01  |  5.91601633118e-08 | 3.77717204156e-08 |   -    |
-# | 0.015 |  1.64612509497e-08 | 8.82196480196e-08 |   -    |
-# | 0.02  |  1.02555263487e-07 | 3.4197229635e-07  |   -    |
-# | 0.03  |  3.06514516874e-07 | 1.14781677884e-06 |   -    | 
-# | 0.04  |  4.70075313019e-07 | 0.000984039222396 |   -    | 
-# 
-# 
-# ### Masking out 1 "element" away from the fault (1.0/65.0)
-# 
-# 
-# | Fwidth|  Trans-Iso         | Iso / Dr-Pr       | Notes  | 
-# | ----- | ------------------ | ----------------- | -----  |
-# | 0.005 |  2.8068281676e-07  | 1.73399542865e-07 |   -    |
-# | 0.01  |  5.25503066315e-08 | 3.33609668745e-08 |       |
-# | 0.015 |  1.64612509497e-08 | 8.82196480196e-08 |   Fw = elementw |
-# | 0.02  |  1.78117510497e-07 | 9.14874625476e-07 |   -    |
-# | 0.03  |  3.20507328804e-07 | 1.23540800757e-06 |   -    |
-# | 0.04  |  5.0436149127e-07  | 15.0321995051     |   -    |
 # 
 
-# In[1]:
+# In[41]:
 
 import underworld as uw
 from underworld import function as fn
@@ -61,7 +27,7 @@ import math
 import os
 
 
-# In[2]:
+# In[42]:
 
 
 workdir = os.path.abspath(".")
@@ -75,7 +41,7 @@ if uw.rank() == 0:
 uw.barrier()   
 
 
-# In[29]:
+# In[43]:
 
 
 pd = edict({}) #parameters dictionary
@@ -99,7 +65,7 @@ md = edict({'RES':64,
 
 
 
-# In[4]:
+# In[44]:
 
 #Model number identifier default:
 ModNum = 0
@@ -119,7 +85,7 @@ else:
                 Pass
 
 
-# In[5]:
+# In[45]:
 
 ###########
 #If extra arguments are provided to the script" eg:
@@ -162,7 +128,7 @@ for farg in sys.argv[1:]:
 uw.barrier()
 
 
-# In[31]:
+# In[46]:
 
 print("parameter dictionary: ", pd)
 print("model dictionary: ", md)
@@ -170,7 +136,7 @@ print("model dictionary: ", md)
 
 # ## Model
 
-# In[34]:
+# In[47]:
 
 #def run_the_fault(num=1, fthickness = 0.0075, friction_mu = 0.00001, friction_C  = 0.00001, friction_min = 0.00001):
 
@@ -227,7 +193,7 @@ refStrainRate_2ndInvariantFn = fn.tensor.second_invariant(refStrainRateFn)
    
 
 
-# In[33]:
+# In[48]:
 
 #####
 #BCs
@@ -242,7 +208,7 @@ freeslipBC = uw.conditions.DirichletCondition( variable        = velocityField,
                                                indexSetsPerDof = (iWalls, jWalls) )     
 
 
-# In[17]:
+# In[49]:
 
 #####
 #Swarm
@@ -283,7 +249,7 @@ conditions = [ (       yCoord > 1.1 ,                      materialA ),
 materialVariable.data[:] = fn.branching.conditional( conditions ).evaluate(swarm)
 
 
-# In[18]:
+# In[50]:
 
 #####
 #Faults 
@@ -431,7 +397,7 @@ mask_materials(materialV, materialVariable, proximityVariable, directorVector, s
 edotn_SFn, edots_SFn = fault_strainrate_fns(faults, velocityField, directorVector, proximityVariable)
 
 
-# In[19]:
+# In[51]:
 
 #####
 #Rheology
@@ -488,7 +454,7 @@ viscosityWZFn       =  fn.branching.map( fn_key  = proximityVariable,
                                          mapping = viscosityWZMap )
 
 
-# In[20]:
+# In[52]:
 
 #####
 #Buoyancy and Stokes
@@ -570,7 +536,7 @@ solver.solve( nonLinearIterate=True, nonLinearTolerance=0.00001, print_stats=Fal
 uw.barrier()   
 
 
-# In[21]:
+# In[53]:
 
 #pressureField.evaluate_global(mesh).max() 
 #thisGuy = fn.view.min_max(pressureField)
@@ -583,7 +549,7 @@ uw.barrier()
 
 
 
-# In[39]:
+# In[54]:
 
 #####
 #Metrics and Output
@@ -680,25 +646,26 @@ if uw.rank() == 0:
 
 
 
-# In[24]:
+# In[55]:
 
 #print area1
 #print area2
 #print area3
-
-
-# In[35]:
-
 #print dVwzr1
 #print dVwzr2
 #print dVwzr3
 
 
-# In[36]:
+# In[56]:
+
+
+
+
+# In[88]:
 
 #yElementFix = 1./(resY + 1)
 #xElementFix = 2./(resX + 1)
-#dE = yElementFix*xElementFix
+#dE = yElementFix*xElementFix #Crude measure of elemnt are per node (dA)
 
 #bg_nodes = np.where(fault_seg1.kdtree.query(mesh.data)[0] > pd.fthickness)
 
@@ -710,43 +677,54 @@ if uw.rank() == 0:
 #dVwzrF = np.sqrt( deltaVwzr.evaluate(mesh.data[bg_nodes])).sum()
 #dVuwwzF = np.sqrt( deltaVuwwz.evaluate(mesh.data[bg_nodes])).sum()
 
-#print pd.fthickness,": ", dVuwrF, dVwzrF, dVuwwzF, dVuwrF*dE, dVwzrF*dE, dVuwwzF*dE
+#print dVuwr2, dVwzr2, dVuwwz2, dVuwrF*dE, dVwzrF*dE, dVuwwzF*dE
 
 
-# In[37]:
+# In[58]:
 
 #print(dVuwr2, dVuwrF*dE)    #swarm intagration vs node summation
 #print(dVwzr2, dVwzrF*dE)    
 #print(dVuwwz2, dVuwwzF*dE) 
 
 
-# In[38]:
+# In[59]:
 
 #fig3= glucifer.Figure( figsize=(1000,600) )
-
 #fig3.append( glucifer.objects.Points(swarm, nearfaultRestFn, colourBar=True ) )
 #fig3.show()
 
 
-# Once outputted to a script, a paramter sweep can be setup, for example, like:
+# Once output as a a script, this notebook cam be used for a parameter sweep. 
+# For example, to run models with a combination (outer product) of different fault thickness, mesh resolution, and element types:
 # 
 # 
 # ```
-# for a in 0.015 0.75 1.0 0.5.
+# for a in 0.03 0.015 0.0075 0.00375
 # do
-#    for b in 0.00001 0.00005 0.0001 0.0005 0.001
+#    for b in 32 64 128
 #    do
-#       for c in 0.00001 0.00005 0.0001 0.0005 0.001:
+#       for c in "Q1/dQ0" "Q2/dpc1"
 #       do
-#          for d in 0.00001 0.0001 0.001 0.01 0.1
-#          do
-#             python this_nb.py 8 pd.fthickness=$a pd.friction_mu=$b pd.friction_C=$c pd.friction_min=$d         
-#          done
+#         docker run -v $PWD:/workspace  -i -t --rm dansand/underworld2-dev mpirun -np 4 python Fault_BuoyancyDriven-devel.py 1 pd.fthickness=$a md.RES=$b md.elementType=$c
 #       done
 #    done
 # done
 # 
 # ```
+
+# ### Comparison of 'masked' L2-norm via node summing, swarm integration
+# 
+# 
+# | Measure|  Node summing    | Swarm Int.        | Notes  | 
+# | ----- | ------------------ | ----------------- | -----  |
+# | TI-ref |  2.9904077129e-06 | 2.89617704796e-06 |   -    |
+# | WZ-ref  |  3.19641785284e-06 | 3.11754905069e-06 |   -    |
+# | TI-ref |  3.53800984835e-07 | 3.66782130797e-07 |     - |
+# 
+# * TI => velocity field with TI fault
+# * WZ => velocity field with isotropic fault
+# * ref => velocity field with no fault
+# 
 
 # In[ ]:
 
