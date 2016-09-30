@@ -569,8 +569,8 @@ onefaultRestFn.data[:] = 0.
 
 if not fault_seg1.empty: #Can only call fault.kdtree on procs holding part of the fault swarm
     onefaultRestFn.data[:,0] = fault_seg1.kdtree.query(swarm.particleCoordinates.data)[0][:]
-    onefaultRestFn.data[np.where(nearfaultRestFn.data > pd.fthickness)] = 1.
-    onefaultRestFn.data[np.where(nearfaultRestFn.data <= pd.fthickness)] = 0. 
+    onefaultRestFn.data[np.where(onefaultRestFn.data > pd.fthickness)] = 1.
+    onefaultRestFn.data[np.where(onefaultRestFn.data <= pd.fthickness)] = 0. 
     
     
 halffaultRestFn = swarm.add_variable( dataType="double", count=1 )
@@ -578,16 +578,16 @@ halffaultRestFn.data[:] = 0.
 
 if not fault_seg1.empty: #Can only call fault.kdtree on procs holding part of the fault swarm
     halffaultRestFn.data[:,0] = fault_seg1.kdtree.query(swarm.particleCoordinates.data)[0][:]
-    halffaultRestFn.data[np.where(nearfaultRestFn.data > 0.5*pd.fthickness)] = 1.
-    halffaultRestFn.data[np.where(nearfaultRestFn.data <= 0.5*pd.fthickness)] = 0. 
+    halffaultRestFn.data[np.where(halffaultRestFn.data > 0.5*pd.fthickness)] = 1.
+    halffaultRestFn.data[np.where(halffaultRestFn.data <= 0.5*pd.fthickness)] = 0. 
     
 twofaultRestFn = swarm.add_variable( dataType="double", count=1 )
 twofaultRestFn.data[:] = 0.
 
 if not fault_seg1.empty: #Can only call fault.kdtree on procs holding part of the fault swarm
     twofaultRestFn.data[:,0] = fault_seg1.kdtree.query(swarm.particleCoordinates.data)[0][:]
-    twofaultRestFn.data[np.where(nearfaultRestFn.data > 2.*pd.fthickness)] = 1.
-    twofaultRestFn.data[np.where(nearfaultRestFn.data <= 2.*pd.fthickness)] = 0
+    twofaultRestFn.data[np.where(twofaultRestFn.data > 2.*pd.fthickness)] = 1.
+    twofaultRestFn.data[np.where(twofaultRestFn.data <= 2.*pd.fthickness)] = 0
     
 oneelementRestFn = swarm.add_variable( dataType="double", count=1 )
 oneelementRestFn.data[:] = 0.
@@ -602,8 +602,8 @@ halfelementRestFn.data[:] = 0.
 
 if not fault_seg1.empty: #Can only call fault.kdtree on procs holding part of the fault swarm
     halfelementRestFn.data[:,0] = fault_seg1.kdtree.query(swarm.particleCoordinates.data)[0][:]
-    halfelementRestFn.data[np.where(oneelementRestFn.data > 0.5/(resY+1.))] = 1.
-    halfelementRestFn.data[np.where(oneelementRestFn.data <= 0.5/(resY+1.))] = 0. 
+    halfelementRestFn.data[np.where(halfelementRestFn.data > 0.5/(resY+1.))] = 1.
+    halfelementRestFn.data[np.where(halfelementRestFn.data <= 0.5/(resY+1.))] = 0. 
     
     
 twoelementRestFn = swarm.add_variable( dataType="double", count=1 )
@@ -611,8 +611,8 @@ twoelementRestFn.data[:] = 0.
 
 if not fault_seg1.empty: #Can only call fault.kdtree on procs holding part of the fault swarm
     twoelementRestFn.data[:,0] = fault_seg1.kdtree.query(swarm.particleCoordinates.data)[0][:]
-    twoelementRestFn.data[np.where(oneelementRestFn.data > 2.0/(resY+1.))] = 1.
-    twoelementRestFn.data[np.where(oneelementRestFn.data <= 2.0/(resY+1.))] = 0. 
+    twoelementRestFn.data[np.where(twoelementRestFn.data > 2.0/(resY+1.))] = 1.
+    twoelementRestFn.data[np.where(twoelementRestFn.data <= 2.0/(resY+1.))] = 0. 
 
 def volumeint(Fn = 1., rFn=1.):
     return uw.utils.Integral( Fn*rFn,  mesh )
