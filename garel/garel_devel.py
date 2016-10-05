@@ -2082,10 +2082,13 @@ advDiff = uw.systems.AdvectionDiffusion( phiField       = temperatureField,
                                          fn_diffusivity = 1.0, 
                                          #conditions     = [neumannTempBC, dirichTempBC] )
                                          conditions     = [ dirichTempBC] )
+order = 2
+if md.periodicBcs:
+    order = 1
 
 materialadvector = uw.systems.SwarmAdvector( swarm         = gSwarm, 
                                      velocityField = velocityField, 
-                                     order         = 1)
+                                     order         = order)
 
 
 # In[155]:
