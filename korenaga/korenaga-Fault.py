@@ -432,11 +432,11 @@ Xres = int(md.RES*8)
 
 
 if md.stickyAir:
-    Yres = RES
+    Yres = md.RES
     MAXY = 1. + dp.StALS/dp.LS #150km
     
 else:
-    Yres = RES
+    Yres = md.RES
     MAXY = 1.
 
 
