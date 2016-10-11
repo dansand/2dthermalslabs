@@ -18,7 +18,7 @@
 # Korenaga, Jun. "Scaling of plate tectonic convection with pseudoplastic rheology." Journal of Geophysical Research: Solid Earth 115.B11 (2010).
 # http://onlinelibrary.wiley.com/doi/10.1029/2010JB007670/full
 
-# In[150]:
+# In[1]:
 
 import numpy as np
 import underworld as uw
@@ -47,7 +47,7 @@ rank = comm.Get_rank()
 # Model name and directories
 # -----
 
-# In[151]:
+# In[2]:
 
 ############
 #Model letter and number
@@ -75,7 +75,7 @@ else:
                 Model  = farg
 
 
-# In[152]:
+# In[3]:
 
 ###########
 #Standard output directory setup
@@ -105,7 +105,7 @@ if uw.rank()==0:
 comm.Barrier() #Barrier here so no procs run the check in the next cell too early
 
 
-# In[153]:
+# In[4]:
 
 ###########
 #Check if starting from checkpoint
@@ -122,7 +122,7 @@ for dirpath, dirnames, files in os.walk(checkpointPath):
         checkpointLoad = False
 
 
-# In[154]:
+# In[5]:
 
 # setup summary output file (name above)
 if checkpointLoad:
@@ -152,7 +152,7 @@ else:
 
 # **Use pint to setup any unit conversions we'll need**
 
-# In[155]:
+# In[6]:
 
 u = pint.UnitRegistry()
 cmpery = 1.*u.cm/u.year
@@ -162,7 +162,7 @@ spery = year.to(u.sec)
 cmpery.to(mpermy)
 
 
-# In[156]:
+# In[7]:
 
 #box_half_width =4000e3
 #age_at_trench = 100e6
@@ -173,7 +173,7 @@ cmpery.to(mpermy)
 
 # **Set parameter dictionaries**
 
-# In[157]:
+# In[8]:
 
 ###########
 #Parameter / settings dictionaries get saved&loaded using pickle
@@ -186,7 +186,7 @@ md = edict({}) #model paramters, flags etc
 #od = edict({}) #output frequencies
 
 
-# In[158]:
+# In[9]:
 
 dict_list = [dp, sf, ndp, md]
 dict_names = ['dp.pkl', 'sf.pkl', 'ndp.pkl', 'md.pkl']
@@ -223,7 +223,7 @@ def load_pickles():
     return dp, ndp, sf, md
 
 
-# In[159]:
+# In[10]:
 
 #dimensional parameter dictionary
 dp = edict({'LS':2900.*1e3,
@@ -254,12 +254,12 @@ dp['TI'] = dp.TS + dp.deltaT
 
 
 
-# In[160]:
+# In[11]:
 
 #0.6*dp.a*dp.deltaT
 
 
-# In[161]:
+# In[12]:
 
 #Modelling and Physics switches
 
@@ -278,7 +278,7 @@ md = edict({'refineMesh':True,
             })
 
 
-# In[162]:
+# In[13]:
 
 ###########
 #If starting from a checkpoint load params from file
@@ -288,7 +288,7 @@ if checkpointLoad:
     dp, ndp, sf, md = load_pickles()  #remember to add any extra dictionaries
 
 
-# In[163]:
+# In[14]:
 
 ###########
 #If command line args are given, overwrite
@@ -347,7 +347,7 @@ for farg in sys.argv[1:]:
 comm.barrier()
 
 
-# In[164]:
+# In[15]:
 
 if not checkpointLoad:
     sf = edict({'stress':dp.LS**2/(dp.k*dp.eta0),
@@ -391,9 +391,14 @@ ndp.SR = dp.SR*sf.SR #characteristic strain rate
 ndp.StRA = (3300.*dp.g*(dp.LS)**3)/(dp.eta0 *dp.k) #Composisitional Rayleigh number for rock-air buoyancy force
 
 
+# In[ ]:
+
+
+
+
 # **Model setup parameters**
 
-# In[165]:
+# In[16]:
 
 ###########
 #Model setup parameters
@@ -453,7 +458,7 @@ sticky_air_temp = 1e6
 # Create mesh and finite element variables
 # ------
 
-# In[166]:
+# In[17]:
 
 
 
@@ -468,7 +473,7 @@ temperatureField    = uw.mesh.MeshVariable( mesh=mesh,         nodeDofCount=1 )
 temperatureDotField = uw.mesh.MeshVariable( mesh=mesh,         nodeDofCount=1 )
 
 
-# In[167]:
+# In[18]:
 
 coordinate = fn.input()
 depthFn = MAXY - coordinate[1] #a function providing the depth
@@ -480,12 +485,12 @@ yFn = coordinate[1]
 
 # ## Mesh refinement
 
-# In[168]:
+# In[19]:
 
 print("mesh shape is :", mesh.data.shape)
 
 
-# In[169]:
+# In[20]:
 
 mesh.reset()
 
@@ -532,7 +537,7 @@ with mesh.deform_mesh():
 
 
 
-# In[170]:
+# In[21]:
 
 fig= glucifer.Figure()
 #fig.append( glucifer.objects.Surface(mesh, yField))
@@ -546,7 +551,7 @@ fig.append(glucifer.objects.Mesh(mesh))
 # -------
 # 
 
-# In[171]:
+# In[22]:
 
 #Sinusoidal initial condition
 A = 0.2
@@ -572,19 +577,19 @@ tempFn = blFn #partition the temp between these two fuctions
 tempFn = sinFn #partition the temp between these two fuctions
 
 
-# In[172]:
+# In[23]:
 
 if not checkpointLoad:
     temperatureField.data[:] = tempFn.evaluate(mesh)  
 
 
-# In[173]:
+# In[24]:
 
 np.random.seed(20)#set seed for reproducibility
 temperatureField.data[:,0] += (np.random.rand(mesh.data.shape[0]) -  0.5)*1e-2
 
 
-# In[174]:
+# In[25]:
 
 #Make sure material in stick air region is at the surface temperature.
 for index, coord in enumerate(mesh.data):
@@ -592,7 +597,7 @@ for index, coord in enumerate(mesh.data):
                 temperatureField.data[index] = ndp.TSP
 
 
-# In[175]:
+# In[26]:
 
 fig= glucifer.Figure()
 fig.append( glucifer.objects.Surface(mesh, temperatureField))
@@ -607,7 +612,7 @@ fig.append( glucifer.objects.Surface(mesh, temperatureField))
 
 # **Boundary conditions**
 
-# In[128]:
+# In[27]:
 
 for index in mesh.specialSets["MinJ_VertexSet"]:
     temperatureField.data[index] = ndp.TIP
@@ -643,7 +648,7 @@ neumannTempBC = uw.conditions.NeumannCondition( dT_dy, variable=temperatureField
 # -----
 # 
 
-# In[129]:
+# In[28]:
 
 ###########
 #Material Swarm and variables
@@ -665,7 +670,7 @@ varnames = []
 #varnames = ['materialVariable', 'yieldingCheck', 'ageVariable']
 
 
-# In[130]:
+# In[29]:
 
 #For starters, we're not going to worry about checkpointing the swarm, as no materials. Maybe add this later
 
@@ -674,7 +679,7 @@ layout = uw.swarm.layouts.PerCellRandomLayout(swarm=gSwarm, particlesPerCell=ppc
 gSwarm.populate_using_layout( layout=layout )
 
 
-# In[140]:
+# In[30]:
 
 if checkpointLoad:
     checkpointLoadDir = natsort.natsort(checkdirs)[-1]
@@ -726,7 +731,7 @@ if checkpointLoad:
 # 
 # Setup the viscosity to be a function of the temperature. Recall that these functions and values are preserved for the entire simulation time. 
 
-# In[131]:
+# In[31]:
 
 # The yeilding of the upper slab is dependent on the strain rate.
 strainRate_2ndInvariant = fn.tensor.second_invariant( 
@@ -734,25 +739,25 @@ strainRate_2ndInvariant = fn.tensor.second_invariant(
                             velocityField.fn_gradient ))
 
 
-#dp.fc = 0.02
-thetaT = (dp.E*dp.deltaT)/(dp.R*(dp.TS + dp.deltaT)**2)
-thetaZ = 3.
+#thetaT = (dp.E*dp.deltaT)/(dp.R*(dp.TS + dp.deltaT)**2)
+thetaT = 15. #overuling
+thetaZ = 0.
 
 #gamma = dp.fc/(dp.a*dp.deltaT)
 #print(thetaT, thetaZ )
 
 
-# In[132]:
+# In[40]:
 
-#dp.fc
+thetaT, dp.deltaT
 
 
-# In[133]:
+# In[33]:
 
 dp.fc/(dp.a*dp.deltaT)
 
 
-# In[134]:
+# In[34]:
 
 #overide these parameters to match the reference case quoted on page 5
 #theta = 15.
@@ -762,7 +767,7 @@ dp.fc/(dp.a*dp.deltaT)
 
 
 
-# In[135]:
+# In[35]:
 
 ############
 #Rheology
@@ -811,10 +816,10 @@ mantleviscosityFn = fn.misc.max(fn.misc.min(1./(((1./linearVisc) + (1./yielding)
 
 
 
-# In[147]:
+# In[36]:
 
-#fig= glucifer.Figure()
-#fig.append( glucifer.objects.Surface(mesh, mantleviscosityFn, logScale=True))
+fig= glucifer.Figure()
+fig.append( glucifer.objects.Surface(mesh, mantleviscosityFn, logScale=True))
 #fig.append( glucifer.objects.VectorArrows(mesh, velocityField, scaling = 0.001))
 
 #fig.show()
@@ -827,7 +832,7 @@ mantleviscosityFn = fn.misc.max(fn.misc.min(1./(((1./linearVisc) + (1./yielding)
 # 
 # **Setup a Stokes system**
 
-# In[87]:
+# In[37]:
 
 # Here we set a viscosity value of '1.' for both materials
 #viscosityMapFn = fn.branching.map( fn_key = materialVariable,
@@ -844,12 +849,7 @@ mantleviscosityFn = fn.misc.max(fn.misc.min(1./(((1./linearVisc) + (1./yielding)
 #                                    mantleIndex:ndp.RA*temperatureField} )
 
 
-# In[29]:
-
-ndp.RA
-
-
-# In[89]:
+# In[197]:
 
 # Construct our density function.
 densityFn = ndp.RA * temperatureField
@@ -861,7 +861,7 @@ gravity = ( 0.0, 1.0 )
 buoyancyFn = densityFn * gravity
 
 
-# In[90]:
+# In[198]:
 
 stokesPIC = uw.systems.Stokes(velocityField=velocityField, 
                               pressureField=pressureField,
@@ -872,7 +872,7 @@ stokesPIC = uw.systems.Stokes(velocityField=velocityField,
 
 # **Set up and solve the Stokes system**
 
-# In[91]:
+# In[ ]:
 
 solver = uw.systems.Solver(stokesPIC)
 
@@ -880,7 +880,7 @@ solver = uw.systems.Solver(stokesPIC)
 # **Add the non-linear viscosity to the Stokes system**
 # 
 
-# In[92]:
+# In[ ]:
 
 solver.set_inner_method("mumps")
 solver.options.scr.ksp_type="cg"
@@ -1143,7 +1143,7 @@ if figures == 'gldb':
     #figDb.append( glucifer.objects.Points(gSwarm,viscMinVariable))
     #figDb.append( glucifer.objects.Points(gSwarm,fnViscMin))
     figDb.append( glucifer.objects.Points(gSwarm, mantleviscosityFn, logScale=True))
-    figDb.append( glucifer.objects.Points(gSwarm, strainRate_2ndInvariant, logScale=True))
+    #figDb.append( glucifer.objects.Points(gSwarm, strainRate_2ndInvariant, logScale=True))
     figDb.append( glucifer.objects.Points(gSwarm,temperatureField))
 
 
