@@ -18,7 +18,7 @@
 # Korenaga, Jun. "Scaling of plate tectonic convection with pseudoplastic rheology." Journal of Geophysical Research: Solid Earth 115.B11 (2010).
 # http://onlinelibrary.wiley.com/doi/10.1029/2010JB007670/full
 
-# In[1]:
+# In[67]:
 
 import numpy as np
 import underworld as uw
@@ -47,7 +47,7 @@ rank = comm.Get_rank()
 # Model name and directories
 # -----
 
-# In[2]:
+# In[68]:
 
 ############
 #Model letter and number
@@ -75,7 +75,7 @@ else:
                 Model  = farg
 
 
-# In[3]:
+# In[69]:
 
 ###########
 #Standard output directory setup
@@ -105,7 +105,7 @@ if uw.rank()==0:
 comm.Barrier() #Barrier here so no procs run the check in the next cell too early
 
 
-# In[4]:
+# In[70]:
 
 ###########
 #Check if starting from checkpoint
@@ -122,7 +122,7 @@ for dirpath, dirnames, files in os.walk(checkpointPath):
         checkpointLoad = False
 
 
-# In[5]:
+# In[71]:
 
 # setup summary output file (name above)
 if checkpointLoad:
@@ -152,7 +152,7 @@ else:
 
 # **Use pint to setup any unit conversions we'll need**
 
-# In[6]:
+# In[72]:
 
 u = pint.UnitRegistry()
 cmpery = 1.*u.cm/u.year
@@ -162,7 +162,7 @@ spery = year.to(u.sec)
 cmpery.to(mpermy)
 
 
-# In[7]:
+# In[73]:
 
 #box_half_width =4000e3
 #age_at_trench = 100e6
@@ -173,7 +173,7 @@ cmpery.to(mpermy)
 
 # **Set parameter dictionaries**
 
-# In[8]:
+# In[74]:
 
 ###########
 #Parameter / settings dictionaries get saved&loaded using pickle
@@ -186,7 +186,7 @@ md = edict({}) #model paramters, flags etc
 #od = edict({}) #output frequencies
 
 
-# In[9]:
+# In[75]:
 
 dict_list = [dp, sf, ndp, md]
 dict_names = ['dp.pkl', 'sf.pkl', 'ndp.pkl', 'md.pkl']
@@ -223,21 +223,21 @@ def load_pickles():
     return dp, ndp, sf, md
 
 
-# In[10]:
+# In[87]:
 
 #dimensional parameter dictionary
 dp = edict({'LS':2900.*1e3,
            'rho':3300,
            'g':9.8, 
-           'eta0':5e20,
+           #'eta0':5e20,
            #'eta0':1e21,    #This will give Ra ~ 2e7, closer to models by Van Hunen, Billen etc.
-           #'eta0': 2.12e22, #This will give Ra = 1e6 as quoted on Korenaga's paper
+           'eta0': 2.05e22, #This will give Ra = 1e6 as quoted on Korenaga's paper
            'k':1e-6,
            'a':2e-5, 
-           'deltaT':1350, #Hunen
+           'deltaT':1300, 
            'TS':273.,
-           'cohesion':1e7, #Not sure where this one came from...
-           'fc':0.1,        #This is the value from 
+           'cohesion':1e5, #Not sure where this one came from...
+           'fc':0.0156,
            'E':320000.,
            'V':1.*(10**-6), #this is a value from Crameri and Tackley (2015)
            'R':8.314,
@@ -253,7 +253,12 @@ dp['TI'] = dp.TS + dp.deltaT
 
 
 
-# In[11]:
+# In[88]:
+
+#0.6*dp.a*dp.deltaT
+
+
+# In[89]:
 
 #Modelling and Physics switches
 
@@ -277,7 +282,7 @@ md = edict({'refineMesh':True,
 
 
 
-# In[12]:
+# In[90]:
 
 ###########
 #If starting from a checkpoint load params from file
@@ -287,7 +292,7 @@ if checkpointLoad:
     dp, ndp, sf, md = load_pickles()  #remember to add any extra dictionaries
 
 
-# In[13]:
+# In[91]:
 
 ###########
 #If command line args are given, overwrite
@@ -346,15 +351,15 @@ for farg in sys.argv[1:]:
 comm.barrier()
 
 
-# In[14]:
+# In[92]:
 
 if not checkpointLoad:
     sf = edict({'stress':dp.LS**2/(dp.k*dp.eta0),
-            'lith_grad':dp.rho*dp.g*(dp.LS)**3/(dp.eta0*dp.k) ,
-            'vel':dp.LS/dp.k,
-            'SR':dp.LS**2/dp.k,
-            'W':(dp.rho*dp.g*dp.LS)/(dp.R*dp.deltaT), #This is the activation energy scale, in terms of depth (not pressure)
-            'E': 1./(dp.R*dp.deltaT)}) #To scale E, V, we used a guesstimated adiabatic deltaT
+                'lith_grad':dp.rho*dp.g*(dp.LS)**3/(dp.eta0*dp.k) ,
+                 'vel':dp.LS/dp.k,
+                 'SR':dp.LS**2/dp.k,
+                 'W':(dp.rho*dp.g*dp.LS)/(dp.R*dp.deltaT), #This is the activation energy scale, in terms of depth (not pressure)
+                 'E': 1./(dp.R*dp.deltaT)}) #To scale E, V, we used a guesstimated adiabatic deltaT
 
     #dimensionless parameters
 
@@ -392,22 +397,7 @@ ndp.StRA = (3300.*dp.g*(dp.LS)**3)/(dp.eta0 *dp.k) #Composisitional Rayleigh num
 
 # **Model setup parameters**
 
-# In[15]:
-
-math.log(dp.E*ndp.W)
-#(dp.R*(dp.TS + dp.deltaT) ))
-
-math.exp((dp.E + dp.V *dp.rho*dp.g*dp.LS)/dp.E)
-
-
-# In[16]:
-
-ns = math.exp( (dp.E + dp.V *dp.rho*dp.g*0) / (dp.R*(dp.TS + dp.deltaT))  )
-nb = math.exp( (dp.E + dp.V *dp.rho*dp.g*dp.LS) / (dp.R*(dp.TS + dp.deltaT))  )
-nb/ns
-
-
-# In[17]:
+# In[18]:
 
 ###########
 #Model setup parameters
@@ -428,7 +418,7 @@ dim = 2          # number of spatial dimensions
 
 #MESH STUFF
 
-Xres = int(md.RES*8)
+Xres = int(md.RES*md.aspectRatio*2)
 
 
 if md.stickyAir:
@@ -458,16 +448,16 @@ ppc = 25
 #Metric output stuff
 figures =  'gldb' #glucifer Store won't work on all machines, if not, set to 'gldb' 
 swarm_repop, swarm_update = 10, 10
-gldbs_output = 20
+gldbs_output = 5
 checkpoint_every, files_output = 20, 20
-metric_output = 10
+metric_output = 5
 sticky_air_temp = 1e6
 
 
 # Create mesh and finite element variables
 # ------
 
-# In[18]:
+# In[19]:
 
 
 
@@ -482,7 +472,7 @@ temperatureField    = uw.mesh.MeshVariable( mesh=mesh,         nodeDofCount=1 )
 temperatureDotField = uw.mesh.MeshVariable( mesh=mesh,         nodeDofCount=1 )
 
 
-# In[19]:
+# In[20]:
 
 coordinate = fn.input()
 depthFn = MAXY - coordinate[1] #a function providing the depth
@@ -494,12 +484,12 @@ yFn = coordinate[1]
 
 # ## Mesh refinement
 
-# In[20]:
+# In[21]:
 
 print("mesh shape is :", mesh.data.shape)
 
 
-# In[26]:
+# In[23]:
 
 mesh.reset()
 
@@ -517,9 +507,13 @@ for index in mesh.specialSets["MaxJ_VertexSet"]:
     yField.data[index] = mesh.maxCoord[1]
     
     
-intensityFac = 4.
-intensityFn = ((yFn)*intensityFac)
+    
+s = 2.
+intensityFac = 5.
+intensityFn = MINY + (MAXY-MINY)*(((yFn - MINY)/(MAXY-MINY))**s)
+intensityFn *= intensityFac
 intensityFn += 1.
+
 
 yLaplaceEquation = uw.systems.SteadyStateHeat(temperatureField=yField, fn_diffusivity=intensityFn, conditions=[yBC,])
 
@@ -537,16 +531,16 @@ with mesh.deform_mesh():
      mesh.data[:,1] = newYpos[:,0]
 
 
-# In[28]:
+# In[ ]:
 
 
 
 
-# In[30]:
+# In[26]:
 
 fig= glucifer.Figure()
-fig.append( glucifer.objects.Surface(mesh, yField))
-#fig.append(glucifer.objects.Mesh(mesh))
+#fig.append( glucifer.objects.Surface(mesh, yField))
+fig.append(glucifer.objects.Mesh(mesh))
 #fig.append( glucifer.objects.Points(gSwarm, temperatureField))
 #fig.show()
 #fig.save_database('test.gldb')
@@ -844,9 +838,9 @@ mantleviscosityFn = fn.misc.max(fn.misc.min(1./(((1./linearVisc) + (1./yielding)
 #                                    mantleIndex:ndp.RA*temperatureField} )
 
 
-# In[88]:
+# In[29]:
 
-ndp.StRA/ndp.RA
+ndp.RA
 
 
 # In[89]:
