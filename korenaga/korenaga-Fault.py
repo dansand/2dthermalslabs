@@ -1139,7 +1139,7 @@ if figures == 'gldb':
     #figDb.append( glucifer.objects.Mesh(mesh))
     figDb.append( glucifer.objects.VectorArrows(mesh,velocityField, scaling=0.0005))
     #figDb.append( glucifer.objects.Points(gSwarm,tracerVariable, colours= 'white black'))
-    figDb.append( glucifer.objects.Points(gSwarm,materialVariable))
+    #figDb.append( glucifer.objects.Points(gSwarm,materialVariable))
     #figDb.append( glucifer.objects.Points(gSwarm,viscMinVariable))
     #figDb.append( glucifer.objects.Points(gSwarm,fnViscMin))
     figDb.append( glucifer.objects.Points(gSwarm, mantleviscosityFn, logScale=True))
