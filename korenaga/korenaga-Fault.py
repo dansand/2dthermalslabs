@@ -456,7 +456,7 @@ ppc = 25
 
 
 #Metric output stuff
-figures =  'store' #glucifer Store won't work on all machines, if not, set to 'gldb' 
+figures =  'gldb' #glucifer Store won't work on all machines, if not, set to 'gldb' 
 swarm_repop, swarm_update = 10, 10
 gldbs_output = 20
 checkpoint_every, files_output = 20, 20
@@ -1132,6 +1132,19 @@ if figures == 'store':
     figSr= glucifer.Figure(store, figsize=(300*np.round(md.aspectRatio,2),300))
     figSr.append( glucifer.objects.Points(gSwarm,strainRate_2ndInvariant, logScale=True))
     figSr.append( glucifer.objects.VectorArrows(mesh,velocityField, scaling=0.0005))
+    
+if figures == 'gldb':
+    #Pack some stuff into a database as well
+    figDb = glucifer.Figure()
+    #figDb.append( glucifer.objects.Mesh(mesh))
+    figDb.append( glucifer.objects.VectorArrows(mesh,velocityField, scaling=0.0005))
+    #figDb.append( glucifer.objects.Points(gSwarm,tracerVariable, colours= 'white black'))
+    figDb.append( glucifer.objects.Points(gSwarm,materialVariable))
+    #figDb.append( glucifer.objects.Points(gSwarm,viscMinVariable))
+    #figDb.append( glucifer.objects.Points(gSwarm,fnViscMin))
+    figDb.append( glucifer.objects.Points(gSwarm, mantleviscosityFn, logScale=True))
+    figDb.append( glucifer.objects.Points(gSwarm, strainRate_2ndInvariant, logScale=True))
+    figDb.append( glucifer.objects.Points(gSwarm,temperatureField))
 
 
 # #### Miscellania
@@ -1263,7 +1276,7 @@ while realtime < 1.:
     if step == 0:
         dt = 0.
     advDiff.integrate(dt)
-    passiveadvector.integrate(dt)
+    #passiveadvector.integrate(dt)
     #for f in interfaces:
     #    f.advection(dt)
     
