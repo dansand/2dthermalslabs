@@ -1349,9 +1349,9 @@ while realtime < 1.:
             figDb.save_database(fullpath)
             
             #Temp figure
-            fnamedb = "restrictFig" + "_" + str(step) + ".gldb"
-            fullpath = os.path.join(outputPath + "gldbs/" + fnamedb)
-            figRestrict.save_database(fullpath)
+            #fnamedb = "restrictFig" + "_" + str(step) + ".gldb"
+            #fullpath = os.path.join(outputPath + "gldbs/" + fnamedb)
+            #figRestrict.save_database(fullpath)
         elif figures == 'store':      
             fullpath = os.path.join(outputPath + "gldbs/")
             store.step = step
