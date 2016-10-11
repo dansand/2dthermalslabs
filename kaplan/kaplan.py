@@ -16,7 +16,7 @@
 # 
 # Kaplan, Michael. Numerical Geodynamics of Solid Planetary Deformation. Diss. University of Southern California, 2015.
 
-# In[34]:
+# In[5]:
 
 import numpy as np
 import underworld as uw
@@ -47,7 +47,7 @@ rank = comm.Get_rank()
 # Model name and directories
 # -----
 
-# In[35]:
+# In[6]:
 
 ############
 #Model letter and number
@@ -75,7 +75,7 @@ else:
                 Model  = farg
 
 
-# In[36]:
+# In[7]:
 
 ###########
 #Standard output directory setup
@@ -105,7 +105,7 @@ if uw.rank()==0:
 comm.Barrier() #Barrier here so no procs run the check in the next cell too early
 
 
-# In[37]:
+# In[8]:
 
 ###########
 #Check if starting from checkpoint
@@ -122,7 +122,7 @@ for dirpath, dirnames, files in os.walk(checkpointPath):
         checkpointLoad = False
 
 
-# In[38]:
+# In[9]:
 
 # setup summary output file (name above)
 if checkpointLoad:
@@ -152,7 +152,7 @@ else:
 
 # **Use pint to setup any unit conversions we'll need**
 
-# In[39]:
+# In[10]:
 
 u = pint.UnitRegistry()
 cmpery = 1.*u.cm/u.year
@@ -162,7 +162,7 @@ spery = year.to(u.sec)
 cmpery.to(mpermy)
 
 
-# In[40]:
+# In[11]:
 
 box_half_width =4000e3
 age_at_trench = 100e6
@@ -178,7 +178,7 @@ print(cmperyear, mpersec )
 # * If params are passed in as flags to the script, they overwrite 
 # 
 
-# In[41]:
+# In[12]:
 
 ###########
 #Parameter / settings dictionaries get saved&loaded using pickle
@@ -192,7 +192,7 @@ md = edict({}) #model paramters, flags etc
 
 
 
-# In[42]:
+# In[13]:
 
 dict_list = [dp, sf, ndp, md]
 dict_names = ['dp.pkl', 'sf.pkl', 'ndp.pkl', 'md.pkl']
@@ -229,7 +229,7 @@ def load_pickles():
     return dp, ndp, sf, md
 
 
-# In[43]:
+# In[14]:
 
 ###########
 #Store the physical parameters, scale factors and dimensionless pramters in easyDicts
@@ -241,7 +241,7 @@ dp = edict({'LS':2900*1e3, #Scaling Length scale
             'depth':670*1e3, #Depth of domain
             'rho':3300.,  #reference density
             'g':9.8, #surface gravity
-            'eta0':1e20, #reference viscosity
+            'eta0':2e20, #reference viscosity
             'k':1e-6, #thermal diffusivity
             'a':3e-5, #surface thermal expansivity
             'R':8.314, #gas constant
@@ -261,14 +261,14 @@ dp = edict({'LS':2900*1e3, #Scaling Length scale
             #Rheology - cutoff values
             'eta_min':1e17, 
             'eta_max':1e25, #viscosity max in the mantle material
-            'eta_min_crust':1e20, #viscosity min in the weak-crust material
-            'eta_max_crust':1e20, #viscosity max in the weak-crust material
-            'eta_min_interface':1e20, #viscosity min in the subduction interface material
-            'eta_max_interface':1e20, #viscosity max in the subduction interface material
-            'eta_min_fault':1e20, #viscosity min in the subduction interface material
-            'eta_max_fault':1e20, #viscosity max in the subduction interface material
+            'eta_min_crust':0.3*1e20, #viscosity min in the weak-crust material
+            'eta_max_crust':0.3*1e20, #viscosity max in the weak-crust material
+            'eta_min_interface':0.3*1e20, #viscosity min in the subduction interface material
+            'eta_max_interface':0.3*1e20, #viscosity max in the subduction interface material
+            'eta_min_fault':0.3*1e20, #viscosity min in the subduction interface material
+            'eta_max_fault':0.3*1e20, #viscosity max in the subduction interface material
             #Length scales
-            'MANTLETOCRUST':10.*1e3, #Crust depth
+            'MANTLETOCRUST':8.*1e3, #Crust depth
             'HARZBURGDEPTH':40e3,
             'CRUSTTOMANTLE':800.*1e3,
             'LITHTOMANTLE':(900.*1e3),
@@ -303,7 +303,7 @@ dp.deltaT = dp.TP - dp.TS
 
 
 
-# In[44]:
+# In[15]:
 
 #Modelling and Physics switches
 
@@ -320,7 +320,7 @@ md = edict({'refineMesh':True,
             })
 
 
-# In[45]:
+# In[16]:
 
 ###########
 #If starting from a checkpoint load params from file
@@ -330,7 +330,7 @@ if checkpointLoad:
     dp, ndp, sf, md = load_pickles()  #remember to add any extra dictionaries
 
 
-# In[46]:
+# In[17]:
 
 ###########
 #If command line args are given, overwrite
@@ -389,12 +389,12 @@ for farg in sys.argv[1:]:
 comm.barrier()
 
 
-# In[47]:
+# In[19]:
 
 #print('refine Mesh is: ', md.refineMesh)
 
 
-# In[48]:
+# In[20]:
 
 #Only build these guys first time around, otherwise the read from checkpoints
 #Important because some of these params (like SZ location) may change during model evolution
@@ -469,12 +469,12 @@ if not checkpointLoad:
     ndp.CVR = dp.CVR*sf.vel #characteristic velocity
 
 
-# In[49]:
+# In[23]:
 
-ndp.Edf
+ndp.eta_min_crust
 
 
-# In[50]:
+# In[24]:
 
 ndp.plate_vel, sf.vel, (cmpery.to(u.m/u.second)).magnitude
 
@@ -548,6 +548,11 @@ gldbs_output = 200
 checkpoint_every, files_output = 200, 50
 metric_output = 10
 sticky_air_temp = 1e6
+
+
+# In[ ]:
+
+
 
 
 # Create mesh and finite element variables
