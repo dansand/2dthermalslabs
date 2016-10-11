@@ -237,7 +237,8 @@ dp = edict({'LS':2900.*1e3,
            'deltaT':1300, 
            'TS':273.,
            'cohesion':1e5, #Not sure where this one came from...
-           'fc':0.0156,
+           #'fc':0.0156,
+            'fc':0.01,
            'E':320000.,
            'V':1.*(10**-6), #this is a value from Crameri and Tackley (2015)
            'R':8.314,
@@ -267,9 +268,9 @@ md = edict({'refineMesh':True,
             'subductionFault':False,
             'symmetricIcs':False,
             'velBcs':False,
-            'aspectRatio':4,
+            'aspectRatio':2,
             'compBuoyancy':False, #use compositional & phase buoyancy, or simply thermal
-            'periodicBcs':True,
+            'periodicBcs':False,
             'melt_viscosity_reduction':True,
             'lower_mantle':True,
             'RES':48,
@@ -448,9 +449,9 @@ ppc = 25
 #Metric output stuff
 figures =  'gldb' #glucifer Store won't work on all machines, if not, set to 'gldb' 
 swarm_repop, swarm_update = 10, 10
-gldbs_output = 5
-checkpoint_every, files_output = 20, 20
-metric_output = 5
+gldbs_output = 20
+checkpoint_every, files_output = 50, 50
+metric_output = 50
 sticky_air_temp = 1e6
 
 
@@ -795,10 +796,9 @@ if md.lower_mantle:
 linearVisc = fn.math.exp(thetaT*(1. - temperatureField) + thetaZ*(depthFn))
 
 
-
 ys =  ndp.cohesion + ndp.fcd*depthFn #tau_1 * 1e-5 is the cohesion value used in the paper
 
-yielding = ys/(strainRate_2ndInvariant/math.sqrt(0.5) + 1e-15) #extra factor to account for underworld second invariant form
+yielding = ys/(strainRate_2ndInvariant + 1e-15) #extra factor to account for underworld second invariant form
 
 
 mantleviscosityFn = fn.misc.max(fn.misc.min(1./(((1./linearVisc) + (1./yielding))), ndp.eta_max), ndp.eta_min)
