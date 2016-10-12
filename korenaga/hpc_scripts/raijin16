@@ -1,9 +1,9 @@
 #!/bin/bash
 #PBS -P m18
 #PBS -q normal
-#PBS -l walltime=05:00:00
-#PBS -l mem=32GB
-#PBS -l ncpus=32
+#PBS -l walltime=02:00:00
+#PBS -l mem=16GB
+#PBS -l ncpus=16
 #PBS -l wd
 
 cd ..

@@ -18,7 +18,7 @@
 # Korenaga, Jun. "Scaling of plate tectonic convection with pseudoplastic rheology." Journal of Geophysical Research: Solid Earth 115.B11 (2010).
 # http://onlinelibrary.wiley.com/doi/10.1029/2010JB007670/full
 
-# In[1]:
+# In[44]:
 
 import numpy as np
 import underworld as uw
@@ -47,7 +47,7 @@ rank = comm.Get_rank()
 # Model name and directories
 # -----
 
-# In[2]:
+# In[45]:
 
 ############
 #Model letter and number
@@ -75,7 +75,7 @@ else:
                 Model  = farg
 
 
-# In[3]:
+# In[46]:
 
 ###########
 #Standard output directory setup
@@ -105,7 +105,7 @@ if uw.rank()==0:
 comm.Barrier() #Barrier here so no procs run the check in the next cell too early
 
 
-# In[4]:
+# In[47]:
 
 ###########
 #Check if starting from checkpoint
@@ -122,7 +122,7 @@ for dirpath, dirnames, files in os.walk(checkpointPath):
         checkpointLoad = False
 
 
-# In[5]:
+# In[48]:
 
 # setup summary output file (name above)
 if checkpointLoad:
@@ -152,7 +152,7 @@ else:
 
 # **Use pint to setup any unit conversions we'll need**
 
-# In[6]:
+# In[49]:
 
 u = pint.UnitRegistry()
 cmpery = 1.*u.cm/u.year
@@ -162,7 +162,7 @@ spery = year.to(u.sec)
 cmpery.to(mpermy)
 
 
-# In[7]:
+# In[50]:
 
 #box_half_width =4000e3
 #age_at_trench = 100e6
@@ -173,7 +173,7 @@ cmpery.to(mpermy)
 
 # **Set parameter dictionaries**
 
-# In[8]:
+# In[51]:
 
 ###########
 #Parameter / settings dictionaries get saved&loaded using pickle
@@ -186,7 +186,7 @@ md = edict({}) #model paramters, flags etc
 #od = edict({}) #output frequencies
 
 
-# In[9]:
+# In[52]:
 
 dict_list = [dp, sf, ndp, md]
 dict_names = ['dp.pkl', 'sf.pkl', 'ndp.pkl', 'md.pkl']
@@ -223,7 +223,7 @@ def load_pickles():
     return dp, ndp, sf, md
 
 
-# In[10]:
+# In[53]:
 
 #dimensional parameter dictionary
 dp = edict({'LS':2900.*1e3,
@@ -236,7 +236,7 @@ dp = edict({'LS':2900.*1e3,
            'a':2e-5, 
            'deltaT':1300, 
            'TS':273.,
-           'cohesion':1e6, #Not sure where this one came from...
+           'cohesion':1e4, #i.e totally negligable...
            'fc':0.0156,
             #'fc':0.03,
            'E':320000.,
@@ -254,12 +254,13 @@ dp['TI'] = dp.TS + dp.deltaT
 
 
 
-# In[11]:
+# In[54]:
 
-#0.6*dp.a*dp.deltaT
+#0.6*ndp.RA, ndp.fcd
+#(0.6*ndp.RA*1e-5), ndp.cohesion
 
 
-# In[12]:
+# In[55]:
 
 #Modelling and Physics switches
 
@@ -273,12 +274,12 @@ md = edict({'refineMesh':True,
             'periodicBcs':False,
             'melt_viscosity_reduction':True,
             'lower_mantle':True,
-            'RES':48,
-            'elementType':"Q2/DPC1"
+            'RES':128,
+            'elementType':"Q1/dQ0"
             })
 
 
-# In[13]:
+# In[56]:
 
 ###########
 #If starting from a checkpoint load params from file
@@ -288,7 +289,7 @@ if checkpointLoad:
     dp, ndp, sf, md = load_pickles()  #remember to add any extra dictionaries
 
 
-# In[14]:
+# In[57]:
 
 ###########
 #If command line args are given, overwrite
@@ -347,7 +348,7 @@ for farg in sys.argv[1:]:
 comm.barrier()
 
 
-# In[15]:
+# In[58]:
 
 if not checkpointLoad:
     sf = edict({'stress':dp.LS**2/(dp.k*dp.eta0),
@@ -391,14 +392,14 @@ ndp.SR = dp.SR*sf.SR #characteristic strain rate
 ndp.StRA = (3300.*dp.g*(dp.LS)**3)/(dp.eta0 *dp.k) #Composisitional Rayleigh number for rock-air buoyancy force
 
 
-# In[ ]:
+# In[59]:
 
-
+ndp.RA
 
 
 # **Model setup parameters**
 
-# In[16]:
+# In[60]:
 
 ###########
 #Model setup parameters
@@ -448,17 +449,17 @@ ppc = 25
 
 #Metric output stuff
 figures =  'gldb' #glucifer Store won't work on all machines, if not, set to 'gldb' 
-swarm_repop, swarm_update = 10, 10
-gldbs_output = 20
-checkpoint_every, files_output = 50, 50
-metric_output = 50
+swarm_repop, swarm_update = 1e6, 1e6
+gldbs_output = 50
+checkpoint_every, files_output = 1e6, 1e6
+metric_output = 1e6
 sticky_air_temp = 1e6
 
 
 # Create mesh and finite element variables
 # ------
 
-# In[17]:
+# In[61]:
 
 
 
@@ -473,7 +474,7 @@ temperatureField    = uw.mesh.MeshVariable( mesh=mesh,         nodeDofCount=1 )
 temperatureDotField = uw.mesh.MeshVariable( mesh=mesh,         nodeDofCount=1 )
 
 
-# In[18]:
+# In[62]:
 
 coordinate = fn.input()
 depthFn = MAXY - coordinate[1] #a function providing the depth
@@ -485,12 +486,12 @@ yFn = coordinate[1]
 
 # ## Mesh refinement
 
-# In[19]:
+# In[63]:
 
 print("mesh shape is :", mesh.data.shape)
 
 
-# In[20]:
+# In[64]:
 
 mesh.reset()
 
@@ -537,7 +538,7 @@ with mesh.deform_mesh():
 
 
 
-# In[21]:
+# In[66]:
 
 fig= glucifer.Figure()
 #fig.append( glucifer.objects.Surface(mesh, yField))
@@ -551,15 +552,16 @@ fig.append(glucifer.objects.Mesh(mesh))
 # -------
 # 
 
-# In[22]:
+# In[29]:
 
 #Sinusoidal initial condition
 A = 0.2
 sinFn = depthFn + A*(fn.math.cos( math.pi * coordinate[0])  * fn.math.sin( math.pi * coordinate[1] ))        
     
 #Boundary layer/slab initial condition
-#w0 = 0.05
-w0 = 0.1
+#w0 = 0.1
+
+w0 = 0.05
 delX = -1.*fn.math.abs((coordinate[0]/MINX))   + 1.
 w = w0*fn.math.sqrt(delX + 1e-10)
 tempBL = (ndp.TIP - ndp.TSP) *fn.math.erf((depthFn)/w) + ndp.TSP
@@ -569,27 +571,27 @@ tempSlab = (ndp.TIP - ndp.TSP) *fn.math.erf((fn.math.abs(xFn)*2.)/w0) + ndp.TSP
 
 tempFn1 =  fn.misc.min(tempBL, tempSlab)
                    
-blFn = fn.branching.conditional([(coordinate[1] > 0.5, tempFn1), 
+blFn = fn.branching.conditional([(coordinate[1] > 0.25, tempFn1), 
                                     (True, 1.)])
 
 
 tempFn = blFn #partition the temp between these two fuctions
-tempFn = sinFn #partition the temp between these two fuctions
+#tempFn = sinFn #partition the temp between these two fuctions
 
 
-# In[23]:
+# In[30]:
 
 if not checkpointLoad:
     temperatureField.data[:] = tempFn.evaluate(mesh)  
 
 
-# In[24]:
+# In[31]:
 
 np.random.seed(20)#set seed for reproducibility
 temperatureField.data[:,0] += (np.random.rand(mesh.data.shape[0]) -  0.5)*1e-2
 
 
-# In[25]:
+# In[32]:
 
 #Make sure material in stick air region is at the surface temperature.
 for index, coord in enumerate(mesh.data):
@@ -597,10 +599,10 @@ for index, coord in enumerate(mesh.data):
                 temperatureField.data[index] = ndp.TSP
 
 
-# In[26]:
+# In[41]:
 
-fig= glucifer.Figure()
-fig.append( glucifer.objects.Surface(mesh, temperatureField))
+#fig= glucifer.Figure()
+#fig.append( glucifer.objects.Surface(mesh, temperatureField))
 #fig.append( glucifer.objects.Points(gSwarm, temperatureField))
 #fig.show()
 
@@ -612,7 +614,7 @@ fig.append( glucifer.objects.Surface(mesh, temperatureField))
 
 # **Boundary conditions**
 
-# In[27]:
+# In[34]:
 
 for index in mesh.specialSets["MinJ_VertexSet"]:
     temperatureField.data[index] = ndp.TIP
@@ -648,7 +650,7 @@ neumannTempBC = uw.conditions.NeumannCondition( dT_dy, variable=temperatureField
 # -----
 # 
 
-# In[28]:
+# In[35]:
 
 ###########
 #Material Swarm and variables
@@ -670,7 +672,7 @@ varnames = []
 #varnames = ['materialVariable', 'yieldingCheck', 'ageVariable']
 
 
-# In[29]:
+# In[36]:
 
 #For starters, we're not going to worry about checkpointing the swarm, as no materials. Maybe add this later
 
@@ -679,7 +681,7 @@ layout = uw.swarm.layouts.PerCellRandomLayout(swarm=gSwarm, particlesPerCell=ppc
 gSwarm.populate_using_layout( layout=layout )
 
 
-# In[30]:
+# In[37]:
 
 if checkpointLoad:
     checkpointLoadDir = natsort.natsort(checkdirs)[-1]
@@ -1265,7 +1267,147 @@ start = time.clock()
 
 
 
-# In[134]:
+# #while step < 21:
+# while realtime < 1.:
+# 
+#     # solve Stokes and advection systems
+#     solver.solve(nonLinearIterate=True)
+#     dt = advDiff.get_max_dt()
+#     if step == 0:
+#         dt = 0.
+#     advDiff.integrate(dt)
+#     #passiveadvector.integrate(dt)
+#     #for f in interfaces:
+#     #    f.advection(dt)
+#     
+# 
+#     # Increment
+#     realtime += dt
+#     step += 1
+#     timevals.append(realtime)
+#     
+#     ################
+#     #Update temperature field in the air region
+#     #Do this better...
+#     ################
+#     if (step % sticky_air_temp == 0):
+#         for index, coord in enumerate(mesh.data):
+#             if coord[1] >= 1.:
+#                 temperatureField.data[index] = ndp.TSP
+#                 
+#                 
+#     ################
+#     # Calculate the Metrics
+#     ################
+#     if (step % metric_output == 0):
+#         
+#         ###############
+#         #Metrics
+#         ###############
+#         areaintRock = _areaintRock.evaluate()[0] #trivial except when using sticky air
+#         tempintRock = _tempintRock.evaluate()[0]
+#         rmsintRock = _rmsintRock.evaluate()[0]
+#         dwintRock = _dwintRock.evaluate()[0]
+#         vdintRock = _vdintRock.evaluate()[0]
+#         areaintLith = _areaintLith.evaluate()[0]
+#         tempintLith = _tempintLith.evaluate()[0]
+#         rmsintLith = _rmsintLith.evaluate()[0]
+#         dwintLith = _dwintLith.evaluate()[0]
+#         vdintLith = _vdintLith.evaluate()[0]
+#     
+#         #Surface integrals
+#         rmsSurf = _rmsSurf.evaluate()[0]
+#         nuTop = _nuTop.evaluate()[0]
+#         nuBottom = _nuBottom.evaluate()[0]
+#         plateness = _plateness.evaluate()[0]
+#         #extrema
+#         maxVel = _maxMinVel.max_global()
+#         minVel = _maxMinVel.min_global() 
+#         maxSr = _maxMinSr.max_global()
+#         minSr = _maxMinSr.min_global()
+#         maxVxsurf = _maxMinVxSurf.max_global()
+#         minVxsurf = _maxMinVxSurf.min_global()
+#         # output to summary text file
+#         if uw.rank()==0:
+#             f_o.write((16*'%-15s ' + '\n') % (areaintRock, tempintRock, rmsintRock, dwintRock, vdintRock,
+#                                   areaintLith, tempintLith,rmsintLith, dwintLith, vdintLith,
+#                                   rmsSurf, nuTop, nuBottom, plateness, ndp.subzone, realtime))
+# 
+#     ################
+#     #Also repopulate entire swarm periodically
+#     ################
+#     #if step % swarm_repop == 0:
+#     population_control.repopulate()   
+#     ################
+#     #Gldb output
+#     ################ 
+#     if (step % gldbs_output == 0): 
+#         if figures == 'gldb':
+#             #Remember to rebuild any necessary swarm variables
+#             fnamedb = "dbFig" + "_" + str(step) + ".gldb"
+#             fullpath = os.path.join(outputPath + "gldbs/" + fnamedb)
+#             figDb.save_database(fullpath)
+#             
+#             #Temp figure
+#             #fnamedb = "restrictFig" + "_" + str(step) + ".gldb"
+#             #fullpath = os.path.join(outputPath + "gldbs/" + fnamedb)
+#             #figRestrict.save_database(fullpath)
+#         elif figures == 'store':      
+#             fullpath = os.path.join(outputPath + "gldbs/")
+#             store.step = step
+#             #Save figures to store
+#             figVisc.save( fullpath + "Visc" + str(step).zfill(4))
+#             #figMech.save( fullPath + "Mech" + str(step).zfill(4))
+#             figTemp.save( fullpath + "Temp"    + str(step).zfill(4))
+#             figSr.save( fullpath + "Str_rte"    + str(step).zfill(4))
+#             
+#     ################
+#     #Files output
+#     ################ 
+#     if (step % files_output == 0):
+# 
+#         vel_surface = velocityField.evaluate_global(surface_nodes)
+#         norm_surface_sr = normgradV.evaluate_global(surface_nodes)
+#         if uw.rank() == 0:
+#             fnametemp = "velsurface" + "_" + str(step)
+#             fullpath = os.path.join(outputPath + "files/" + fnametemp)
+#             np.save(fullpath, vel_surface)
+#             fnametemp = "norm_surface_sr" + "_" + str(step)
+#             fullpath = os.path.join(outputPath + "files/" + fnametemp)
+#             np.save(fullpath, norm_surface_sr)
+#             
+#     ################
+#     #Update the subduction zone / plate information
+#     ################ 
+#     
+#     comm.barrier()
+#     if (step % files_output == 0):
+#         
+#         if uw.rank() == 0:
+#             fnametemp = "norm_surface_sr" + "_" + str(step) + ".npy"
+#             fullpath = os.path.join(outputPath + "files/" + fnametemp)
+#             ndp.subzone = plate_info(fullpath, MINX, MAXX,  800e3/dp.LS, oldszloc = ndp.subzone)
+#             
+#     
+#     
+#     
+#     ################
+#     #Checkpoint
+#     ################
+#     if step % checkpoint_every == 0:
+#         if uw.rank() == 0:
+#             checkpoint1(step, checkpointPath,f_o, metric_output)           
+#         checkpoint2(step, checkpointPath, gSwarm, f_o, varlist = varlist, varnames = varnames)
+#         #checkpoint3(step,  checkpointPath, interfaces,interfacenames )
+#         f_o = open(os.path.join(outputPath, outputFile), 'a') #is this line supposed to be here?    
+#     
+#     
+#     
+#     
+# f_o.close()
+# print 'step =',step
+
+# In[ ]:
 
 #while step < 21:
 while realtime < 1.:
@@ -1285,59 +1427,8 @@ while realtime < 1.:
     realtime += dt
     step += 1
     timevals.append(realtime)
-    
-    ################
-    #Update temperature field in the air region
-    #Do this better...
-    ################
-    if (step % sticky_air_temp == 0):
-        for index, coord in enumerate(mesh.data):
-            if coord[1] >= 1.:
-                temperatureField.data[index] = ndp.TSP
                 
-                
-    ################
-    # Calculate the Metrics
-    ################
-    if (step % metric_output == 0):
-        
-        ###############
-        #Metrics
-        ###############
-        areaintRock = _areaintRock.evaluate()[0] #trivial except when using sticky air
-        tempintRock = _tempintRock.evaluate()[0]
-        rmsintRock = _rmsintRock.evaluate()[0]
-        dwintRock = _dwintRock.evaluate()[0]
-        vdintRock = _vdintRock.evaluate()[0]
-        areaintLith = _areaintLith.evaluate()[0]
-        tempintLith = _tempintLith.evaluate()[0]
-        rmsintLith = _rmsintLith.evaluate()[0]
-        dwintLith = _dwintLith.evaluate()[0]
-        vdintLith = _vdintLith.evaluate()[0]
-    
-        #Surface integrals
-        rmsSurf = _rmsSurf.evaluate()[0]
-        nuTop = _nuTop.evaluate()[0]
-        nuBottom = _nuBottom.evaluate()[0]
-        plateness = _plateness.evaluate()[0]
-        #extrema
-        maxVel = _maxMinVel.max_global()
-        minVel = _maxMinVel.min_global() 
-        maxSr = _maxMinSr.max_global()
-        minSr = _maxMinSr.min_global()
-        maxVxsurf = _maxMinVxSurf.max_global()
-        minVxsurf = _maxMinVxSurf.min_global()
-        # output to summary text file
-        if uw.rank()==0:
-            f_o.write((16*'%-15s ' + '\n') % (areaintRock, tempintRock, rmsintRock, dwintRock, vdintRock,
-                                  areaintLith, tempintLith,rmsintLith, dwintLith, vdintLith,
-                                  rmsSurf, nuTop, nuBottom, plateness, ndp.subzone, realtime))
-
-    ################
-    #Also repopulate entire swarm periodically
-    ################
-    #if step % swarm_repop == 0:
-    population_control.repopulate()   
+                  
     ################
     #Gldb output
     ################ 
@@ -1361,46 +1452,7 @@ while realtime < 1.:
             figTemp.save( fullpath + "Temp"    + str(step).zfill(4))
             figSr.save( fullpath + "Str_rte"    + str(step).zfill(4))
             
-    ################
-    #Files output
-    ################ 
-    if (step % files_output == 0):
 
-        vel_surface = velocityField.evaluate_global(surface_nodes)
-        norm_surface_sr = normgradV.evaluate_global(surface_nodes)
-        if uw.rank() == 0:
-            fnametemp = "velsurface" + "_" + str(step)
-            fullpath = os.path.join(outputPath + "files/" + fnametemp)
-            np.save(fullpath, vel_surface)
-            fnametemp = "norm_surface_sr" + "_" + str(step)
-            fullpath = os.path.join(outputPath + "files/" + fnametemp)
-            np.save(fullpath, norm_surface_sr)
-            
-    ################
-    #Update the subduction zone / plate information
-    ################ 
-    
-    comm.barrier()
-    if (step % files_output == 0):
-        
-        if uw.rank() == 0:
-            fnametemp = "norm_surface_sr" + "_" + str(step) + ".npy"
-            fullpath = os.path.join(outputPath + "files/" + fnametemp)
-            ndp.subzone = plate_info(fullpath, MINX, MAXX,  800e3/dp.LS, oldszloc = ndp.subzone)
-            
-    
-    
-    
-    ################
-    #Checkpoint
-    ################
-    if step % checkpoint_every == 0:
-        if uw.rank() == 0:
-            checkpoint1(step, checkpointPath,f_o, metric_output)           
-        checkpoint2(step, checkpointPath, gSwarm, f_o, varlist = varlist, varnames = varnames)
-        #checkpoint3(step,  checkpointPath, interfaces,interfacenames )
-        f_o = open(os.path.join(outputPath, outputFile), 'a') #is this line supposed to be here?    
-    
     
     
     
