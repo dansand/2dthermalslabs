@@ -261,12 +261,12 @@ dp = edict({'LS':2900*1e3, #Scaling Length scale
             #Rheology - cutoff values
             'eta_min':1e17, 
             'eta_max':1e25, #viscosity max in the mantle material
-            'eta_min_crust':0.3*1e20, #viscosity min in the weak-crust material
-            'eta_max_crust':0.3*1e20, #viscosity max in the weak-crust material
-            'eta_min_interface':0.3*1e20, #viscosity min in the subduction interface material
-            'eta_max_interface':0.3*1e20, #viscosity max in the subduction interface material
-            'eta_min_fault':0.3*1e20, #viscosity min in the subduction interface material
-            'eta_max_fault':0.3*1e20, #viscosity max in the subduction interface material
+            'eta_min_crust':2e19, #viscosity min in the weak-crust material
+            'eta_max_crust':2e19, #viscosity max in the weak-crust material
+            'eta_min_interface':2e19, #viscosity min in the subduction interface material
+            'eta_max_interface':2e19, #viscosity max in the subduction interface material
+            'eta_min_fault':2e19, #viscosity min in the subduction interface material
+            'eta_max_fault':2e19, #viscosity max in the subduction interface material
             #Length scales
             'MANTLETOCRUST':8.*1e3, #Crust depth
             'HARZBURGDEPTH':40e3,
@@ -542,10 +542,10 @@ PIC_integration=True
 ppc = 25
 
 #Metric output stuff
-figures =  'gldb' #glucifer Store won't work on all machines, if not, set to 'gldb' 
+figures =  'store' #glucifer Store won't work on all machines, if not, set to 'gldb' 
 swarm_repop, swarm_update = 10, 10
-gldbs_output = 200
-checkpoint_every, files_output = 200, 50
+gldbs_output = 100
+checkpoint_every, files_output = 200, 200
 metric_output = 10
 sticky_air_temp = 1e6
 
