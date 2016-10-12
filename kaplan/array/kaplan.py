@@ -16,7 +16,7 @@
 # 
 # Kaplan, Michael. Numerical Geodynamics of Solid Planetary Deformation. Diss. University of Southern California, 2015.
 
-# In[1]:
+# In[5]:
 
 import numpy as np
 import underworld as uw
@@ -47,7 +47,7 @@ rank = comm.Get_rank()
 # Model name and directories
 # -----
 
-# In[2]:
+# In[6]:
 
 ############
 #Model letter and number
@@ -75,12 +75,11 @@ else:
                 Model  = farg
 
 
-# In[3]:
+# In[7]:
 
 ###########
 #Standard output directory setup
 ###########
-
 
 outputPath = "results" + "/" +  str(Model) + "/" + str(ModNum) + "/" 
 imagePath = outputPath + 'images/'
@@ -106,7 +105,7 @@ if uw.rank()==0:
 comm.Barrier() #Barrier here so no procs run the check in the next cell too early
 
 
-# In[4]:
+# In[8]:
 
 ###########
 #Check if starting from checkpoint
@@ -123,7 +122,7 @@ for dirpath, dirnames, files in os.walk(checkpointPath):
         checkpointLoad = False
 
 
-# In[5]:
+# In[9]:
 
 # setup summary output file (name above)
 if checkpointLoad:
@@ -153,7 +152,7 @@ else:
 
 # **Use pint to setup any unit conversions we'll need**
 
-# In[6]:
+# In[10]:
 
 u = pint.UnitRegistry()
 cmpery = 1.*u.cm/u.year
@@ -163,7 +162,7 @@ spery = year.to(u.sec)
 cmpery.to(mpermy)
 
 
-# In[7]:
+# In[11]:
 
 box_half_width =4000e3
 age_at_trench = 100e6
@@ -179,7 +178,7 @@ print(cmperyear, mpersec )
 # * If params are passed in as flags to the script, they overwrite 
 # 
 
-# In[8]:
+# In[12]:
 
 ###########
 #Parameter / settings dictionaries get saved&loaded using pickle
@@ -193,7 +192,7 @@ md = edict({}) #model paramters, flags etc
 
 
 
-# In[9]:
+# In[13]:
 
 dict_list = [dp, sf, ndp, md]
 dict_names = ['dp.pkl', 'sf.pkl', 'ndp.pkl', 'md.pkl']
@@ -230,7 +229,7 @@ def load_pickles():
     return dp, ndp, sf, md
 
 
-# In[10]:
+# In[14]:
 
 ###########
 #Store the physical parameters, scale factors and dimensionless pramters in easyDicts
@@ -238,11 +237,11 @@ def load_pickles():
 ###########
 
 
-dp = edict({'LS':670*1e3, #Scaling Length scale
+dp = edict({'LS':2900*1e3, #Scaling Length scale
             'depth':670*1e3, #Depth of domain
             'rho':3300.,  #reference density
             'g':9.8, #surface gravity
-            'eta0':1e20, #reference viscosity
+            'eta0':2e20, #reference viscosity
             'k':1e-6, #thermal diffusivity
             'a':3e-5, #surface thermal expansivity
             'R':8.314, #gas constant
@@ -262,14 +261,14 @@ dp = edict({'LS':670*1e3, #Scaling Length scale
             #Rheology - cutoff values
             'eta_min':1e17, 
             'eta_max':1e25, #viscosity max in the mantle material
-            'eta_min_crust':1e20, #viscosity min in the weak-crust material
-            'eta_max_crust':1e20, #viscosity max in the weak-crust material
-            'eta_min_interface':1e20, #viscosity min in the subduction interface material
-            'eta_max_interface':1e20, #viscosity max in the subduction interface material
-            'eta_min_fault':1e20, #viscosity min in the subduction interface material
-            'eta_max_fault':1e20, #viscosity max in the subduction interface material
+            'eta_min_crust':2e19, #viscosity min in the weak-crust material
+            'eta_max_crust':2e19, #viscosity max in the weak-crust material
+            'eta_min_interface':2e19, #viscosity min in the subduction interface material
+            'eta_max_interface':2e19, #viscosity max in the subduction interface material
+            'eta_min_fault':2e19, #viscosity min in the subduction interface material
+            'eta_max_fault':2e19, #viscosity max in the subduction interface material
             #Length scales
-            'MANTLETOCRUST':10.*1e3, #Crust depth
+            'MANTLETOCRUST':8.*1e3, #Crust depth
             'HARZBURGDEPTH':40e3,
             'CRUSTTOMANTLE':800.*1e3,
             'LITHTOMANTLE':(900.*1e3),
@@ -281,9 +280,9 @@ dp = edict({'LS':670*1e3, #Scaling Length scale
             'AGETRACKDEPTH':100e3, #above this depth we track the age of the lithsphere (below age is assumed zero)
             #Slab and plate parameters
             'roc':250e3,     #radius of curvature of slab
-            'subzone':0.0,   #X position of subduction zone...km
-            'lRidge':-0.5*(670e3*4),  #For depth = 670 km, aspect ratio of 4, this puts the ridges at MINX, MAXX
-            'rRidge':0.5*(670e3*4),
+            'subzone':0.0,   #X position of subduction zone..
+            'lRidge':-0.5*(670e3*6),  #For depth = 670 km, aspect ratio of 6, this puts the ridges at MINX, MAXX
+            'rRidge':0.5*(670e3*6),
             'maxDepth':250e3,
             'theta':70., #Angle to truncate the slab (can also control with a maxDepth param)
             'slabmaxAge':60e6, #age of subduction plate at trench
@@ -304,7 +303,7 @@ dp.deltaT = dp.TP - dp.TS
 
 
 
-# In[11]:
+# In[15]:
 
 #Modelling and Physics switches
 
@@ -313,14 +312,15 @@ md = edict({'refineMesh':True,
             'subductionFault':False,
             'symmetricIcs':False,
             'velBcs':False,
-            'aspectRatio':4,
+            'aspectRatio':6,
             'compBuoyancy':False, #use compositional & phase buoyancy, or simply thermal
             'periodicBcs':False,
-            'RES':64
+            'RES':64,
+            'elementType':"Q1/dQ0"
             })
 
 
-# In[12]:
+# In[16]:
 
 ###########
 #If starting from a checkpoint load params from file
@@ -330,7 +330,7 @@ if checkpointLoad:
     dp, ndp, sf, md = load_pickles()  #remember to add any extra dictionaries
 
 
-# In[13]:
+# In[17]:
 
 ###########
 #If command line args are given, overwrite
@@ -389,12 +389,12 @@ for farg in sys.argv[1:]:
 comm.barrier()
 
 
-# In[14]:
+# In[19]:
 
 #print('refine Mesh is: ', md.refineMesh)
 
 
-# In[15]:
+# In[20]:
 
 #Only build these guys first time around, otherwise the read from checkpoints
 #Important because some of these params (like SZ location) may change during model evolution
@@ -449,9 +449,9 @@ if not checkpointLoad:
                  'AGETRACKDEPTH':dp.AGETRACKDEPTH/dp.LS,
                  #Slab and plate parameters
                  'roc':dp.roc/dp.LS,     #radius of curvature of slab
-                 'subzone':dp.subzone/dp.LS,   #X position of subduction zone...km
-                 'lRidge':dp.lRidge/dp.LS,  #For depth = 670 km, aspect ratio of 4, this puts the ridges at MINX, MAXX
-                 'rRidge':dp.rRidge/dp.LS,
+                 'subzone':dp.subzone/dp.LS,   #X position of subduction zone..
+                 'lRidge':np.round(dp.lRidge/dp.LS, 1),  #For depth = 670 km, aspect ratio of 4, this puts the ridges at MINX, MAXX
+                 'rRidge':np.round(dp.rRidge/dp.LS),
                  'maxDepth':dp.maxDepth/dp.LS,    
                  #misc
                  'Steta_n':dp.Steta_n/dp.eta0, #stick air viscosity, normal
@@ -469,54 +469,55 @@ if not checkpointLoad:
     ndp.CVR = dp.CVR*sf.vel #characteristic velocity
 
 
-# In[16]:
+# In[23]:
 
-ndp.Edf
+ndp.eta_min_crust
 
 
-# In[17]:
+# In[24]:
 
 ndp.plate_vel, sf.vel, (cmpery.to(u.m/u.second)).magnitude
 
 
 # **Model setup parameters**
 
-# In[18]:
+# In[51]:
 
 ###########
 #Model setup parameters
 ###########
 
-#Domain and Mesh paramters
 dim = 2          # number of spatial dimensions
 
-tot_depth = np.round(dp.depth/dp.LS, 3)
 
-#These options allow us to explore the choice of different length scalings
+#Domain and Mesh paramters
+Xres = int(md.RES*8)   #more than twice the resolution in X-dim, which will be 'corrected' by the refinement we'll use in Y
 
-if tot_depth == 1.: #Depth equal to length scale
-    MINY = 0.
+
+MINY = 1. - (dp.depth/dp.LS)
+if md.stickyAir:
+    Yres = int(md.RES)
+    MAXY = 1. + dp.StALS/dp.LS #150km
+    
+else:
+    Yres = int(md.RES)
     MAXY = 1.
-elif tot_depth > 1.: #Depth larger than to length scale
-    MINY = 0.
-    MAXY = tot_depth
-    
-elif tot_depth < 1.: #Depth smaller to length scale
-    MINY = np.round(1. - tot_depth, 2)
-    MAXY = 1.
-    
-MINX = np.round(-1.*tot_depth*md.aspectRatio/2., 2)  #Aspect ratio is fixed, x-domain shifts according to system depth and length scale
 
-MAXX = np.round(1.*tot_depth*md.aspectRatio/2., 2)
 
-if MINX == 0.:
-    squareModel = True
-else: 
-    squareModel = False
+periodic = [False, False]
+if md.periodicBcs:
+    periodic = [True, False]
+    
+    
+hw = np.round(0.5*(dp.depth/dp.LS)*md.aspectRatio, 1)
+MINX = -1.*hw
+
+MAXX = hw
+MAXY = 1.
     
     
 
-Xres = int(md.RES*md.aspectRatio)
+Xres = int(md.RES*md.aspectRatio) #careful
 #if MINY == 0.5:
 #    Xres = int(2.*RES*md.aspectRatio)
     
@@ -533,8 +534,7 @@ periodic = [False, False]
 if md.periodicBcs:
     periodic = [True, False]
     
-elementType = "Q1/dQ0"
-#elementType ="Q2/DPC1"
+#elementType = "Q1/dQ0"
 
 
 #System/Solver stuff
@@ -542,20 +542,25 @@ PIC_integration=True
 ppc = 25
 
 #Metric output stuff
-figures =  'gldb' #glucifer Store won't work on all machines, if not, set to 'gldb' 
+figures =  'store' #glucifer Store won't work on all machines, if not, set to 'gldb' 
 swarm_repop, swarm_update = 10, 10
-gldbs_output = 200
-checkpoint_every, files_output = 200, 50
+gldbs_output = 100
+checkpoint_every, files_output = 200, 200
 metric_output = 10
 sticky_air_temp = 1e6
+
+
+# In[ ]:
+
+
 
 
 # Create mesh and finite element variables
 # ------
 
-# In[19]:
+# In[52]:
 
-mesh = uw.mesh.FeMesh_Cartesian( elementType = (elementType),
+mesh = uw.mesh.FeMesh_Cartesian( elementType = (md.elementType),
                                  elementRes  = (Xres, Yres), 
                                  minCoord    = (MINX, MINY), 
                                  maxCoord    = (MAXX, MAXY), periodic=periodic)
@@ -566,83 +571,73 @@ temperatureField    = uw.mesh.MeshVariable( mesh=mesh,         nodeDofCount=1 )
 temperatureDotField = uw.mesh.MeshVariable( mesh=mesh,         nodeDofCount=1 )
 
 
-# In[20]:
+# In[53]:
+
+coordinate = fn.input()
+depthFn = MAXY - coordinate[1] #a function providing the depth
+
+
+xFn = coordinate[0]  #a function providing the x-coordinate
+yFn = coordinate[1]
+
+
+# In[54]:
 
 mesh.reset()
 
+jWalls = mesh.specialSets["MinJ_VertexSet"] + mesh.specialSets["MaxJ_VertexSet"]
+yFn = coordinate[1]
+yField = uw.mesh.MeshVariable( mesh=mesh, nodeDofCount=1 )
+yField.data[:] = 0.
+yBC = uw.conditions.DirichletCondition( variable=yField, indexSetsPerDof=(jWalls,) )
 
-# In[21]:
-
-###########
-#Mesh refinement
-###########
-
-#X-Axis
-
-if md.refineMesh:
-    mesh.reset()
-    axis = 0
-    origcoords = np.linspace(mesh.minCoord[axis], mesh.maxCoord[axis], mesh.elementRes[axis] + 1)
-    edge_rest_lengths = np.diff(origcoords)
-
-    deform_lengths = edge_rest_lengths.copy()
-    min_point =  (abs(mesh.maxCoord[axis]) - abs(mesh.minCoord[axis]))/2.
-    el_reduction = 0.5001
-    dx = mesh.maxCoord[axis] - min_point
-
-    deform_lengths = deform_lengths -                                     ((1.-el_reduction) *deform_lengths[0]) +                                     abs((origcoords[1:] - min_point))*((0.5*deform_lengths[0])/dx)
-
-    #print(edge_rest_lengths.shape, deform_lengths.shape)
-
-    spmesh.deform_1d(deform_lengths, mesh,axis = 'x',norm = 'Min', constraints = [])
+# set bottom wall temperature bc
+for index in mesh.specialSets["MinJ_VertexSet"]:
+    yField.data[index] = mesh.minCoord[1]
+# set top wall temperature bc
+for index in mesh.specialSets["MaxJ_VertexSet"]:
+    yField.data[index] = mesh.maxCoord[1]
+    
+    
+    
+s = 2.5
+intensityFac = 1.5
+intensityFn = (((yFn - MINY)/(MAXY-MINY))**s)
+intensityFn *= intensityFac
+intensityFn += 1.
 
 
-# In[22]:
+yLaplaceEquation = uw.systems.SteadyStateHeat(temperatureField=yField, fn_diffusivity=intensityFn, conditions=[yBC,])
 
-axis = 1
-orgs = np.linspace(mesh.minCoord[axis], mesh.maxCoord[axis], mesh.elementRes[axis] + 1)
-
-value_to_constrain = MAXY #nodes will remain along this line
-
-
-yconst = [(spmesh.find_closest(orgs, value_to_constrain), np.array([value_to_constrain,0]))]
+# get the default heat equation solver
+yLaplaceSolver = uw.systems.Solver(yLaplaceEquation)
+# solve
+yLaplaceSolver.solve()
 
 
-# In[23]:
+#Get the array of Y positions - copy may be necessary, not sure. 
+newYpos = yField.data.copy() 
 
-###########
-#Mesh refinement
-###########
-
-if md.refineMesh:
-    #Y-Axis
-    axis = 1
-    origcoords = np.linspace(mesh.minCoord[axis], mesh.maxCoord[axis], mesh.elementRes[axis] + 1)
-    edge_rest_lengths = np.diff(origcoords)
-
-    deform_lengths = edge_rest_lengths.copy()
-    min_point =  (mesh.maxCoord[axis])
-    el_reduction = 0.5001
-    dx = mesh.maxCoord[axis]
-
-    deform_lengths = deform_lengths -                                     ((1.-el_reduction)*deform_lengths[0]) +                                     abs((origcoords[1:] - min_point))*((0.5*deform_lengths[0])/dx)
-
-    #print(edge_rest_lengths.shape, deform_lengths.shape)
-
-    spmesh.deform_1d(deform_lengths, mesh,axis = 'y',norm = 'Min', constraints = yconst)
+uw.barrier()
+with mesh.deform_mesh():
+     mesh.data[:,1] = newYpos[:,0]
 
 
-# In[24]:
+# In[ ]:
+
+
+
+
+# In[55]:
 
 #fig= glucifer.Figure()
-
 #fig.append(glucifer.objects.Mesh(mesh))
-
+#fig.append( glucifer.objects.Surface(mesh,intensityFn, discrete=True))
 #fig.show()
 #fig.save_database('test.gldb')
 
 
-# In[25]:
+# In[56]:
 
 #THis is a hack for adding a sticky air domain, we refine MAXY and things like the temperature stencil work from Y = 1. 
 
@@ -654,17 +649,12 @@ if md.stickyAir:
 # -------
 # 
 
-# In[26]:
-
-coordinate = fn.input()
-depthFn = MAXY - coordinate[1] #a function providing the depth
+# In[ ]:
 
 
-xFn = coordinate[0]  #a function providing the x-coordinate
-yFn = coordinate[1]
 
 
-# In[27]:
+# In[57]:
 
 
 def age_fn(xFn, sz = 0.0, lMOR=MINX, rMOR=MAXX, opFac=1., conjugate_plate = False):
@@ -699,12 +689,12 @@ def age_fn(xFn, sz = 0.0, lMOR=MINX, rMOR=MAXX, opFac=1., conjugate_plate = Fals
     return ageFn
 
 
-# In[28]:
+# In[58]:
 
 ndp.TPP
 
 
-# In[29]:
+# In[59]:
 
 ###########
 #Thermal initial condition - half-space cooling
@@ -733,12 +723,12 @@ if not md.symmetricIcs:
 
 
 
-# In[30]:
+# In[60]:
 
 #w0*dp.LS
 
 
-# In[31]:
+# In[61]:
 
 #Now build the perturbation part
 def inCircleFnGenerator(centre, radius):
@@ -778,14 +768,14 @@ if not md.symmetricIcs:
                 temperatureField.data[index] = slabFn.evaluate(mesh)[index]
 
 
-# In[32]:
+# In[62]:
 
 #sdFn = ((RocM - fn.math.sqrt((coordinate[0] - Org[0])**2. + (coordinate[1] - Org[1])**2.)))
 #slabFn = ndp.TPP*fn.math.erf((sdFn*dp.LS)/(2.*math.sqrt(dp.k*ageAtTrenchSeconds))) + ndp.TSP
 #sdFn, slabFn
 
 
-# In[33]:
+# In[63]:
 
 #Make sure material in sticky air region is at the surface temperature.
 for index, coord in enumerate(mesh.data):
@@ -793,7 +783,7 @@ for index, coord in enumerate(mesh.data):
                 temperatureField.data[index] = ndp.TSP
 
 
-# In[34]:
+# In[64]:
 
 #fn.math.erf((sdFn*dp.LS)/(2.*fn.math.sqrt(dp.k*(slabmaxAge*(3600*24*365))))) 
 #CRUSTVISCUTOFF, MANTLETOCRUST*3
@@ -823,16 +813,15 @@ for index, coord in enumerate(mesh.data):
 # fig, ax = matplot_field(temperatureField, dp)
 # fig.savefig('test.png')       
 
-# In[35]:
+# In[65]:
 
 temperatureField.data.min(), temperatureField.data.max()
 
 
-# In[36]:
-
+# In[66]:
 
 #fig= glucifer.Figure(quality=3)
-#fig.append( glucifer.objects.Surface(mesh,depthFn < 180e3/dp.LS ))
+#fig.append( glucifer.objects.Surface(mesh,temperatureField ))
 #fig.append( glucifer.objects.Points(gSwarm,temperatureField ))
 #fig.append( glucifer.objects.Mesh(mesh))
 #fig.show()
@@ -959,10 +948,8 @@ gSwarm = uw.swarm.Swarm(mesh=mesh, particleEscape=True)
 
 #create swarm variables
 yieldingCheck = gSwarm.add_variable( dataType="int", count=1 )
-#tracerVariable = gSwarm.add_variable( dataType="int", count=1)
 materialVariable = gSwarm.add_variable( dataType="int", count=1 )
 ageVariable = gSwarm.add_variable( dataType="double", count=1 )
-#testVariable = gSwarm.add_variable( dataType="float", count=1 )
 
 
 #these lists  are part of the checkpointing implementation
@@ -2246,10 +2233,10 @@ def checkpoint3(step,  checkpointPath, interfaces,interfacenames ):
 
 
 
-# In[115]:
+# In[1]:
 
 ##############
-#These functions handle checkpointing
+#Simple function to return info about location of plate boundaries
 ##############
 
 def getnearpos(array,value):
@@ -2276,7 +2263,7 @@ def plate_info(srfilename, minx, maxx,  searchdx, oldszloc = 0.0):
     red_xs, red_sr = xs[lx:rx], srx[lx:rx]
     #return the minima
     newszLoc = red_xs[np.argmin(red_sr)]
-    return newszLoc 
+    return newszLoc
 
 
 # In[116]:
@@ -2323,8 +2310,9 @@ while realtime < 0.002:
         for index, coord in enumerate(mesh.data):
             if coord[1] >= 1.:
                 temperatureField.data[index] = ndp.TSP
-
-    # Calculate the Metrics, only on 1 of the processors:
+                
+    ################
+    # Calculate the Metrics
     ################
     if (step % metric_output == 0):
         ###############
@@ -2532,6 +2520,7 @@ while realtime < 0.002:
         else:
             introPoint = ndp.rRidge - midthickness #
         slab_seg.add_points([introPoint],[MAXY - midthickness])
+        
     ################
     #Checkpoint
     ################
