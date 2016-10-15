@@ -1267,146 +1267,6 @@ start = time.clock()
 
 
 
-# #while step < 21:
-# while realtime < 1.:
-# 
-#     # solve Stokes and advection systems
-#     solver.solve(nonLinearIterate=True)
-#     dt = advDiff.get_max_dt()
-#     if step == 0:
-#         dt = 0.
-#     advDiff.integrate(dt)
-#     #passiveadvector.integrate(dt)
-#     #for f in interfaces:
-#     #    f.advection(dt)
-#     
-# 
-#     # Increment
-#     realtime += dt
-#     step += 1
-#     timevals.append(realtime)
-#     
-#     ################
-#     #Update temperature field in the air region
-#     #Do this better...
-#     ################
-#     if (step % sticky_air_temp == 0):
-#         for index, coord in enumerate(mesh.data):
-#             if coord[1] >= 1.:
-#                 temperatureField.data[index] = ndp.TSP
-#                 
-#                 
-#     ################
-#     # Calculate the Metrics
-#     ################
-#     if (step % metric_output == 0):
-#         
-#         ###############
-#         #Metrics
-#         ###############
-#         areaintRock = _areaintRock.evaluate()[0] #trivial except when using sticky air
-#         tempintRock = _tempintRock.evaluate()[0]
-#         rmsintRock = _rmsintRock.evaluate()[0]
-#         dwintRock = _dwintRock.evaluate()[0]
-#         vdintRock = _vdintRock.evaluate()[0]
-#         areaintLith = _areaintLith.evaluate()[0]
-#         tempintLith = _tempintLith.evaluate()[0]
-#         rmsintLith = _rmsintLith.evaluate()[0]
-#         dwintLith = _dwintLith.evaluate()[0]
-#         vdintLith = _vdintLith.evaluate()[0]
-#     
-#         #Surface integrals
-#         rmsSurf = _rmsSurf.evaluate()[0]
-#         nuTop = _nuTop.evaluate()[0]
-#         nuBottom = _nuBottom.evaluate()[0]
-#         plateness = _plateness.evaluate()[0]
-#         #extrema
-#         maxVel = _maxMinVel.max_global()
-#         minVel = _maxMinVel.min_global() 
-#         maxSr = _maxMinSr.max_global()
-#         minSr = _maxMinSr.min_global()
-#         maxVxsurf = _maxMinVxSurf.max_global()
-#         minVxsurf = _maxMinVxSurf.min_global()
-#         # output to summary text file
-#         if uw.rank()==0:
-#             f_o.write((16*'%-15s ' + '\n') % (areaintRock, tempintRock, rmsintRock, dwintRock, vdintRock,
-#                                   areaintLith, tempintLith,rmsintLith, dwintLith, vdintLith,
-#                                   rmsSurf, nuTop, nuBottom, plateness, ndp.subzone, realtime))
-# 
-#     ################
-#     #Also repopulate entire swarm periodically
-#     ################
-#     #if step % swarm_repop == 0:
-#     population_control.repopulate()   
-#     ################
-#     #Gldb output
-#     ################ 
-#     if (step % gldbs_output == 0): 
-#         if figures == 'gldb':
-#             #Remember to rebuild any necessary swarm variables
-#             fnamedb = "dbFig" + "_" + str(step) + ".gldb"
-#             fullpath = os.path.join(outputPath + "gldbs/" + fnamedb)
-#             figDb.save_database(fullpath)
-#             
-#             #Temp figure
-#             #fnamedb = "restrictFig" + "_" + str(step) + ".gldb"
-#             #fullpath = os.path.join(outputPath + "gldbs/" + fnamedb)
-#             #figRestrict.save_database(fullpath)
-#         elif figures == 'store':      
-#             fullpath = os.path.join(outputPath + "gldbs/")
-#             store.step = step
-#             #Save figures to store
-#             figVisc.save( fullpath + "Visc" + str(step).zfill(4))
-#             #figMech.save( fullPath + "Mech" + str(step).zfill(4))
-#             figTemp.save( fullpath + "Temp"    + str(step).zfill(4))
-#             figSr.save( fullpath + "Str_rte"    + str(step).zfill(4))
-#             
-#     ################
-#     #Files output
-#     ################ 
-#     if (step % files_output == 0):
-# 
-#         vel_surface = velocityField.evaluate_global(surface_nodes)
-#         norm_surface_sr = normgradV.evaluate_global(surface_nodes)
-#         if uw.rank() == 0:
-#             fnametemp = "velsurface" + "_" + str(step)
-#             fullpath = os.path.join(outputPath + "files/" + fnametemp)
-#             np.save(fullpath, vel_surface)
-#             fnametemp = "norm_surface_sr" + "_" + str(step)
-#             fullpath = os.path.join(outputPath + "files/" + fnametemp)
-#             np.save(fullpath, norm_surface_sr)
-#             
-#     ################
-#     #Update the subduction zone / plate information
-#     ################ 
-#     
-#     comm.barrier()
-#     if (step % files_output == 0):
-#         
-#         if uw.rank() == 0:
-#             fnametemp = "norm_surface_sr" + "_" + str(step) + ".npy"
-#             fullpath = os.path.join(outputPath + "files/" + fnametemp)
-#             ndp.subzone = plate_info(fullpath, MINX, MAXX,  800e3/dp.LS, oldszloc = ndp.subzone)
-#             
-#     
-#     
-#     
-#     ################
-#     #Checkpoint
-#     ################
-#     if step % checkpoint_every == 0:
-#         if uw.rank() == 0:
-#             checkpoint1(step, checkpointPath,f_o, metric_output)           
-#         checkpoint2(step, checkpointPath, gSwarm, f_o, varlist = varlist, varnames = varnames)
-#         #checkpoint3(step,  checkpointPath, interfaces,interfacenames )
-#         f_o = open(os.path.join(outputPath, outputFile), 'a') #is this line supposed to be here?    
-#     
-#     
-#     
-#     
-# f_o.close()
-# print 'step =',step
-
 # In[ ]:
 
 #while step < 21:
@@ -1427,8 +1287,59 @@ while realtime < 1.:
     realtime += dt
     step += 1
     timevals.append(realtime)
+    
+    ################
+    #Update temperature field in the air region
+    #Do this better...
+    ################
+    if (step % sticky_air_temp == 0):
+        for index, coord in enumerate(mesh.data):
+            if coord[1] >= 1.:
+                temperatureField.data[index] = ndp.TSP
                 
-                  
+                
+    ################
+    # Calculate the Metrics
+    ################
+    if (step % metric_output == 0):
+        
+        ###############
+        #Metrics
+        ###############
+        areaintRock = _areaintRock.evaluate()[0] #trivial except when using sticky air
+        tempintRock = _tempintRock.evaluate()[0]
+        rmsintRock = _rmsintRock.evaluate()[0]
+        dwintRock = _dwintRock.evaluate()[0]
+        vdintRock = _vdintRock.evaluate()[0]
+        areaintLith = _areaintLith.evaluate()[0]
+        tempintLith = _tempintLith.evaluate()[0]
+        rmsintLith = _rmsintLith.evaluate()[0]
+        dwintLith = _dwintLith.evaluate()[0]
+        vdintLith = _vdintLith.evaluate()[0]
+    
+        #Surface integrals
+        rmsSurf = _rmsSurf.evaluate()[0]
+        nuTop = _nuTop.evaluate()[0]
+        nuBottom = _nuBottom.evaluate()[0]
+        plateness = _plateness.evaluate()[0]
+        #extrema
+        maxVel = _maxMinVel.max_global()
+        minVel = _maxMinVel.min_global() 
+        maxSr = _maxMinSr.max_global()
+        minSr = _maxMinSr.min_global()
+        maxVxsurf = _maxMinVxSurf.max_global()
+        minVxsurf = _maxMinVxSurf.min_global()
+        # output to summary text file
+        if uw.rank()==0:
+            f_o.write((16*'%-15s ' + '\n') % (areaintRock, tempintRock, rmsintRock, dwintRock, vdintRock,
+                                  areaintLith, tempintLith,rmsintLith, dwintLith, vdintLith,
+                                  rmsSurf, nuTop, nuBottom, plateness, ndp.subzone, realtime))
+
+    ################
+    #Also repopulate entire swarm periodically
+    ################
+    #if step % swarm_repop == 0:
+    population_control.repopulate()   
     ################
     #Gldb output
     ################ 
@@ -1452,13 +1363,102 @@ while realtime < 1.:
             figTemp.save( fullpath + "Temp"    + str(step).zfill(4))
             figSr.save( fullpath + "Str_rte"    + str(step).zfill(4))
             
+    ################
+    #Files output
+    ################ 
+    if (step % files_output == 0):
 
+        vel_surface = velocityField.evaluate_global(surface_nodes)
+        norm_surface_sr = normgradV.evaluate_global(surface_nodes)
+        if uw.rank() == 0:
+            fnametemp = "velsurface" + "_" + str(step)
+            fullpath = os.path.join(outputPath + "files/" + fnametemp)
+            np.save(fullpath, vel_surface)
+            fnametemp = "norm_surface_sr" + "_" + str(step)
+            fullpath = os.path.join(outputPath + "files/" + fnametemp)
+            np.save(fullpath, norm_surface_sr)
+            
+    ################
+    #Update the subduction zone / plate information
+    ################ 
+    
+    comm.barrier()
+    if (step % files_output == 0):
+        
+        if uw.rank() == 0:
+            fnametemp = "norm_surface_sr" + "_" + str(step) + ".npy"
+            fullpath = os.path.join(outputPath + "files/" + fnametemp)
+            ndp.subzone = plate_info(fullpath, MINX, MAXX,  800e3/dp.LS, oldszloc = ndp.subzone)
+            
+    
+    
+    
+    ################
+    #Checkpoint
+    ################
+    if step % checkpoint_every == 0:
+        if uw.rank() == 0:
+            checkpoint1(step, checkpointPath,f_o, metric_output)           
+        checkpoint2(step, checkpointPath, gSwarm, f_o, varlist = varlist, varnames = varnames)
+        #checkpoint3(step,  checkpointPath, interfaces,interfacenames )
+        f_o = open(os.path.join(outputPath, outputFile), 'a') #is this line supposed to be here?    
+    
     
     
     
 f_o.close()
 print 'step =',step
 
+
+# #while step < 21:
+# while realtime < 1.:
+# 
+#     # solve Stokes and advection systems
+#     solver.solve(nonLinearIterate=True)
+#     dt = advDiff.get_max_dt()
+#     if step == 0:
+#         dt = 0.
+#     advDiff.integrate(dt)
+#     #passiveadvector.integrate(dt)
+#     #for f in interfaces:
+#     #    f.advection(dt)
+#     
+# 
+#     # Increment
+#     realtime += dt
+#     step += 1
+#     timevals.append(realtime)
+#                 
+#                   
+#     ################
+#     #Gldb output
+#     ################ 
+#     if (step % gldbs_output == 0): 
+#         if figures == 'gldb':
+#             #Remember to rebuild any necessary swarm variables
+#             fnamedb = "dbFig" + "_" + str(step) + ".gldb"
+#             fullpath = os.path.join(outputPath + "gldbs/" + fnamedb)
+#             figDb.save_database(fullpath)
+#             
+#             #Temp figure
+#             #fnamedb = "restrictFig" + "_" + str(step) + ".gldb"
+#             #fullpath = os.path.join(outputPath + "gldbs/" + fnamedb)
+#             #figRestrict.save_database(fullpath)
+#         elif figures == 'store':      
+#             fullpath = os.path.join(outputPath + "gldbs/")
+#             store.step = step
+#             #Save figures to store
+#             figVisc.save( fullpath + "Visc" + str(step).zfill(4))
+#             #figMech.save( fullPath + "Mech" + str(step).zfill(4))
+#             figTemp.save( fullpath + "Temp"    + str(step).zfill(4))
+#             figSr.save( fullpath + "Str_rte"    + str(step).zfill(4))
+#             
+# 
+#     
+#     
+#     
+# f_o.close()
+# print 'step =',step
 
 # In[47]:
 
