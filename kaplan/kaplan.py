@@ -16,7 +16,7 @@
 # 
 # Kaplan, Michael. Numerical Geodynamics of Solid Planetary Deformation. Diss. University of Southern California, 2015.
 
-# In[5]:
+# In[1]:
 
 import numpy as np
 import underworld as uw
@@ -47,7 +47,7 @@ rank = comm.Get_rank()
 # Model name and directories
 # -----
 
-# In[6]:
+# In[2]:
 
 ############
 #Model letter and number
@@ -75,7 +75,7 @@ else:
                 Model  = farg
 
 
-# In[7]:
+# In[3]:
 
 ###########
 #Standard output directory setup
@@ -105,7 +105,7 @@ if uw.rank()==0:
 comm.Barrier() #Barrier here so no procs run the check in the next cell too early
 
 
-# In[8]:
+# In[4]:
 
 ###########
 #Check if starting from checkpoint
@@ -122,7 +122,7 @@ for dirpath, dirnames, files in os.walk(checkpointPath):
         checkpointLoad = False
 
 
-# In[9]:
+# In[5]:
 
 # setup summary output file (name above)
 if checkpointLoad:
@@ -152,7 +152,7 @@ else:
 
 # **Use pint to setup any unit conversions we'll need**
 
-# In[10]:
+# In[6]:
 
 u = pint.UnitRegistry()
 cmpery = 1.*u.cm/u.year
@@ -162,7 +162,7 @@ spery = year.to(u.sec)
 cmpery.to(mpermy)
 
 
-# In[11]:
+# In[7]:
 
 box_half_width =4000e3
 age_at_trench = 100e6
@@ -178,7 +178,7 @@ print(cmperyear, mpersec )
 # * If params are passed in as flags to the script, they overwrite 
 # 
 
-# In[12]:
+# In[8]:
 
 ###########
 #Parameter / settings dictionaries get saved&loaded using pickle
@@ -192,7 +192,7 @@ md = edict({}) #model paramters, flags etc
 
 
 
-# In[13]:
+# In[9]:
 
 dict_list = [dp, sf, ndp, md]
 dict_names = ['dp.pkl', 'sf.pkl', 'ndp.pkl', 'md.pkl']
@@ -229,7 +229,7 @@ def load_pickles():
     return dp, ndp, sf, md
 
 
-# In[14]:
+# In[10]:
 
 ###########
 #Store the physical parameters, scale factors and dimensionless pramters in easyDicts
@@ -241,7 +241,7 @@ dp = edict({'LS':2900*1e3, #Scaling Length scale
             'depth':670*1e3, #Depth of domain
             'rho':3300.,  #reference density
             'g':9.8, #surface gravity
-            'eta0':2e20, #reference viscosity
+            'eta0':5e20, #reference viscosity
             'k':1e-6, #thermal diffusivity
             'a':3e-5, #surface thermal expansivity
             'R':8.314, #gas constant
@@ -263,10 +263,10 @@ dp = edict({'LS':2900*1e3, #Scaling Length scale
             'eta_max':1e25, #viscosity max in the mantle material
             'eta_min_crust':2e19, #viscosity min in the weak-crust material
             'eta_max_crust':2e19, #viscosity max in the weak-crust material
-            'eta_min_interface':2e19, #viscosity min in the subduction interface material
-            'eta_max_interface':2e19, #viscosity max in the subduction interface material
-            'eta_min_fault':2e19, #viscosity min in the subduction interface material
-            'eta_max_fault':2e19, #viscosity max in the subduction interface material
+            'eta_min_interface':5e19, #viscosity min in the subduction interface material
+            'eta_max_interface':5e19, #viscosity max in the subduction interface material
+            'eta_min_fault':5e19, #viscosity min in the subduction interface material
+            'eta_max_fault':5e19, #viscosity max in the subduction interface material
             #Length scales
             'MANTLETOCRUST':8.*1e3, #Crust depth
             'HARZBURGDEPTH':40e3,

@@ -1,8 +1,8 @@
 #!/bin/bash
 counter=1
-for a in 0.1 0.5 1.0 2.0 5.0
+for a in 0.1 0.5 1.0 2.0 10.0
 do
-   for b in 0.5 1.0 2.0
+   for b in 1.0 2.0 5.0 10.0
    do
       for c in 0.75 1.0
       do
