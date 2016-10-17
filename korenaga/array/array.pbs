@@ -26,4 +26,4 @@ export MPIRUN=mpiexec
 export PYTHONPATH=/short/m18/dds563/underworld2/:$PYTHONPATH
 
 
-$MPIRUN -np $PBS_NCPUS --mca mpi_warn_on_fork 0 python korenaga-Fault.py A $COUNTER md.RES=128 md.elementType="Q2/dpc1" dp.V*=0.0001 dp.eta0*=$D dp.fc*=$A dp.E*=$B dp.w0*=$C
+$MPIRUN -np $PBS_NCPUS --mca mpi_warn_on_fork 0 python korenaga-Fault.py A $COUNTER md.RES=96 md.elementType="Q2/dpc1" dp.V*=0.0001 dp.eta0*=$D dp.fc*=$A dp.E*=$B dp.w0*=$C
