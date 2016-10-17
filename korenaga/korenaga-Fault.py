@@ -274,12 +274,12 @@ md = edict({'refineMesh':True,
             'periodicBcs':False,
             'melt_viscosity_reduction':False,
             'lower_mantle':False,
-            'faultType':'Trans', #or 'Iso'
+            'faultType':'Trans', #or 'Iso', or None
             'RES':32,
             'elementType':"Q1/dQ0"
             })
 
-
+#print(md.faultType)
 # In[271]:
 
 ###########
@@ -460,7 +460,7 @@ ppc = 25
 #Metric output stuff
 figures =  'gldb' #glucifer Store won't work on all machines, if not, set to 'gldb' 
 swarm_repop, swarm_update = 1e6, 20
-gldbs_output = 2
+gldbs_output = 20
 checkpoint_every, files_output = 20, 20
 metric_output = 20
 sticky_air_temp = 1e6
@@ -775,15 +775,6 @@ strainRate_2ndInvariant = fn.tensor.second_invariant(
 #############
 #
 #The final mantle rheology is composed as follows*:
-# 
-#
-# mantleviscosityFn = max{  min{(1/omega*nonlinearVisc + 1/eta_p)**-1,
-#                           eta_max},
-#                           eta_min}
-#                      
-#nonlinearVisc => FK viscosity (could be linear or non linear)
-#eta_p   => stress-limiting effective viscosity
-#
 
 
 omega = fn.misc.constant(1.)
@@ -818,12 +809,12 @@ ys =  ndp.cohesion + ndp.fcd*depthFn #tau_1 * 1e-5 is the cohesion value used in
 yielding = ys/(strainRate_2ndInvariant + 1e-15) #extra factor to account for underworld second invariant form
 
 
-mantleviscosityFn = fn.misc.max(fn.misc.min(1./(((1./linearVisc) + (1./yielding))), ndp.eta_max), ndp.eta_min)
+mantleviscosityFn0 = fn.misc.max(fn.misc.min(1./(((1./linearVisc) + (1./yielding))), ndp.eta_max), ndp.eta_min)
 
 
-ridgeX = mesh.maxCoord[0] - ndp.faultDepth
-mantleviscosityFn = fn.branching.conditional([(operator.and_(fn.math.abs(xFn) > ridgeX, depthFn < ndp.faultDepth), 1.), 
-                                    (True, mantleviscosityFn)])
+ridgeX = mesh.maxCoord[0] - (2./md.RES) #leave two elements to help decouple ridges.
+mantleviscosityFn = fn.branching.conditional([(operator.and_(fn.math.abs(xFn) > ridgeX, depthFn < (2./md.RES)), 1.), 
+                                    (True, mantleviscosityFn1)])
 
 
 # ## Faults and fault rheology
