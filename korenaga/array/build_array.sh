@@ -11,6 +11,7 @@ do
          do
             qsub -v COUNTER=$counter,D=$d,A=$a,B=$b,C=$c array.pbs
             let counter=counter+1
+            #if [ "$counter" -gt 1 ]; then break 4; fi; #use this line to test limited set
          done
       done
    done
