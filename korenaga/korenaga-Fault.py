@@ -223,7 +223,7 @@ def load_pickles():
     return dp, ndp, sf, md
 
 
-# In[252]:
+# In[269]:
 
 #dimensional parameter dictionary
 dp = edict({'LS':2900.*1e3,
@@ -233,20 +233,22 @@ dp = edict({'LS':2900.*1e3,
            #'eta0':1e21,    #This will give Ra ~ 2e7, closer to models by Van Hunen, Billen etc.
            'eta0': 2.05e22, #This will give Ra = 1e6 as quoted on Korenaga's paper
            'k':1e-6,
-           'a':2e-5, 
+           'a':2e-5,
+           'c':1200., # Heat capacity J kg−1 K-1 
            'deltaT':1300, 
            'TS':273.,
            'cohesion':1e4, #i.e totally negligable...
-           'fc':0.0156,
+           'fc':0.015,
             #'fc':0.03,
            'E':162123.00, #with this choice, ndp.E = 15.
-           'V':3.457e-07, ## 1e-10, can be considered negligible, 3.457e-07 gives ndp.W of 3
+           'V':3.457e-07, ## 1e-10, can be considered negligible, 3.457e-07 gives ndp.W of 3.
            'R':8.314,
            'StALS':100e3,
            'subzone':0.0,   #X position of subduction zone...km
            'orientation':30.,
            'faultDepth':250e3,
-            'w0':145e3
+            'w0':145e3,
+            'H':3.709e-12 #Internal heating W kg-1, gives ndp.H = 20.
            })
 
 dp.etaFault = dp.eta0*0.01 #this will be the fault (linear) viscosity value in either the isotropic or TI case
@@ -258,7 +260,7 @@ dp.TI = dp.TS + dp.deltaT
 
 
 
-# In[253]:
+# In[270]:
 
 #Modelling and Physics switches
 
@@ -278,7 +280,7 @@ md = edict({'refineMesh':True,
             })
 
 
-# In[254]:
+# In[271]:
 
 ###########
 #If starting from a checkpoint load params from file
@@ -288,7 +290,7 @@ if checkpointLoad:
     dp, ndp, sf, md = load_pickles()  #remember to add any extra dictionaries
 
 
-# In[255]:
+# In[272]:
 
 ###########
 #If command line args are given, overwrite
@@ -347,7 +349,7 @@ for farg in sys.argv[1:]:
 comm.barrier()
 
 
-# In[256]:
+# In[276]:
 
 if not checkpointLoad:
     sf = edict({'stress':dp.LS**2/(dp.k*dp.eta0),
@@ -355,8 +357,12 @@ if not checkpointLoad:
                  'vel':dp.LS/dp.k,
                  'SR':dp.LS**2/dp.k,
                  'W':(dp.rho*dp.g*dp.LS)/(dp.R*dp.deltaT), #This is the activation energy scale, in terms of depth (not pressure)
-                 'E': 1./(dp.R*dp.deltaT)}) #To scale E, V, we used a guesstimated adiabatic deltaT
+                 'E': 1./(dp.R*dp.deltaT), #To scale E, V, we used a guesstimated adiabatic deltaT
+                 'H':(dp.LS)**2/(dp.c*dp.deltaT*dp.k)
 
+               }) 
+
+    
     #dimensionless parameters
 
 
@@ -380,7 +386,8 @@ if not checkpointLoad:
                 'orientation':dp.orientation,
                 'faultDepth':dp.faultDepth/dp.LS,
                  'etaFault':dp.etaFault/dp.eta0,
-                 'w0':dp.w0/dp.LS
+                 'w0':dp.w0/dp.LS,
+                 'H':dp.H*sf.H
                 })
 
 
@@ -395,10 +402,9 @@ ndp.SR = dp.SR*sf.SR #characteristic strain rate
 ndp.StRA = (3300.*dp.g*(dp.LS)**3)/(dp.eta0 *dp.k) #Composisitional Rayleigh number for rock-air buoyancy force
 
 
-# In[257]:
+# In[282]:
 
-#3./sf.W #3.457296398183097e-07
-#0.001/sf.W 
+20./sf.H
 
 
 # **Model setup parameters**
@@ -453,10 +459,10 @@ ppc = 25
 
 #Metric output stuff
 figures =  'gldb' #glucifer Store won't work on all machines, if not, set to 'gldb' 
-swarm_repop, swarm_update = 1e6, 1e6
+swarm_repop, swarm_update = 1e6, 20
 gldbs_output = 2
-checkpoint_every, files_output = 1e6, 1e6
-metric_output = 1e6
+checkpoint_every, files_output = 20, 20
+metric_output = 20
 sticky_air_temp = 1e6
 
 
@@ -974,7 +980,6 @@ fig.append( glucifer.objects.Points(swarm, proximityVariable))
 
 # This one maps to the fault-proximity variable 
 
-
 # Delta Visc 
 
 
@@ -1088,12 +1093,12 @@ solver.print_stats()
 
 # **Create an advective diffusive system**
 
-# In[238]:
+# In[283]:
 
 advDiff = uw.systems.AdvectionDiffusion( phiField       = temperatureField, 
                                          phiDotField    = temperatureDotField, 
                                          velocityField  = velocityField,
-                                         fn_sourceTerm    = 20.0,
+                                         fn_sourceTerm    = ndp.H,
                                          fn_diffusivity = 1.0, 
                                          conditions     = [neumannTempBC, dirichTempBC] )
 
@@ -1115,8 +1120,6 @@ population_control = uw.swarm.PopulationControl(swarm,deleteThreshold=0.2, split
 
 #Level 1. Global
 globRestFn = fn.misc.constant(1.)
-
-
 
 
 #Level 2. lithosphere - mantle:
