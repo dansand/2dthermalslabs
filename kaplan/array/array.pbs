@@ -26,4 +26,4 @@ export MPIRUN=mpiexec
 export PYTHONPATH=/short/m18/dds563/underworld2/:$PYTHONPATH
 
 
-$MPIRUN -np $PBS_NCPUS --mca mpi_warn_on_fork 0 python kaplan.py G $COUNTER md.RES=192 dp.eta_min_crust*=$A dp.eta_max_crust*=$A dp.eta0*=$B dp.MANTLETOCRUST*=$C dp.fcm*=$B
+$MPIRUN -np $PBS_NCPUS --mca mpi_warn_on_fork 0 python kaplan.py G $COUNTER md.RES=192 dp.eta_min_crust*=$A dp.eta_max_crust*=$A dp.eta0*=$B dp.MANTLETOCRUST*=$C dp.fcm*=$D
