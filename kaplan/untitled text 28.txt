@@ -1,0 +1,24 @@
+counter=1
+
+for d in 1.0 2.0 10.0
+do 
+   for a in 1.0 1.5 2.0
+   do
+      for b in 0.5 0.1 1.5
+      do
+         for c in 1.0 1.3 1.6
+         do
+            echo $counter $d $a $b $c
+            let counter=counter+1
+            #if [ "$counter" -gt 1 ]; then break 4; fi;
+         done
+      done
+   done
+done
+
+
+
+
+counter=1
+
+while [ $counter -le 2 ]; do
