@@ -18,7 +18,7 @@
 # Korenaga, Jun. "Scaling of plate tectonic convection with pseudoplastic rheology." Journal of Geophysical Research: Solid Earth 115.B11 (2010).
 # http://onlinelibrary.wiley.com/doi/10.1029/2010JB007670/full
 
-# In[21]:
+# In[8]:
 
 import numpy as np
 import underworld as uw
@@ -28,6 +28,7 @@ import glucifer
 
 import os
 import sys
+import glob
 import natsort
 import shutil
 from easydict import EasyDict as edict
@@ -47,7 +48,7 @@ rank = comm.Get_rank()
 # Model name and directories
 # -----
 
-# In[22]:
+# In[2]:
 
 ############
 #Model letter and number
@@ -75,7 +76,7 @@ else:
                 Model  = farg
 
 
-# In[23]:
+# In[3]:
 
 ###########
 #Standard output directory setup
@@ -101,34 +102,47 @@ if uw.rank()==0:
     if not os.path.isdir(filePath):
         os.makedirs(filePath)
 
+
+# In[4]:
+
+###########
+#you can hard code a different checkpoint Load path here, 
+###########
+
+checkpointLoadPath = checkpointPath
+#checkpointLoadPath = 'results/T/0/checkpoint/'
+
         
 comm.Barrier() #Barrier here so no procs run the check in the next cell too early
 
 
-# In[24]:
+# In[5]:
 
 ###########
 #Check if starting from checkpoint
 ###########
 
 checkdirs = []
-for dirpath, dirnames, files in os.walk(checkpointPath):
+for dirpath, dirnames, files in os.walk(checkpointLoadPath):
     if files:
-        print dirpath, 'has files'
+        #print dirpath, 'has files'
+        if checkpointPath != checkpointLoadPath:
+            print("You're loading checkpoints from somewhere other than *outputPath* ...careful")
         checkpointLoad = True
         checkdirs.append(dirpath)
     if not files:
-        print dirpath, 'is empty'
+        #print dirpath, 'is empty'
         checkpointLoad = False
 
 
-# In[25]:
+# In[15]:
 
 # setup summary output file (name above)
 if checkpointLoad:
-    checkpointLoadDir = natsort.natsort(checkdirs)[-1]
+    checkpointLoadDir = natsort.natsort(checkdirs)[-1] #Get the most recent checkpoint directory
+    fuzzyFile = glob.glob(os.path.join(checkpointLoadDir, '*.dat'))[0]
     if uw.rank() == 0:
-        shutil.copyfile(os.path.join(checkpointLoadDir, outputFile), outputPath+outputFile)
+        shutil.copyfile(fuzzyFile, outputPath+outputFile)
     comm.Barrier()
     f_o = open(os.path.join(outputPath, outputFile), 'a')
     prevdata = np.genfromtxt(os.path.join(outputPath, outputFile), skip_header=0, skip_footer=0)
@@ -208,7 +222,7 @@ def save_pickles(dict_list, dict_names, dictPath):
 
 def load_pickles():
     import pickle
-    dirpath = os.path.join(checkpointPath, str(step))
+    dirpath = os.path.join(checkpointLoadPath, str(step))
     dpfile = open(os.path.join(dirpath, 'dp.pkl'), 'r')
     dp = pickle.load(dpfile)
 #    #
@@ -274,7 +288,7 @@ md = edict({'refineMesh':True,
             'periodicBcs':False,
             'melt_viscosity_reduction':False,
             'lower_mantle':False,
-            'faultType':'None', #or 'Iso', or None
+            'faultType':'Iso', #or 'Trans', Iso', or None
             'RES':32,
             'elementType':"Q1/dQ0"
             })
@@ -456,7 +470,7 @@ ppc = 25
 figures =  'gldb' #glucifer Store won't work on all machines, if not, set to 'gldb' 
 swarm_repop, swarm_update = 1e6, 20
 gldbs_output = 200
-checkpoint_every, files_output = 20, 20
+checkpoint_every, files_output = 5, 20
 metric_output = 20
 sticky_air_temp = 1e6
 
@@ -989,7 +1003,7 @@ fig.append( glucifer.objects.Points(swarm, proximityVariable))
 # Delta Visc 
 
 
-viscosityTI2_fn = fn.misc.max(0.0, mantleviscosityFn -  ndp.etaFault)
+viscosityTI2_fn = fn.misc.min(mantleviscosityFn*0.999, fn.misc.max(0.0, mantleviscosityFn -  ndp.etaFault))
 
 viscosityTIMap    = { 0: 0.0, 
                      1: viscosityTI2_fn
