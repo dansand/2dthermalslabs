@@ -18,7 +18,7 @@
 # Korenaga, Jun. "Scaling of plate tectonic convection with pseudoplastic rheology." Journal of Geophysical Research: Solid Earth 115.B11 (2010).
 # http://onlinelibrary.wiley.com/doi/10.1029/2010JB007670/full
 
-# In[21]:
+# In[1]:
 
 import numpy as np
 import underworld as uw
@@ -28,6 +28,7 @@ import glucifer
 
 import os
 import sys
+import glob
 import natsort
 import shutil
 from easydict import EasyDict as edict
@@ -47,7 +48,7 @@ rank = comm.Get_rank()
 # Model name and directories
 # -----
 
-# In[22]:
+# In[2]:
 
 ############
 #Model letter and number
@@ -75,7 +76,7 @@ else:
                 Model  = farg
 
 
-# In[23]:
+# In[3]:
 
 ###########
 #Standard output directory setup
@@ -101,34 +102,47 @@ if uw.rank()==0:
     if not os.path.isdir(filePath):
         os.makedirs(filePath)
 
+
+# In[4]:
+
+###########
+#you can hard code a different checkpoint Load path here, 
+###########
+
+checkpointLoadPath = checkpointPath
+#checkpointLoadPath = 'results/T/0/checkpoint/'
+
         
 comm.Barrier() #Barrier here so no procs run the check in the next cell too early
 
 
-# In[24]:
+# In[5]:
 
 ###########
 #Check if starting from checkpoint
 ###########
 
 checkdirs = []
-for dirpath, dirnames, files in os.walk(checkpointPath):
+for dirpath, dirnames, files in os.walk(checkpointLoadPath):
     if files:
-        print dirpath, 'has files'
+        #print dirpath, 'has files'
+        if checkpointPath != checkpointLoadPath:
+            print("You're loading checkpoints from somewhere other than *outputPath* ...careful")
         checkpointLoad = True
         checkdirs.append(dirpath)
     if not files:
-        print dirpath, 'is empty'
+        #print dirpath, 'is empty'
         checkpointLoad = False
 
 
-# In[25]:
+# In[6]:
 
 # setup summary output file (name above)
 if checkpointLoad:
-    checkpointLoadDir = natsort.natsort(checkdirs)[-1]
+    checkpointLoadDir = natsort.natsort(checkdirs)[-1] #Get the most recent checkpoint directory
+    fuzzyFile = glob.glob(os.path.join(checkpointLoadDir, '*.dat'))[0]
     if uw.rank() == 0:
-        shutil.copyfile(os.path.join(checkpointLoadDir, outputFile), outputPath+outputFile)
+        shutil.copyfile(fuzzyFile, outputPath+outputFile)
     comm.Barrier()
     f_o = open(os.path.join(outputPath, outputFile), 'a')
     prevdata = np.genfromtxt(os.path.join(outputPath, outputFile), skip_header=0, skip_footer=0)
@@ -152,7 +166,7 @@ else:
 
 # **Use pint to setup any unit conversions we'll need**
 
-# In[26]:
+# In[7]:
 
 u = pint.UnitRegistry()
 cmpery = 1.*u.cm/u.year
@@ -162,7 +176,7 @@ spery = year.to(u.sec)
 cmpery.to(mpermy)
 
 
-# In[27]:
+# In[8]:
 
 #box_half_width =4000e3
 #age_at_trench = 100e6
@@ -173,7 +187,7 @@ cmpery.to(mpermy)
 
 # **Set parameter dictionaries**
 
-# In[28]:
+# In[9]:
 
 ###########
 #Parameter / settings dictionaries get saved&loaded using pickle
@@ -186,7 +200,7 @@ md = edict({}) #model paramters, flags etc
 #od = edict({}) #output frequencies
 
 
-# In[29]:
+# In[10]:
 
 dict_list = [dp, sf, ndp, md]
 dict_names = ['dp.pkl', 'sf.pkl', 'ndp.pkl', 'md.pkl']
@@ -208,7 +222,7 @@ def save_pickles(dict_list, dict_names, dictPath):
 
 def load_pickles():
     import pickle
-    dirpath = os.path.join(checkpointPath, str(step))
+    dirpath = os.path.join(checkpointLoadPath, str(step))
     dpfile = open(os.path.join(dirpath, 'dp.pkl'), 'r')
     dp = pickle.load(dpfile)
 #    #
@@ -223,7 +237,7 @@ def load_pickles():
     return dp, ndp, sf, md
 
 
-# In[30]:
+# In[11]:
 
 #dimensional parameter dictionary
 dp = edict({'LS':2900.*1e3,
@@ -260,7 +274,7 @@ dp.TI = dp.TS + dp.deltaT
 
 
 
-# In[31]:
+# In[12]:
 
 #Modelling and Physics switches
 
@@ -271,16 +285,16 @@ md = edict({'refineMesh':True,
             'velBcs':False,
             'aspectRatio':4,
             'compBuoyancy':False, #use compositional & phase buoyancy, or simply thermal
-            'periodicBcs':False,
+            'periodicBcs':True,
             'melt_viscosity_reduction':False,
             'lower_mantle':False,
-            'faultType':'None', #or 'Iso', or None
+            'faultType':'None', #or 'Trans', Iso', or None
             'RES':32,
             'elementType':"Q1/dQ0"
             })
 
 #print(md.faultType)
-# In[32]:
+# In[13]:
 
 ###########
 #If starting from a checkpoint load params from file
@@ -290,7 +304,7 @@ if checkpointLoad:
     dp, ndp, sf, md = load_pickles()  #remember to add any extra dictionaries
 
 
-# In[33]:
+# In[14]:
 
 ###########
 #If command line args are given, overwrite
@@ -349,7 +363,7 @@ for farg in sys.argv[1:]:
 comm.barrier()
 
 
-# In[34]:
+# In[15]:
 
 if not checkpointLoad:
     sf = edict({'stress':dp.LS**2/(dp.k*dp.eta0),
@@ -404,7 +418,7 @@ ndp.StRA = (3300.*dp.g*(dp.LS)**3)/(dp.eta0 *dp.k) #Composisitional Rayleigh num
 
 # **Model setup parameters**
 
-# In[36]:
+# In[16]:
 
 ###########
 #Model setup parameters
@@ -455,8 +469,8 @@ ppc = 25
 #Metric output stuff
 figures =  'gldb' #glucifer Store won't work on all machines, if not, set to 'gldb' 
 swarm_repop, swarm_update = 1e6, 20
-gldbs_output = 100
-checkpoint_every, files_output = 20, 20
+gldbs_output = 200
+checkpoint_every, files_output = 5, 20
 metric_output = 20
 sticky_air_temp = 1e6
 
@@ -464,7 +478,7 @@ sticky_air_temp = 1e6
 # Create mesh and finite element variables
 # ------
 
-# In[37]:
+# In[17]:
 
 
 
@@ -478,8 +492,13 @@ pressureField       = uw.mesh.MeshVariable( mesh=mesh.subMesh, nodeDofCount=1 )
 temperatureField    = uw.mesh.MeshVariable( mesh=mesh,         nodeDofCount=1 )
 temperatureDotField = uw.mesh.MeshVariable( mesh=mesh,         nodeDofCount=1 )
 
+# Initialise values
+velocityField.data[:]       = [0.,0.]
+pressureField.data[:]       = 0.
+temperatureDotField.data[:] = 0.
 
-# In[38]:
+
+# In[18]:
 
 coordinate = fn.input()
 depthFn = MAXY - coordinate[1] #a function providing the depth
@@ -489,14 +508,19 @@ xFn = coordinate[0]  #a function providing the x-coordinate
 yFn = coordinate[1]
 
 
+# In[ ]:
+
+
+
+
 # ## Mesh refinement
 
-# In[39]:
+# In[19]:
 
 print("mesh shape is :", mesh.data.shape)
 
 
-# In[40]:
+# In[20]:
 
 mesh.reset()
 
@@ -543,7 +567,7 @@ with mesh.deform_mesh():
 
 
 
-# In[41]:
+# In[21]:
 
 fig= glucifer.Figure()
 #fig.append( glucifer.objects.Surface(mesh, yField))
@@ -557,7 +581,7 @@ fig.append(glucifer.objects.Mesh(mesh))
 # -------
 # 
 
-# In[42]:
+# In[22]:
 
 #Sinusoidal initial condition
 A = 0.2
@@ -584,19 +608,19 @@ tempFn = blFn #partition the temp between these two fuctions
 #tempFn = sinFn #partition the temp between these two fuctions
 
 
-# In[43]:
+# In[23]:
 
 if not checkpointLoad:
     temperatureField.data[:] = tempFn.evaluate(mesh)  
 
 
-# In[44]:
+# In[24]:
 
 np.random.seed(20)#set seed for reproducibility
 temperatureField.data[:,0] += (np.random.rand(mesh.data.shape[0]) -  0.5)*1e-2
 
 
-# In[45]:
+# In[25]:
 
 #Make sure material in stick air region is at the surface temperature.
 for index, coord in enumerate(mesh.data):
@@ -604,7 +628,7 @@ for index, coord in enumerate(mesh.data):
                 temperatureField.data[index] = ndp.TSP
 
 
-# In[46]:
+# In[26]:
 
 #fig= glucifer.Figure()
 #fig.append( glucifer.objects.Surface(mesh, temperatureField))
@@ -619,7 +643,7 @@ for index, coord in enumerate(mesh.data):
 
 # **Boundary conditions**
 
-# In[47]:
+# In[27]:
 
 for index in mesh.specialSets["MinJ_VertexSet"]:
     temperatureField.data[index] = ndp.TIP
@@ -636,9 +660,18 @@ freeslipBC = uw.conditions.DirichletCondition( variable      = velocityField,
                                                indexSetsPerDof = ( iWalls, jWalls) )
 
 
-#if md.periodicBcs:
-#    freeslipBC = uw.conditions.DirichletCondition( variable      = velocityField, 
- #                                              indexSetsPerDof = ( None, jWalls) )
+if md.periodicBcs:
+    freeslipBC = uw.conditions.DirichletCondition( variable      = velocityField, 
+                                                indexSetsPerDof = ( None, jWalls) )
+    
+#Try this one again   
+#If periodic, we'll fix a the x-vel at a single node - at the bottom left (index 0)
+Fixed = mesh.specialSets["Empty"]
+Fixed.add(int(0))    
+if md.periodicBcs:
+    freeslipBC = uw.conditions.DirichletCondition( variable      = velocityField, 
+                                               indexSetsPerDof = ( Fixed, jWalls) )
+#        
 
 # also set dirichlet for temp field
 dirichTempBC = uw.conditions.DirichletCondition(     variable=temperatureField, 
@@ -655,7 +688,7 @@ neumannTempBC = uw.conditions.NeumannCondition( dT_dy, variable=temperatureField
 # -----
 # 
 
-# In[48]:
+# In[28]:
 
 ###########
 #Material Swarm and variables
@@ -700,7 +733,7 @@ signedDistanceVariable.data[:] = 0.0
 
 
 
-# In[49]:
+# In[29]:
 
 if checkpointLoad:
     checkpointLoadDir = natsort.natsort(checkdirs)[-1]
@@ -752,7 +785,7 @@ if checkpointLoad:
 # 
 # Setup the viscosity to be a function of the temperature. Recall that these functions and values are preserved for the entire simulation time. 
 
-# In[50]:
+# In[30]:
 
 # The yeilding of the upper slab is dependent on the strain rate.
 strainRate_2ndInvariant = fn.tensor.second_invariant( 
@@ -763,12 +796,12 @@ strainRate_2ndInvariant = fn.tensor.second_invariant(
 
 
 
-# In[60]:
+# In[ ]:
 
 
 
 
-# In[67]:
+# In[31]:
 
 ############
 #Rheology
@@ -822,7 +855,7 @@ mantleviscosityFn = fn.branching.conditional([(operator.and_(fn.math.abs(xFn) > 
 
 
 
-# In[69]:
+# In[32]:
 
 figVisc= glucifer.Figure(figsize=(300*np.round(md.aspectRatio,2),300))
 #figVisc.append( glucifer.objects.Points(swarm,linearVisc, pointSize=2,logScale=True, valueRange =[1e-3,1e5]))
@@ -839,7 +872,7 @@ figVisc.append( glucifer.objects.Points(swarm,mantleviscosityFn, pointSize=2,log
 
 
 
-# In[227]:
+# In[33]:
 
 #####
 #Faults 
@@ -937,14 +970,14 @@ def fault_strainrate_fns(fault_list, velocityField, faultNormalVariable, proximi
 
 
 
-# In[260]:
+# In[34]:
 
 
 fthickness = (1./md.RES)
 
 forientation = np.radians(ndp.orientation)
 flength    = ndp.faultDepth/np.tan(forientation)
-fstart = ndp.subzone - ndp.w0
+fstart = ndp.subzone - 2.*ndp.w0
 faultLine1 = (fstart, 1.0)
 faultLine2 = (faultLine1[0] - flength * np.cos(forientation), faultLine1[1]-flength*np.sin(forientation) )
 
@@ -959,7 +992,7 @@ fault_seg1  = markerLine2D(mesh, velocityField, faultLineXs, faultLineYs, fthick
 faults.append(fault_seg1)
 
 
-# In[229]:
+# In[35]:
 
 ## Call the Fault helper functions 
 
@@ -973,7 +1006,7 @@ update_swarm_from_faults(faults, proximityVariable, directorVector, signedDistan
 edotn_SFn, edots_SFn = fault_strainrate_fns(faults, velocityField, directorVector, proximityVariable)
 
 
-# In[230]:
+# In[36]:
 
 fig= glucifer.Figure()
 fig.append( glucifer.objects.Points(swarm, proximityVariable))
@@ -982,14 +1015,14 @@ fig.append( glucifer.objects.Points(swarm, proximityVariable))
 #fig.save_database('test.gldb')
 
 
-# In[231]:
+# In[37]:
 
 # This one maps to the fault-proximity variable 
 
 # Delta Visc 
 
 
-viscosityTI2_fn = fn.misc.max(0.0, mantleviscosityFn -  ndp.etaFault)
+viscosityTI2_fn = fn.misc.min(mantleviscosityFn*0.999, fn.misc.max(0.0, mantleviscosityFn -  ndp.etaFault))
 
 viscosityTIMap    = { 0: 0.0, 
                      1: viscosityTI2_fn
@@ -1014,7 +1047,7 @@ secondViscosityFn  = fn.branching.map( fn_key  = proximityVariable,
 # 
 # **Setup a Stokes system**
 
-# In[232]:
+# In[38]:
 
 # Here we set a viscosity value of '1.' for both materials
 #viscosityMapFn = fn.branching.map( fn_key = materialVariable,
@@ -1031,7 +1064,7 @@ secondViscosityFn  = fn.branching.map( fn_key  = proximityVariable,
 #                                    mantleIndex:ndp.RA*temperatureField} )
 
 
-# In[233]:
+# In[39]:
 
 # Construct our density function.
 densityFn = ndp.RA * temperatureField
@@ -1043,12 +1076,12 @@ gravity = ( 0.0, 1.0 )
 buoyancyFn = densityFn * gravity
 
 
-# In[234]:
+# In[40]:
 
 #md.faultType = 'Iso'
 
 
-# In[235]:
+# In[41]:
 
 if md.faultType == 'Trans':
     stokesPIC = uw.systems.Stokes(velocityField=velocityField, 
@@ -1079,7 +1112,7 @@ else:
 
 # **Set up and solve the Stokes system**
 
-# In[236]:
+# In[42]:
 
 solver = uw.systems.Solver(stokesPIC)
 
@@ -1087,7 +1120,14 @@ solver = uw.systems.Solver(stokesPIC)
 # **Add the non-linear viscosity to the Stokes system**
 # 
 
-# In[237]:
+# solver.set_inner_method("mumps")
+# solver.options.scr.ksp_type="cg"
+# solver.set_penalty(1.0e6)
+# solver.options.scr.ksp_rtol = 1.0e-3
+# solver.solve(nonLinearIterate=True)
+# solver.print_stats()
+
+# In[43]:
 
 solver.set_inner_method("mumps")
 solver.options.scr.ksp_type="cg"
@@ -1097,9 +1137,42 @@ solver.solve(nonLinearIterate=True)
 solver.print_stats()
 
 
+# solver.set_inner_method("mumps")
+# solver.set_penalty(1.0e6)
+# solver.options.scr.ksp_rtol = 1.0e-6
+# 
+# 
+# solver.solve( nonLinearIterate=True,  print_stats=False)
+# #solver.solve( nonLinearIterate=True, nonLinearTolerance=0.00001, print_stats=False)
+
+# #Set more advanced solver option
+# solver.options.main.Q22_pc_type='gkgdiag'
+# #solver.options.A11.ksp_rtol=1e-2
+# #solver.options.scr.ksp_rtol=1e-3
+# #solver.options.A11.ksp_type="cg"
+# solver.options.scr.use_previous_guess = True
+# #solver.options.scr.ksp_set_min_it_converge = 1
+# #solver.options.main.penalty=10.0
+# 
+# #solver.options.mg.levels = 3
+# #solver.options.main.remove_constant_pressure_null_space=True
+# #solver.options.main.penalty = 1e2
+# 
+# solver.options.A11.ksp_rtol=1e-4
+# solver.options.scr.ksp_rtol=1e-4
+# 
+# solver.options.A11.ksp_monitor=''
+# solver.options.A11.ksp_converged_reason=''
+# solver.solve( nonLinearIterate=True, nonLinearTolerance=0.00001, print_stats=False)
+
+# solver.set_inner_method("mg")
+# solver.set_penalty(1.0)
+# solver.solve( nonLinearIterate=True, nonLinearTolerance=0.00001, print_stats=False)
+# solver.print_stats()
+
 # **Create an advective diffusive system**
 
-# In[283]:
+# In[44]:
 
 advDiff = uw.systems.AdvectionDiffusion( phiField       = temperatureField, 
                                          phiDotField    = temperatureDotField, 
@@ -1113,7 +1186,7 @@ passiveadvector = uw.systems.SwarmAdvector( swarm         = swarm,
                                      order         = 1)
 
 
-# In[239]:
+# In[45]:
 
 population_control = uw.swarm.PopulationControl(swarm,deleteThreshold=0.2, splitThreshold=1.,maxDeletions=3,maxSplits=0, aggressive=True, particlesPerCell=ppc)
 
@@ -1603,19 +1676,19 @@ velocityField[0].evaluate(iWalls).max()
 
 
 
-# In[56]:
+# In[45]:
 
 figVisc= glucifer.Figure(figsize=(300*np.round(md.aspectRatio,2),300))
 #figVisc.append( glucifer.objects.Points(swarm,linearVisc, pointSize=2,logScale=True, valueRange =[1e-3,1e5]))
 figVisc.append( glucifer.objects.Points(swarm,linearVisc, pointSize=2,logScale=True))
 
-#figVisc.append(glucifer.objects.VectorArrows(mesh, velocityField, scaling=0.0001))
+figVisc.append(glucifer.objects.VectorArrows(mesh, velocityField, scaling=0.001))
 figVisc.show()
 
 
-# In[124]:
+# In[47]:
 
-#velocityField.data
+velocityField[0].evaluate(iWalls)
 
 
 # In[ ]:
