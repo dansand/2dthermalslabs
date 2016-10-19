@@ -263,6 +263,10 @@ dp = edict({'LS':2900*1e3, #Scaling Length scale
             'eta_max':1e25, #viscosity max in the mantle material
             'eta_min_crust':5e19, #viscosity min in the weak-crust material
             'eta_max_crust':5e19, #viscosity max in the weak-crust material
+            'eta_min_interface':5e19, #viscosity min in the subduction interface material
+            'eta_max_interface':5e19, #viscosity max in the subduction interface material
+            'eta_min_fault':5e19, #viscosity min in the subduction interface material
+            'eta_min_fault':5e19, #viscosity max in the subduction interface material
             #Length scales
             'MANTLETOCRUST':8.*1e3, #Crust depth
             'HARZBURGDEPTH':40e3,
@@ -295,15 +299,12 @@ dp = edict({'LS':2900*1e3, #Scaling Length scale
 
 #append any derived parameters to the dictionary
 dp.deltaT = dp.TP - dp.TS
-dp.eta_min_interface = dp.eta_min_crust, #viscosity min in the subduction interface material
-dp.eta_max_interface = dp.eta_max_crust, #viscosity max in the subduction interface material
-dp.eta_min_fault= dp.eta_min_crust, #viscosity min in the subduction interface material
-dp.eta_max_fault= dp.eta_max_crust, #viscosity max in the subduction interface material
 
 
 
 
-# In[15]:
+
+# In[11]:
 
 #Modelling and Physics switches
 
@@ -320,7 +321,7 @@ md = edict({'refineMesh':True,
             })
 
 
-# In[16]:
+# In[12]:
 
 ###########
 #If starting from a checkpoint load params from file
@@ -330,7 +331,7 @@ if checkpointLoad:
     dp, ndp, sf, md = load_pickles()  #remember to add any extra dictionaries
 
 
-# In[17]:
+# In[13]:
 
 ###########
 #If command line args are given, overwrite
