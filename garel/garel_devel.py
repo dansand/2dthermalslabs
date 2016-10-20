@@ -269,7 +269,7 @@ def load_pickles():
 #Style => parameters_like_this
 
 dp = edict({#Main physical paramters
-           'depth':0.5*2900.*1e3, #Depth
+           'depth':2*660.*1e3, #Depth
            'LS':2900.*1e3, #Length scale
            'rho':3300.,  #reference density
            'g':9.8, #surface gravity
@@ -354,11 +354,6 @@ dp.dTa = 0.0005 #adibatic gradient, upper mantle value used in Garel et al.
 dp.deltaTa = (dp.TP + dp.dTa*dp.LS) - dp.TS  #Adiabatic Temp at base of mantle, minus Ts
 
 dp.rTemp= dp.TP + dp.rDepth*dp.dTa #reference temp, (potential temp + adiabat)
-
-
-# In[81]:
-
-dp.Alm*0.1
 
 
 # In[14]:
