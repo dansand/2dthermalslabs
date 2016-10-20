@@ -89,7 +89,7 @@ except:
 Model = "T"
 
 #Model number identifier default:
-ModNum = 1
+ModNum = 0
 
 #Any isolated letter / integer command line args are interpreted as Model/ModelNum
 
