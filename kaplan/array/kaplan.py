@@ -229,7 +229,7 @@ def load_pickles():
     return dp, ndp, sf, md
 
 
-# In[10]:
+# In[16]:
 
 ###########
 #Store the physical parameters, scale factors and dimensionless pramters in easyDicts
@@ -266,7 +266,7 @@ dp = edict({'LS':2900*1e3, #Scaling Length scale
             'eta_min_interface':5e19, #viscosity min in the subduction interface material
             'eta_max_interface':5e19, #viscosity max in the subduction interface material
             'eta_min_fault':5e19, #viscosity min in the subduction interface material
-            'eta_min_fault':5e19, #viscosity max in the subduction interface material
+            'eta_max_fault':5e19, #viscosity max in the subduction interface material
             #Length scales
             'MANTLETOCRUST':8.*1e3, #Crust depth
             'HARZBURGDEPTH':40e3,
@@ -304,7 +304,7 @@ dp.deltaT = dp.TP - dp.TS
 
 
 
-# In[11]:
+# In[17]:
 
 #Modelling and Physics switches
 
@@ -321,7 +321,7 @@ md = edict({'refineMesh':True,
             })
 
 
-# In[12]:
+# In[18]:
 
 ###########
 #If starting from a checkpoint load params from file
@@ -331,7 +331,7 @@ if checkpointLoad:
     dp, ndp, sf, md = load_pickles()  #remember to add any extra dictionaries
 
 
-# In[13]:
+# In[19]:
 
 ###########
 #If command line args are given, overwrite
@@ -390,12 +390,12 @@ for farg in sys.argv[1:]:
 comm.barrier()
 
 
-# In[19]:
+# In[20]:
 
 #print('refine Mesh is: ', md.refineMesh)
 
 
-# In[20]:
+# In[21]:
 
 #Only build these guys first time around, otherwise the read from checkpoints
 #Important because some of these params (like SZ location) may change during model evolution
@@ -468,16 +468,6 @@ if not checkpointLoad:
     ndp.StRA = (3300.*dp.g*(dp.LS)**3)/(dp.eta0 *dp.k) #Composisitional Rayleigh number for rock-air buoyancy force
     dp.CVR = (0.1*(dp.k/dp.LS)*ndp.RA**(2/3.))
     ndp.CVR = dp.CVR*sf.vel #characteristic velocity
-
-
-# In[23]:
-
-ndp.eta_min_crust
-
-
-# In[24]:
-
-ndp.plate_vel, sf.vel, (cmpery.to(u.m/u.second)).magnitude
 
 
 # **Model setup parameters**
@@ -2122,20 +2112,20 @@ if figures == 'gldb':
     figDb.append( glucifer.objects.Points(gSwarm,materialVariable))
     #figDb.append( glucifer.objects.Points(gSwarm,viscMinVariable))
     #figDb.append( glucifer.objects.Points(gSwarm,fnViscMin))
-    figDb.append( glucifer.objects.Points(gSwarm, viscosityMapFn1, logScale=True))
-    figDb.append( glucifer.objects.Points(gSwarm, strainRate_2ndInvariant, logScale=True))
+    #figDb.append( glucifer.objects.Points(gSwarm, viscosityMapFn1, logScale=True))
+    #figDb.append( glucifer.objects.Points(gSwarm, strainRate_2ndInvariant, logScale=True))
     figDb.append( glucifer.objects.Points(gSwarm,temperatureField))
     
     
-    figRestrict= glucifer.Figure()
+    #figRestrict= glucifer.Figure()
     #figRestrict.append( glucifer.objects.Points(gSwarm,respltFn))
-    figRestrict.append( glucifer.objects.Points(gSwarm,lithRestFn))
-    figRestrict.append( glucifer.objects.Points(gSwarm,lowerPlateRestFn))
-    figRestrict.append( glucifer.objects.Points(gSwarm,hinge180RestFn))
-    figRestrict.append( glucifer.objects.Points(gSwarm,interfaceRestFn))
-    figRestrict.append( glucifer.objects.Points(interfaces[0].swarm, colours="Blue Blue", pointSize=2.0, colourBar=False) )
-    figRestrict.append( glucifer.objects.Points(interfaces[1].swarm, colours="Red Red", pointSize=2.0, colourBar=False) )
-    figRestrict.append( glucifer.objects.Points(slab_seg.swarm, colours="Black Black", pointSize=2.0, colourBar=False) )
+    #figRestrict.append( glucifer.objects.Points(gSwarm,lithRestFn))
+    #figRestrict.append( glucifer.objects.Points(gSwarm,lowerPlateRestFn))
+    #figRestrict.append( glucifer.objects.Points(gSwarm,hinge180RestFn))
+    #figRestrict.append( glucifer.objects.Points(gSwarm,interfaceRestFn))
+    #figRestrict.append( glucifer.objects.Points(interfaces[0].swarm, colours="Blue Blue", pointSize=2.0, colourBar=False) )
+    #figRestrict.append( glucifer.objects.Points(interfaces[1].swarm, colours="Red Red", pointSize=2.0, colourBar=False) )
+    #figRestrict.append( glucifer.objects.Points(slab_seg.swarm, colours="Black Black", pointSize=2.0, colourBar=False) )
 
 elif figures == 'store':
     fullpath = os.path.join(outputPath + "gldbs/")
@@ -2400,9 +2390,9 @@ while realtime < 0.002:
             figDb.save_database(fullpath)
             
             #Temp figure
-            fnamedb = "restrictFig" + "_" + str(step) + ".gldb"
-            fullpath = os.path.join(outputPath + "gldbs/" + fnamedb)
-            figRestrict.save_database(fullpath)
+            #fnamedb = "restrictFig" + "_" + str(step) + ".gldb"
+            #fullpath = os.path.join(outputPath + "gldbs/" + fnamedb)
+            #figRestrict.save_database(fullpath)
         elif figures == 'store':      
             fullpath = os.path.join(outputPath + "gldbs/")
             store.step = step
