@@ -2500,7 +2500,7 @@ if figures == 'gldb':
     figDb.append( glucifer.objects.Points(swarmPlateBoundary, pointSize=4))
 
     #figDb.append( glucifer.objects.Points(gSwarm,viscMinVariable))
-    #figDb.append( glucifer.objects.Points(gSwarm,fnViscMin))
+    figDb.append( glucifer.objects.Points(gSwarm,fnViscMin))
     #figDb.append( glucifer.objects.Points(gSwarm,fnViscMin))
     #figDb.append( glucifer.objects.Points(gSwarm, viscosityMapFn, logScale=True))
     #figDb.append( glucifer.objects.Points(gSwarm, strainRate_2ndInvariant, logScale=True))
