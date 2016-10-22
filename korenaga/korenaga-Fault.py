@@ -45,6 +45,17 @@ comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 
 
+# In[2]:
+
+#####
+#Stubborn version number conflicts - need to figure out my Docker container runs an old version. For now...
+#####
+try:
+    natsort.natsort = natsort.natsorted
+except:
+    natsort.natsort = natsort.natsort
+
+
 # Model name and directories
 # -----
 
@@ -666,11 +677,11 @@ if md.periodicBcs:
     
 #Try this one again   
 #If periodic, we'll fix a the x-vel at a single node - at the bottom left (index 0)
-Fixed = mesh.specialSets["Empty"]
-Fixed.add(int(0))    
-if md.periodicBcs:
-    freeslipBC = uw.conditions.DirichletCondition( variable      = velocityField, 
-                                               indexSetsPerDof = ( Fixed, jWalls) )
+#Fixed = mesh.specialSets["Empty"]
+#Fixed.add(int(0))    
+#if md.periodicBcs:
+#    freeslipBC = uw.conditions.DirichletCondition( variable      = velocityField, 
+#                                               indexSetsPerDof = ( Fixed, jWalls) )
 #        
 
 # also set dirichlet for temp field
@@ -1120,22 +1131,22 @@ solver = uw.systems.Solver(stokesPIC)
 # **Add the non-linear viscosity to the Stokes system**
 # 
 
-# solver.set_inner_method("mumps")
-# solver.options.scr.ksp_type="cg"
-# solver.set_penalty(1.0e6)
-# solver.options.scr.ksp_rtol = 1.0e-3
-# solver.solve(nonLinearIterate=True)
-# solver.print_stats()
-
-# In[43]:
+# In[1]:
 
 solver.set_inner_method("mumps")
 solver.options.scr.ksp_type="cg"
-solver.set_penalty(1.0e7)
-solver.options.scr.ksp_rtol = 1.0e-4
+solver.set_penalty(1.0e6)
+solver.options.scr.ksp_rtol = 1.0e-3
 solver.solve(nonLinearIterate=True)
 solver.print_stats()
 
+
+# solver.set_inner_method("mumps")
+# solver.options.scr.ksp_type="cg"
+# solver.set_penalty(1.0e7)
+# solver.options.scr.ksp_rtol = 1.0e-4
+# solver.solve(nonLinearIterate=True)
+# solver.print_stats()
 
 # solver.set_inner_method("mumps")
 # solver.set_penalty(1.0e6)
