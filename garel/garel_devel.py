@@ -22,7 +22,7 @@
 # Arredondo, Katrina M., and Magali I. Billen. "The Effects of Phase Transitions and Compositional Layering in Two-dimensional Kinematic Models of Subduction." Journal of Geodynamics (2016).
 # 
 
-# In[4]:
+# In[1]:
 
 import numpy as np
 import underworld as uw
@@ -51,7 +51,7 @@ comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 
 
-# In[5]:
+# In[2]:
 
 #####
 #Stubborn version number conflicts - need to figure out my Docker container runs an old version. For now...
@@ -67,7 +67,7 @@ except:
 
 
 
-# In[6]:
+# In[3]:
 
 #store = glucifer.Store('subduction')
 #figParticle = glucifer.Figure( store, figsize=(960,300), name="Particles" )
@@ -78,7 +78,7 @@ except:
 # Model name and directories
 # -----
 
-# In[7]:
+# In[4]:
 
 ############
 #Model letter and number
@@ -106,7 +106,7 @@ else:
                 Model  = farg
 
 
-# In[8]:
+# In[5]:
 
 ###########
 #Standard output directory setup
@@ -136,7 +136,7 @@ if uw.rank()==0:
 comm.Barrier() #Barrier here so no procs run the check in the next cell too early
 
 
-# In[9]:
+# In[6]:
 
 ###########
 #Check if starting from checkpoint
@@ -153,7 +153,7 @@ for dirpath, dirnames, files in os.walk(checkpointPath):
         checkpointLoad = False
 
 
-# In[10]:
+# In[7]:
 
 # setup summary output file (name above)
 if checkpointLoad:
@@ -183,7 +183,7 @@ else:
 
 # **Use pint to setup any unit conversions we'll need**
 
-# In[11]:
+# In[8]:
 
 u = pint.UnitRegistry()
 cmpery = 1.*u.cm/u.year
@@ -193,7 +193,7 @@ spery = year.to(u.sec)
 cmpery.to(mpermy)
 
 
-# In[12]:
+# In[9]:
 
 box_half_width =4000e3
 age_at_trench = 100e6
@@ -208,7 +208,7 @@ print(cmperyear, mpersec )
 # * If starting from checkpoint, parameters are loaded using pickle
 # * If params are passed in as flags to the script, they overwrite 
 
-# In[13]:
+# In[10]:
 
 ###########
 #Parameter / settings dictionaries get saved&loaded using pickle
@@ -221,7 +221,7 @@ md = edict({}) #model paramters, flags etc
 #od = edict({}) #output frequencies
 
 
-# In[14]:
+# In[11]:
 
 dict_list = [dp, sf, ndp, md]
 dict_names = ['dp.pkl', 'sf.pkl', 'ndp.pkl', 'md.pkl']
@@ -258,7 +258,7 @@ def load_pickles():
     return dp, ndp, sf, md
 
 
-# In[15]:
+# In[12]:
 
 ###########
 #Store the physical parameters, scale factors and dimensionless pramters in easyDicts
@@ -286,8 +286,8 @@ dp = edict({#Main physical paramters
            'ci':2e6, #mantle cohesion in Byerlee law
            'cf':2e6, #mantle cohesion in Byerlee law
            'fcm':0.2,   #mantle friction coefficient in Byerlee law (tan(phi))
-           'fcc':0.01,   #crust friction coefficient 
-           'fci':0.01,   #subduction interface friction coefficient
+           'fcc':0.02,   #crust friction coefficient 
+           'fci':0.02,   #subduction interface friction coefficient
            'fcf':0.03,   #subduction interface friction coefficient
            'Adf':3e-11, #pre-exp factor for diffusion creep
            'Ads':5e-16, #pre-exp factor for dislocation creep
@@ -298,22 +298,22 @@ dp = edict({#Main physical paramters
            'Vdf':4e-6,
            'Vds':12e-6,
            'Vpr':10e-6,
-           'Alm':2e-16,
+           'Alm':2e-17,
            'Elm':2.0e5,
            'Vlm':1.5e-6,
            'SR':1e-15, #reference strain rate
            'n':3.5, #Dislocation creep stress exponent
            'np':20., #Peierls creep stress exponent 
            #Rheology - cutoff values
-           'eta_min':1e17, 
+           'eta_min':1e18, 
            'eta_max':1e25, #viscosity max in the mantle material
-           'eta_min_crust':1e17, #viscosity min in the weak-crust material
-           'eta_max_crust':0.5*1e20, #viscosity max in the weak-crust material
-           'eta_min_interface':1e17, #viscosity min in the subduction interface material
-           'eta_max_interface':0.5*1e20, #viscosity max in the subduction interface material
+           'eta_min_crust':1e18, #viscosity min in the weak-crust material
+           'eta_max_crust':1e20, #viscosity max in the weak-crust material
+           'eta_min_interface':1e18, #viscosity min in the subduction interface material
+           'eta_max_interface':1e20, #viscosity max in the subduction interface material
            'eta_min_fault':1e20, #viscosity min in the subduction interface material
            'eta_max_fault':1e20, #viscosity max in the subduction interface material
-           'ysMax':1000*1e6, #1000GPa
+           'ysMax':10000*1e6, #1000GPa
            #Length scales
            'MANTLETOCRUST':8.*1e3, #Crust depth
            'HARZBURGDEPTH':40e3,
@@ -356,7 +356,12 @@ dp.deltaTa = (dp.TP + dp.dTa*dp.LS) - dp.TS  #Adiabatic Temp at base of mantle, 
 dp.rTemp= dp.TP + dp.rDepth*dp.dTa #reference temp, (potential temp + adiabat)
 
 
-# In[16]:
+# In[14]:
+
+(dp.a*dp.g*(dp.TP))/dp.Cp
+
+
+# In[13]:
 
 #Modelling and Physics switches
 
