@@ -18,7 +18,7 @@
 # Korenaga, Jun. "Scaling of plate tectonic convection with pseudoplastic rheology." Journal of Geophysical Research: Solid Earth 115.B11 (2010).
 # http://onlinelibrary.wiley.com/doi/10.1029/2010JB007670/full
 
-# In[1]:
+# In[38]:
 
 import numpy as np
 import underworld as uw
@@ -45,7 +45,7 @@ comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 
 
-# In[2]:
+# In[39]:
 
 #####
 #Stubborn version number conflicts - need to figure out my Docker container runs an old version. For now...
@@ -59,7 +59,7 @@ except:
 # Model name and directories
 # -----
 
-# In[2]:
+# In[40]:
 
 ############
 #Model letter and number
@@ -87,7 +87,7 @@ else:
                 Model  = farg
 
 
-# In[3]:
+# In[41]:
 
 ###########
 #Standard output directory setup
@@ -114,20 +114,20 @@ if uw.rank()==0:
         os.makedirs(filePath)
 
 
-# In[4]:
+# In[42]:
 
 ###########
 #you can hard code a different checkpoint Load path here, 
 ###########
 
-checkpointLoadPath = checkpointPath
-#checkpointLoadPath = 'results/T/0/checkpoint/'
+#checkpointLoadPath = checkpointPath
+checkpointLoadPath = 'results/Z/6/checkpoint/'
 
         
 comm.Barrier() #Barrier here so no procs run the check in the next cell too early
 
 
-# In[5]:
+# In[43]:
 
 ###########
 #Check if starting from checkpoint
@@ -146,7 +146,7 @@ for dirpath, dirnames, files in os.walk(checkpointLoadPath):
         checkpointLoad = False
 
 
-# In[6]:
+# In[44]:
 
 # setup summary output file (name above)
 if checkpointLoad:
@@ -177,7 +177,7 @@ else:
 
 # **Use pint to setup any unit conversions we'll need**
 
-# In[7]:
+# In[45]:
 
 u = pint.UnitRegistry()
 cmpery = 1.*u.cm/u.year
@@ -187,7 +187,7 @@ spery = year.to(u.sec)
 cmpery.to(mpermy)
 
 
-# In[8]:
+# In[46]:
 
 #box_half_width =4000e3
 #age_at_trench = 100e6
@@ -198,7 +198,7 @@ cmpery.to(mpermy)
 
 # **Set parameter dictionaries**
 
-# In[9]:
+# In[47]:
 
 ###########
 #Parameter / settings dictionaries get saved&loaded using pickle
@@ -211,7 +211,7 @@ md = edict({}) #model paramters, flags etc
 #od = edict({}) #output frequencies
 
 
-# In[10]:
+# In[48]:
 
 dict_list = [dp, sf, ndp, md]
 dict_names = ['dp.pkl', 'sf.pkl', 'ndp.pkl', 'md.pkl']
@@ -248,7 +248,7 @@ def load_pickles():
     return dp, ndp, sf, md
 
 
-# In[11]:
+# In[49]:
 
 #dimensional parameter dictionary
 dp = edict({'LS':2900.*1e3,
@@ -285,7 +285,7 @@ dp.TI = dp.TS + dp.deltaT
 
 
 
-# In[12]:
+# In[50]:
 
 #Modelling and Physics switches
 
@@ -301,11 +301,12 @@ md = edict({'refineMesh':True,
             'lower_mantle':False,
             'faultType':'None', #or 'Trans', Iso', or None
             'RES':32,
+            'loadRES':64,
             'elementType':"Q1/dQ0"
             })
 
 #print(md.faultType)
-# In[13]:
+# In[51]:
 
 ###########
 #If starting from a checkpoint load params from file
@@ -315,7 +316,7 @@ if checkpointLoad:
     dp, ndp, sf, md = load_pickles()  #remember to add any extra dictionaries
 
 
-# In[14]:
+# In[52]:
 
 ###########
 #If command line args are given, overwrite
@@ -374,7 +375,7 @@ for farg in sys.argv[1:]:
 comm.barrier()
 
 
-# In[15]:
+# In[53]:
 
 if not checkpointLoad:
     sf = edict({'stress':dp.LS**2/(dp.k*dp.eta0),
@@ -429,7 +430,7 @@ ndp.StRA = (3300.*dp.g*(dp.LS)**3)/(dp.eta0 *dp.k) #Composisitional Rayleigh num
 
 # **Model setup parameters**
 
-# In[16]:
+# In[54]:
 
 ###########
 #Model setup parameters
@@ -480,16 +481,16 @@ ppc = 25
 #Metric output stuff
 figures =  'gldb' #glucifer Store won't work on all machines, if not, set to 'gldb' 
 swarm_repop, swarm_update = 1e6, 20
-gldbs_output = 200
-checkpoint_every, files_output = 5, 20
-metric_output = 20
+gldbs_output = 5
+checkpoint_every, files_output = 100, 100
+metric_output = 10
 sticky_air_temp = 1e6
 
 
 # Create mesh and finite element variables
 # ------
 
-# In[17]:
+# In[55]:
 
 
 
@@ -509,7 +510,7 @@ pressureField.data[:]       = 0.
 temperatureDotField.data[:] = 0.
 
 
-# In[18]:
+# In[56]:
 
 coordinate = fn.input()
 depthFn = MAXY - coordinate[1] #a function providing the depth
@@ -526,12 +527,12 @@ yFn = coordinate[1]
 
 # ## Mesh refinement
 
-# In[19]:
+# In[57]:
 
 print("mesh shape is :", mesh.data.shape)
 
 
-# In[20]:
+# In[58]:
 
 mesh.reset()
 
@@ -578,7 +579,7 @@ with mesh.deform_mesh():
 
 
 
-# In[21]:
+# In[59]:
 
 fig= glucifer.Figure()
 #fig.append( glucifer.objects.Surface(mesh, yField))
@@ -592,7 +593,7 @@ fig.append(glucifer.objects.Mesh(mesh))
 # -------
 # 
 
-# In[22]:
+# In[60]:
 
 #Sinusoidal initial condition
 A = 0.2
@@ -619,19 +620,19 @@ tempFn = blFn #partition the temp between these two fuctions
 #tempFn = sinFn #partition the temp between these two fuctions
 
 
-# In[23]:
+# In[61]:
 
 if not checkpointLoad:
     temperatureField.data[:] = tempFn.evaluate(mesh)  
 
 
-# In[24]:
+# In[62]:
 
 np.random.seed(20)#set seed for reproducibility
 temperatureField.data[:,0] += (np.random.rand(mesh.data.shape[0]) -  0.5)*1e-2
 
 
-# In[25]:
+# In[63]:
 
 #Make sure material in stick air region is at the surface temperature.
 for index, coord in enumerate(mesh.data):
@@ -639,12 +640,9 @@ for index, coord in enumerate(mesh.data):
                 temperatureField.data[index] = ndp.TSP
 
 
-# In[26]:
+# In[ ]:
 
-#fig= glucifer.Figure()
-#fig.append( glucifer.objects.Surface(mesh, temperatureField))
-#fig.append( glucifer.objects.Points(swarm, temperatureField))
-#fig.show()
+
 
 
 # In[ ]:
@@ -654,7 +652,7 @@ for index, coord in enumerate(mesh.data):
 
 # **Boundary conditions**
 
-# In[27]:
+# In[64]:
 
 for index in mesh.specialSets["MinJ_VertexSet"]:
     temperatureField.data[index] = ndp.TIP
@@ -699,7 +697,7 @@ neumannTempBC = uw.conditions.NeumannCondition( dT_dy, variable=temperatureField
 # -----
 # 
 
-# In[28]:
+# In[65]:
 
 ###########
 #Material Swarm and variables
@@ -744,14 +742,111 @@ signedDistanceVariable.data[:] = 0.0
 
 
 
-# In[29]:
+# In[66]:
+
+if not 'loadRES' in md.keys():
+    md.loadRES = 64
+
+
+# In[67]:
+
+print("refining meshSaved")
+
+
+# In[68]:
 
 if checkpointLoad:
+    
+    
+    ###Hardcode the subduction zone location, for some reason this isn't going in the dict
+    ndp.subzone=0.375
+       
+    loadXres = int(md.loadRES*md.aspectRatio*2)
+    if md.stickyAir:
+        loadYres = int(md.loadRES)
+    
+    else:
+        loadYres = int(md.loadRES)
+    
+    
+    meshSaved = uw.mesh.FeMesh_Cartesian(  elementType = (md.elementType),
+                                 elementRes  = (loadXres, loadYres), 
+                                 minCoord    = (MINX, MINY), 
+                                 maxCoord    = (MAXX, MAXY), periodic=periodic, partitioned=True)
+    
+    
+    
+    temperatureFieldSaved    = uw.mesh.MeshVariable( mesh=meshSaved,         nodeDofCount=1 )
+    temperatureDotFieldSaved = uw.mesh.MeshVariable( mesh=meshSaved,         nodeDofCount=1 )
+    pressureFieldSaved       = uw.mesh.MeshVariable( mesh=meshSaved.subMesh, nodeDofCount=1 )
+    velocityFieldSaved       = uw.mesh.MeshVariable( mesh=meshSaved,         nodeDofCount=2 )
+    
+
+    savedjWalls = meshSaved.specialSets["MinJ_VertexSet"] + meshSaved.specialSets["MaxJ_VertexSet"]
+    yFn = coordinate[1]
+    yField = uw.mesh.MeshVariable( mesh=meshSaved, nodeDofCount=1 )
+    yField.data[:] = 0.
+    yBC = uw.conditions.DirichletCondition( variable=yField, indexSetsPerDof=(savedjWalls,) )
+
+    # set bottom wall temperature bc
+    for index in meshSaved.specialSets["MinJ_VertexSet"]:
+        yField.data[index] = meshSaved.minCoord[1]
+    # set top wall temperature bc
+    for index in meshSaved.specialSets["MaxJ_VertexSet"]:
+        yField.data[index] = meshSaved.maxCoord[1]
+
+
+
+    s = 2.
+    intensityFac = 5.
+    intensityFn = MINY + (MAXY-MINY)*(((yFn - MINY)/(MAXY-MINY))**s)
+    intensityFn *= intensityFac
+    intensityFn += 1.
+
+
+    yLaplaceEquation = uw.systems.SteadyStateHeat(temperatureField=yField, fn_diffusivity=intensityFn, conditions=[yBC,])
+
+    # get the default heat equation solver
+    yLaplaceSolver = uw.systems.Solver(yLaplaceEquation)
+    # solve
+    yLaplaceSolver.solve()
+
+
+    #Get the array of Y positions - copy may be necessary, not sure. 
+    newYpos = yField.data.copy() 
+
+    uw.barrier()
+    with meshSaved.deform_mesh():
+         meshSaved.data[:,1] = newYpos[:,0]
+            
+uw.barrier()
+
+
+# In[69]:
+
+print("loading saved vars.")
+
+
+# In[70]:
+
+if checkpointLoad:
+    
+
+    
+    
     checkpointLoadDir = natsort.natsort(checkdirs)[-1]
-    temperatureField.load(os.path.join(checkpointLoadDir, "temperatureField" + ".hdf5"))
-    pressureField.load(os.path.join(checkpointLoadDir, "pressureField" + ".hdf5"))
-    velocityField.load(os.path.join(checkpointLoadDir, "velocityField" + ".hdf5"))
-    swarm.load(os.path.join(checkpointLoadDir, "swarm" + ".h5"))
+    temperatureFieldSaved.load(os.path.join(checkpointLoadDir, "temperatureField" + ".hdf5"))
+    pressureFieldSaved.load(os.path.join(checkpointLoadDir, "pressureField" + ".hdf5"))
+    velocityFieldSaved.load(os.path.join(checkpointLoadDir, "velocityField" + ".hdf5"))
+    #swarm.load(os.path.join(checkpointLoadDir, "swarm" + ".h5"))
+    
+    
+    temperatureField.data[:]    = temperatureFieldSaved.evaluate( mesh )
+    pressureField.data[:]       = pressureFieldSaved.evaluate( mesh.subMesh )
+    velocityField.data[:]       = velocityFieldSaved.evaluate( mesh )
+    #temperatureDotField.data[:] = temperatureDotFieldSaved.evaluate( mesh ) #Swarm is Passive in this model, not needed
+    
+uw.barrier()
 
 
 # 
@@ -786,6 +881,32 @@ if checkpointLoad:
 #     for particleID in range(gSwarm.particleCoordinates.data.shape[0]):
 #         if (1. - gSwarm.particleCoordinates.data[particleID][1]) < MANTLETOCRUST:
 #                  materialVariable.data[particleID] = crustIndex
+
+# In[71]:
+
+ndp.subzone
+
+
+# In[72]:
+
+###########
+#Little swarm to track subduction zone, ridge location
+###########
+swarmPlateBoundary = uw.swarm.Swarm( mesh=mesh )
+
+swarmCoords = np.array([ [ndp.subzone,1.]])
+
+
+swarmPlateBoundary.add_particles_with_coordinates(swarmCoords)
+
+
+# In[73]:
+
+#fig= glucifer.Figure()
+#fig.append( glucifer.objects.Surface(mesh, temperatureField))
+#fig.append( glucifer.objects.Points(swarmPlateBoundary, pointSize=3))
+#fig.show()
+
 
 # **Passive tracer layout**
 

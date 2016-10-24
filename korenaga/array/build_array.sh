@@ -1,18 +1,14 @@
 #!/bin/bash
 counter=1
 
-for d in 1.0 2.0 10.0
+
+for a in 'None' 'Iso' 'Trans'
 do
-   for a in 1.0 1.3 1.8
+   for b in 1.0 2.0 4.0 8.0
    do
-      for b in 0.5 0.1
-      do
-         for c in 1.0 1.4
-         do
-            qsub -v COUNTER=$counter,D=$d,A=$a,B=$b,C=$c array.pbs
-            let counter=counter+1
-            #if [ "$counter" -gt 1 ]; then break 4; fi; #use this line to test limited set
-         done
-      done
+      echo $a $b $counter
+      #qsub -v COUNTER=$counter,D=$d,A=$a,B=$b,C=$c array.pbs
+      let counter=counter+1
+      #if [ "$counter" -gt 1 ]; then break 2; fi; #use this line to test limited set
    done
 done

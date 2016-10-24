@@ -1,10 +1,11 @@
-##PBS -P m18
+#!/bin/bash
+#PBS -P m18
 #PBS -q normal
-#PBS -l walltime=8:00:00
-#PBS -l mem=16GB
-#PBS -l ncpus=16
+#PBS -l walltime=08:00:00
+#PBS -l mem=32GB
+#PBS -l ncpus=32
 #PBS -l wd
-#PBS -m ae
+
 
 
 # setup the environment for building and running Underworld on raijin.nci.org
@@ -26,4 +27,4 @@ export MPIRUN=mpiexec
 export PYTHONPATH=/short/m18/dds563/underworld2/:$PYTHONPATH
 
 
-$MPIRUN -np $PBS_NCPUS --mca mpi_warn_on_fork 0 python korenaga-Fault.py A $COUNTER md.RES=192 md.RES=32 md.faultType=$A dp.fc*=$B
+$MPIRUN -np $PBS_NCPUS --mca mpi_warn_on_fork 0 python korenaga-Fault.py T 8  md.RES=128 md.elementType="Q2/dpc1" md.faultType="Iso" md.periodicBcs=True
