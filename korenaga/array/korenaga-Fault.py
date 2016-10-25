@@ -18,7 +18,7 @@
 # Korenaga, Jun. "Scaling of plate tectonic convection with pseudoplastic rheology." Journal of Geophysical Research: Solid Earth 115.B11 (2010).
 # http://onlinelibrary.wiley.com/doi/10.1029/2010JB007670/full
 
-# In[38]:
+# In[1]:
 
 import numpy as np
 import underworld as uw
@@ -45,7 +45,7 @@ comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 
 
-# In[39]:
+# In[2]:
 
 #####
 #Stubborn version number conflicts - need to figure out my Docker container runs an old version. For now...
@@ -59,7 +59,7 @@ except:
 # Model name and directories
 # -----
 
-# In[40]:
+# In[3]:
 
 ############
 #Model letter and number
@@ -87,7 +87,7 @@ else:
                 Model  = farg
 
 
-# In[41]:
+# In[4]:
 
 ###########
 #Standard output directory setup
@@ -114,7 +114,7 @@ if uw.rank()==0:
         os.makedirs(filePath)
 
 
-# In[42]:
+# In[5]:
 
 ###########
 #you can hard code a different checkpoint Load path here, 
@@ -127,7 +127,7 @@ checkpointLoadPath = 'results/Z/6/checkpoint/'
 comm.Barrier() #Barrier here so no procs run the check in the next cell too early
 
 
-# In[43]:
+# In[6]:
 
 ###########
 #Check if starting from checkpoint
@@ -144,6 +144,13 @@ for dirpath, dirnames, files in os.walk(checkpointLoadPath):
     if not files:
         #print dirpath, 'is empty'
         checkpointLoad = False
+        
+comm.Barrier()
+
+
+# In[8]:
+
+print(checkpointLoad)
 
 
 # In[44]:
@@ -1252,22 +1259,22 @@ solver = uw.systems.Solver(stokesPIC)
 # **Add the non-linear viscosity to the Stokes system**
 # 
 
-# In[1]:
+# solver.set_inner_method("mumps")
+# solver.options.scr.ksp_type="cg"
+# solver.set_penalty(1.0e6)
+# solver.options.scr.ksp_rtol = 1.0e-3
+# solver.solve(nonLinearIterate=True)
+# solver.print_stats()
+
+# In[ ]:
 
 solver.set_inner_method("mumps")
 solver.options.scr.ksp_type="cg"
-solver.set_penalty(1.0e6)
-solver.options.scr.ksp_rtol = 1.0e-3
+solver.set_penalty(1.0e7)
+solver.options.scr.ksp_rtol = 1.0e-4
 solver.solve(nonLinearIterate=True)
 solver.print_stats()
 
-
-# solver.set_inner_method("mumps")
-# solver.options.scr.ksp_type="cg"
-# solver.set_penalty(1.0e7)
-# solver.options.scr.ksp_rtol = 1.0e-4
-# solver.solve(nonLinearIterate=True)
-# solver.print_stats()
 
 # solver.set_inner_method("mumps")
 # solver.set_penalty(1.0e6)
