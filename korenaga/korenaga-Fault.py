@@ -676,18 +676,18 @@ freeslipBC = uw.conditions.DirichletCondition( variable      = velocityField,
                                                indexSetsPerDof = ( iWalls, jWalls) )
 
 
-if md.periodicBcs:
-    freeslipBC = uw.conditions.DirichletCondition( variable      = velocityField, 
-                                                indexSetsPerDof = ( None, jWalls) )
+#if md.periodicBcs:
+#    freeslipBC = uw.conditions.DirichletCondition( variable      = velocityField, 
+#                                                indexSetsPerDof = ( None, jWalls) )
     
 #Try this one again   
 #If periodic, we'll fix a the x-vel at a single node - at the bottom left (index 0)
-#Fixed = mesh.specialSets["Empty"]
-#Fixed.add(int(0))    
-#if md.periodicBcs:
-#    freeslipBC = uw.conditions.DirichletCondition( variable      = velocityField, 
-#                                               indexSetsPerDof = ( Fixed, jWalls) )
-#        
+Fixed = mesh.specialSets["Empty"]
+Fixed.add(int(0))    
+if md.periodicBcs:
+    freeslipBC = uw.conditions.DirichletCondition( variable      = velocityField, 
+                                               indexSetsPerDof = ( Fixed, jWalls) )
+        
 
 # also set dirichlet for temp field
 dirichTempBC = uw.conditions.DirichletCondition(     variable=temperatureField, 
