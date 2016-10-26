@@ -22,7 +22,7 @@
 # Arredondo, Katrina M., and Magali I. Billen. "The Effects of Phase Transitions and Compositional Layering in Two-dimensional Kinematic Models of Subduction." Journal of Geodynamics (2016).
 # 
 
-# In[1]:
+# In[8]:
 
 import numpy as np
 import underworld as uw
@@ -51,7 +51,7 @@ comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 
 
-# In[2]:
+# In[9]:
 
 #####
 #Stubborn version number conflicts - need to figure out my Docker container runs an old version. For now...
@@ -67,7 +67,7 @@ except:
 
 
 
-# In[3]:
+# In[10]:
 
 #store = glucifer.Store('subduction')
 #figParticle = glucifer.Figure( store, figsize=(960,300), name="Particles" )
@@ -78,7 +78,7 @@ except:
 # Model name and directories
 # -----
 
-# In[4]:
+# In[11]:
 
 ############
 #Model letter and number
@@ -106,7 +106,7 @@ else:
                 Model  = farg
 
 
-# In[5]:
+# In[12]:
 
 ###########
 #Standard output directory setup
@@ -136,7 +136,7 @@ if uw.rank()==0:
 comm.Barrier() #Barrier here so no procs run the check in the next cell too early
 
 
-# In[6]:
+# In[13]:
 
 ###########
 #Check if starting from checkpoint
@@ -153,7 +153,7 @@ for dirpath, dirnames, files in os.walk(checkpointPath):
         checkpointLoad = False
 
 
-# In[7]:
+# In[14]:
 
 # setup summary output file (name above)
 if checkpointLoad:
@@ -183,7 +183,7 @@ else:
 
 # **Use pint to setup any unit conversions we'll need**
 
-# In[8]:
+# In[15]:
 
 u = pint.UnitRegistry()
 cmpery = 1.*u.cm/u.year
@@ -193,7 +193,7 @@ spery = year.to(u.sec)
 cmpery.to(mpermy)
 
 
-# In[9]:
+# In[16]:
 
 box_half_width =4000e3
 age_at_trench = 100e6
@@ -208,7 +208,7 @@ print(cmperyear, mpersec )
 # * If starting from checkpoint, parameters are loaded using pickle
 # * If params are passed in as flags to the script, they overwrite 
 
-# In[10]:
+# In[17]:
 
 ###########
 #Parameter / settings dictionaries get saved&loaded using pickle
@@ -221,7 +221,7 @@ md = edict({}) #model paramters, flags etc
 #od = edict({}) #output frequencies
 
 
-# In[11]:
+# In[18]:
 
 dict_list = [dp, sf, ndp, md]
 dict_names = ['dp.pkl', 'sf.pkl', 'ndp.pkl', 'md.pkl']
@@ -258,12 +258,12 @@ def load_pickles():
     return dp, ndp, sf, md
 
 
-# In[12]:
+# In[19]:
 
 1.7*60.
 
 
-# In[13]:
+# In[20]:
 
 ###########
 #Store the physical parameters, scale factors and dimensionless pramters in easyDicts
@@ -361,7 +361,7 @@ dp.deltaTa = (dp.TP + dp.dTa*dp.LS) - dp.TS  #Adiabatic Temp at base of mantle, 
 dp.rTemp= dp.TP + dp.rDepth*dp.dTa #reference temp, (potential temp + adiabat)
 
 
-# In[14]:
+# In[24]:
 
 #Modelling and Physics switches
 
@@ -380,11 +380,18 @@ md = edict({'refineMesh':True,
             #'elementType':"Q2/DPC1",
             'compBuoyancy':False, #use compositional & phase buoyancy, or simply thermal
             'viscMechs':['diffusion', 'dislocation', 'peierls', 'yielding'],
-            'viscCombine':'harmonic' #'harmonic', 'min', 'mixed'....
+            'viscCombine':'harmonic', #'harmonic', 'min', 'mixed'....
+            'secInvFac':math.sqrt(1.),
+            'courantFac':0.5 #extra limitation on timestepping
             })
 
 
-# In[15]:
+# In[25]:
+
+
+
+
+# In[23]:
 
 ###########
 #If starting from a checkpoint load params from file
@@ -540,7 +547,20 @@ if not checkpointLoad:
     ndp.TaP = 1. - ndp.TPP,  #Dimensionles adiabtic component of deltaT
 
 
-# **Model/ mesh  setup parameters**
+# ### Metric output
+
+# In[ ]:
+
+
+figures =  'gldb' #glucifer Store won't work on all machines, if not, set to 'gldb' 
+swarm_repop, swarm_update = 10, 10
+gldbs_output = 50
+checkpoint_every, files_output = 100, 50 #checkpoint every needs to be greater or equal to metric_output 
+metric_output = 10
+sticky_air_temp = 1e6
+
+
+# ### Model/ mesh  setup parameters
 
 # In[18]:
 
@@ -579,13 +599,6 @@ MAXY = 1.
 
 
 
-#Metric output stuff
-figures =  'gldb' #glucifer Store won't work on all machines, if not, set to 'gldb' 
-swarm_repop, swarm_update = 10, 10
-gldbs_output = 50
-checkpoint_every, files_output = 100, 50 #checkpoint every needs to be greater or equal to metric_output 
-metric_output = 10
-sticky_air_temp = 1e6
 
 
 # In[19]:
@@ -828,7 +841,7 @@ for index, coord in enumerate(mesh.data):
 
 
 
-# In[46]:
+# In[47]:
 
 #fig= glucifer.Figure(quality=3)
 
@@ -1546,7 +1559,7 @@ if checkpointLoad:                              #Reload all swarm variables
 ##############
 strainRate_2ndInvariant = fn.tensor.second_invariant( 
                             fn.tensor.symmetric( 
-                            velocityField.fn_gradient ))/(math.sqrt(1.)) #sqrt(0.5) sometime required if differnet definition of eii is used.
+                            velocityField.fn_gradient ))/md.secInvFac # secInvFac sometimes required if differnet definition of eii is used.
 
 def safe_visc(func, viscmin=ndp.eta_min, viscmax=ndp.eta_max):
     return fn.misc.max(viscmin, fn.misc.min(viscmax, func))
@@ -2165,7 +2178,7 @@ _vdintInterface = volumeint(vd,interfaceRestFn)
 #Setup surface integrals
 
 _surfLength = surfint()
-_rmsSurf = surfint(v2x)
+_rmsSurf = surfint(sqrtv2x)
 _nuTop = surfint(dTdZ)
 _nuBottom = surfint(dTdZ, surfaceIndexSet=mesh.specialSets["MinJ_VertexSet"])
 _plateness = surfint(srRestFn)
@@ -2480,7 +2493,7 @@ while realtime < 1.:
 
     # solve Stokes and advection systems
     solver.solve(nonLinearIterate=True)
-    dt = advDiff.get_max_dt()
+    dt = advDiff.get_max_dt()*md.courantFac
     if step == 0:
         dt = 0.
     advDiff.integrate(dt)
