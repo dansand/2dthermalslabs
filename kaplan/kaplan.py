@@ -16,7 +16,7 @@
 # 
 # Kaplan, Michael. Numerical Geodynamics of Solid Planetary Deformation. Diss. University of Southern California, 2015.
 
-# In[91]:
+# In[1]:
 
 import numpy as np
 import underworld as uw
@@ -44,7 +44,7 @@ comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 
 
-# In[92]:
+# In[2]:
 
 #####
 #Stubborn version number conflicts - need to figure out my Docker container runs an old version. For now...
@@ -58,7 +58,7 @@ except:
 # Model name and directories
 # -----
 
-# In[93]:
+# In[3]:
 
 ############
 #Model letter and number
@@ -86,7 +86,7 @@ else:
                 Model  = farg
 
 
-# In[94]:
+# In[4]:
 
 ###########
 #Standard output directory setup
@@ -116,7 +116,7 @@ if uw.rank()==0:
 comm.Barrier() #Barrier here so no procs run the check in the next cell too early
 
 
-# In[95]:
+# In[5]:
 
 ###########
 #Check if starting from checkpoint
@@ -133,7 +133,7 @@ for dirpath, dirnames, files in os.walk(checkpointPath):
         checkpointLoad = False
 
 
-# In[96]:
+# In[6]:
 
 # setup summary output file (name above)
 if checkpointLoad:
@@ -163,7 +163,7 @@ else:
 
 # **Use pint to setup any unit conversions we'll need**
 
-# In[97]:
+# In[7]:
 
 u = pint.UnitRegistry()
 cmpery = 1.*u.cm/u.year
@@ -173,7 +173,7 @@ spery = year.to(u.sec)
 cmpery.to(mpermy)
 
 
-# In[98]:
+# In[8]:
 
 box_half_width =4000e3
 age_at_trench = 100e6
@@ -189,7 +189,7 @@ print(cmperyear, mpersec )
 # * If params are passed in as flags to the script, they overwrite 
 # 
 
-# In[99]:
+# In[9]:
 
 ###########
 #Parameter / settings dictionaries get saved&loaded using pickle
@@ -203,7 +203,7 @@ md = edict({}) #model paramters, flags etc
 
 
 
-# In[100]:
+# In[10]:
 
 dict_list = [dp, sf, ndp, md]
 dict_names = ['dp.pkl', 'sf.pkl', 'ndp.pkl', 'md.pkl']
@@ -240,7 +240,7 @@ def load_pickles():
     return dp, ndp, sf, md
 
 
-# In[101]:
+# In[11]:
 
 ###########
 #Store the physical parameters, scale factors and dimensionless pramters in easyDicts
@@ -252,7 +252,7 @@ dp = edict({'LS':2900*1e3, #Scaling Length scale
             'depth':660*1e3, #Depth of domain
             'rho':3300.,  #reference density
             'g':9.8, #surface gravity
-            'eta0':5e20, #reference viscosity
+            'eta0':2.5e20, #reference viscosity
             'k':1e-6, #thermal diffusivity
             'a':3e-5, #surface thermal expansivity
             'R':8.314, #gas constant
@@ -265,19 +265,19 @@ dp = edict({'LS':2900*1e3, #Scaling Length scale
             'cc':40e6, #mantle cohesion in Byerlee law
             'ci':40e6, #mantle cohesion in Byerlee law
             'cf':40e6, #mantle cohesion in Byerlee law
-            'fcm':0.03,   #mantle friction coefficient in Byerlee law (tan(phi))
-            'fcc':0.03,   #crust friction coefficient 
-            'fci':0.03,   #subduction interface friction coefficient
-            'fcf':0.03,   #subduction interface friction coefficient
+            'fcm':0.06,   #mantle friction coefficient in Byerlee law (tan(phi))
+            'fcc':0.06,   #crust friction coefficient 
+            'fci':0.06,   #subduction interface friction coefficient
+            'fcf':0.06,   #subduction interface friction coefficient
             #Rheology - cutoff values
             'eta_min':1e17, 
             'eta_max':1e25, #viscosity max in the mantle material
-            'eta_min_crust':5e19, #viscosity min in the weak-crust material
-            'eta_max_crust':5e19, #viscosity max in the weak-crust material
-            'eta_min_interface':5e19, #viscosity min in the subduction interface material
-            'eta_max_interface':5e19, #viscosity max in the subduction interface material
-            'eta_min_fault':5e19, #viscosity min in the subduction interface material
-            'eta_max_fault':5e19, #viscosity max in the subduction interface material
+            'eta_min_crust':2.5e19, #viscosity min in the weak-crust material
+            'eta_max_crust':2.5e19, #viscosity max in the weak-crust material
+            'eta_min_interface':2.5e19, #viscosity min in the subduction interface material
+            'eta_max_interface':2.5e19, #viscosity max in the subduction interface material
+            'eta_min_fault':2.5e19, #viscosity min in the subduction interface material
+            'eta_max_fault':2.5e19, #viscosity max in the subduction interface material
             #Length scales
             'MANTLETOCRUST':8.*1e3, #Crust depth
             'HARZBURGDEPTH':40e3,
@@ -315,7 +315,7 @@ dp.deltaT = dp.TP - dp.TS
 
 
 
-# In[102]:
+# In[12]:
 
 #Modelling and Physics switches
 
@@ -328,8 +328,17 @@ md = edict({'refineMesh':True,
             'compBuoyancy':False, #use compositional & phase buoyancy, or simply thermal
             'periodicBcs':False,
             'RES':64,
+            'PIC_integration':True,
+            'ppc':25,
             'elementType':"Q1/dQ0"
             })
+
+#"Q2/DPC1"
+
+
+# In[ ]:
+
+
 
 
 # In[103]:
@@ -483,6 +492,12 @@ if not checkpointLoad:
 
 # **Model setup parameters**
 
+# In[17]:
+
+if 'Q2' in md.elementType:
+    md.RES = int(0.5*md.RES)
+
+
 # In[107]:
 
 ###########
@@ -536,12 +551,6 @@ periodic = [False, False]
 if md.periodicBcs:
     periodic = [True, False]
     
-#elementType = "Q1/dQ0"
-
-
-#System/Solver stuff
-PIC_integration=True
-ppc = 25
 
 
 # ### Metric output
@@ -551,9 +560,9 @@ ppc = 25
 #Metric output stuff
 figures =  'gldb' #glucifer Store won't work on all machines, if not, set to 'gldb' 
 swarm_repop, swarm_update = 10, 10
-gldbs_output = 2
-checkpoint_every, files_output = 4, 2
-metric_output = 2
+gldbs_output = 100
+checkpoint_every, files_output = 200, 100
+metric_output = 10
 sticky_air_temp = 1e6
 
 
@@ -997,7 +1006,7 @@ if checkpointLoad:
 else:
 
     # Layouts are used to populate the swarm across the whole domain
-    layout = uw.swarm.layouts.PerCellRandomLayout(swarm=gSwarm, particlesPerCell=ppc)
+    layout = uw.swarm.layouts.PerCellRandomLayout(swarm=gSwarm, particlesPerCell=md.ppc)
     gSwarm.populate_using_layout( layout=layout ) # Now use it to populate.
     # Swarm variables
     materialVariable.data[:] = mantleIndex
@@ -1479,29 +1488,6 @@ proximityVariable.data[gSwarm.particleCoordinates.data[:,1]  < (1. - ndp.CRUSTVI
 edotn_SFn, edots_SFn = fault_strainrate_fns(interfaces, velocityField, directorVector, proximityVariable)
 
 
-# In[144]:
-
-#Have to add these new swarm variable to our variable lists if we want them to get checkpointed
-
-#varlist.append(proximityVariable )
-#varlist.append(signedDistanceVariable)
-#varlist.append(directorVector)
-
-#varnames.append('proximityVariable')
-#varnames.append('signedDistanceVariable')
-#varnames.append('directorVector')
-
-
-#if checkpointLoad:                              #Reload all swarm variables 
-#    for ix in range(len(varlist)):
-#        varb = varlist[ix]
-#        varb.load(os.path.join(checkpointLoadDir,varnames[ix] + ".h5"))
-        
- 
-
- 
-
-
 # In[ ]:
 
 
@@ -1673,7 +1659,17 @@ buoyancyFn = densityMapFn * gravity
 
 # In[154]:
 
-stokesPIC = uw.systems.Stokes(velocityField=velocityField, 
+if md.PIC_integration:
+    stokesPIC = uw.systems.Stokes(velocityField=velocityField, 
+                              pressureField=pressureField,
+                              conditions=[freeslipBC,],
+                              fn_viscosity=linearviscosityFn, 
+                              fn_bodyforce=buoyancyFn,
+                             swarm=gSwarm)
+    
+
+else:
+    stokesPIC = uw.systems.Stokes(velocityField=velocityField, 
                               pressureField=pressureField,
                               conditions=[freeslipBC,],
                               fn_viscosity=linearviscosityFn, 
@@ -1803,7 +1799,7 @@ passiveadvector = uw.systems.SwarmAdvector( swarm         = gSwarm,
 
 # In[165]:
 
-population_control = uw.swarm.PopulationControl(gSwarm,deleteThreshold=0.2,splitThreshold=1.,maxDeletions=3,maxSplits=0, aggressive=True, particlesPerCell=ppc)
+population_control = uw.swarm.PopulationControl(gSwarm,deleteThreshold=0.2,splitThreshold=1.,maxDeletions=3,maxSplits=0, aggressive=True, particlesPerCell=md.ppc)
 
 
 # Analysis functions / routines
@@ -1915,14 +1911,14 @@ respltFn = fn.branching.conditional(respltconditions )
 
 # In[90]:
 
-figR= glucifer.Figure()
+#figR= glucifer.Figure()
 #fig.append( glucifer.objects.Points(gSwarm,respltFn))
 #fig.append( glucifer.objects.Points(gSwarm,lithRestFn))
-figR.append( glucifer.objects.Points(gSwarm,lowerPlateRestFn))
+#figR.append( glucifer.objects.Points(gSwarm,lowerPlateRestFn))
 #fig.append( glucifer.objects.Points(gSwarm,hinge180RestFn))
 #fig.append( glucifer.objects.Points(gSwarm,interfaceRestFn))
 #fig.show()
-figR.save_database('lptest.gldb')
+#figR.save_database('lptest.gldb')
 
 
 # In[91]:

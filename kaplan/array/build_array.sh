@@ -1,12 +1,12 @@
 #!/bin/bash
 counter=1
-for a in 0.15 0.25 0.5
+for a in "Q1/dQ0" "Q2/DPC1"
 do
-   for b in 0.5 1.0 2.0
+   for b in "True" "False"
    do
-      for c in 0.75 1.0
+      for c in 128 192 256
       do
-        for d in 0.5 1.0 2.0
+        for d in 25 50 75
         do
            qsub -v COUNTER=$counter,A=$a,B=$b,C=$c,D=$d array.pbs
            let counter=counter+1
