@@ -873,7 +873,7 @@ fig= glucifer.Figure()
 fig.append( glucifer.objects.Surface(mesh, temperatureField))
 #fig.append( glucifer.objects.Points(swarmPlateBoundary, pointSize=3))
 #fig.show()
-fig.save_database('test.gldb')
+#fig.save_database('test.gldb')
 
 
 # Set up material parameters and functions
