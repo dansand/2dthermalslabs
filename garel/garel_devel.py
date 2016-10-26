@@ -386,11 +386,6 @@ md = edict({'refineMesh':True,
             })
 
 
-# In[25]:
-
-
-
-
 # In[23]:
 
 ###########
@@ -552,7 +547,7 @@ if not checkpointLoad:
 # In[ ]:
 
 
-figures =  'gldb' #glucifer Store won't work on all machines, if not, set to 'gldb' 
+figures =  'store' #glucifer Store won't work on all machines, if not, set to 'gldb' 
 swarm_repop, swarm_update = 10, 10
 gldbs_output = 50
 checkpoint_every, files_output = 100, 50 #checkpoint every needs to be greater or equal to metric_output 
@@ -2328,6 +2323,9 @@ elif figures == 'store':
 
     figMech= glucifer.Figure(store, figsize=(300*np.round(md.aspectRatio,2),300))
     figMech.append( glucifer.objects.Points(gSwarm,fnViscMin))
+    
+    figMat= glucifer.Figure(store, figsize=(300*np.round(md.aspectRatio,2),300))
+    figMat.append( glucifer.objects.Points(gSwarm,materialVariable))
 
 
 # **Miscellania**
@@ -2700,6 +2698,7 @@ while realtime < 1.:
             figVisc.save( fullpath + "Visc" + str(step).zfill(4))
             figMech.save( fullpath + "Mech" + str(step).zfill(4))
             figTemp.save( fullpath + "Temp"    + str(step).zfill(4))
+            figMat.save( fullpath + "Mat"    + str(step).zfill(4))
             #figSr.save( fullpath + "Str_rte"    + str(step).zfill(4))
             
         
