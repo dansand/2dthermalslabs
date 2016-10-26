@@ -1006,7 +1006,7 @@ if checkpointLoad:
 else:
 
     # Layouts are used to populate the swarm across the whole domain
-    layout = uw.swarm.layouts.PerCellRandomLayout(swarm=gSwarm, particlesPerCell=md.ppc)
+    layout = uw.swarm.layouts.PerCellRandomLayout(swarm=gSwarm, particlesPerCell=int(md.ppc))
     gSwarm.populate_using_layout( layout=layout ) # Now use it to populate.
     # Swarm variables
     materialVariable.data[:] = mantleIndex
@@ -1799,7 +1799,7 @@ passiveadvector = uw.systems.SwarmAdvector( swarm         = gSwarm,
 
 # In[165]:
 
-population_control = uw.swarm.PopulationControl(gSwarm,deleteThreshold=0.2,splitThreshold=1.,maxDeletions=3,maxSplits=0, aggressive=True, particlesPerCell=md.ppc)
+population_control = uw.swarm.PopulationControl(gSwarm,deleteThreshold=0.2,splitThreshold=1.,maxDeletions=3,maxSplits=0, aggressive=True, particlesPerCell=int(md.ppc))
 
 
 # Analysis functions / routines
