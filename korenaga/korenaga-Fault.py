@@ -292,7 +292,7 @@ dp.TI = dp.TS + dp.deltaT
 
 
 
-# In[31]:
+# In[14]:
 
 #Modelling and Physics switches
 
@@ -497,7 +497,7 @@ ppc = 25
 #Metric output stuff
 figures =  'gldb' #glucifer Store won't work on all machines, if not, set to 'gldb' 
 swarm_repop, swarm_update = 1e6, 20
-gldbs_output = 5
+gldbs_output = 50
 checkpoint_every, files_output = 100, 100
 metric_output = 10
 sticky_air_temp = 1e6
@@ -651,18 +651,20 @@ for index, coord in enumerate(mesh.data):
                 temperatureField.data[index] = ndp.TSP
 
 
-# In[52]:
+# In[28]:
 
 mesh.elementRes, mesh.elementType
 
 
-# In[55]:
+# In[30]:
 
 #instead of checkpoint loading, do this
 
 
-if (md.loadTemp ==True) and (md.RES==128):
+if (md.loadTemp ==True) and (md.RES==128) and (checkpointLoad==False):
     temperatureField.load(os.path.join("temperature128.h5"))
+    
+    ndp.subzone=0.375 #may have to hardcode the desired subzone location 
 
 
 # #This whole bit can read in and resave a field at a different resolution
@@ -1068,7 +1070,7 @@ fthickness = (1./md.RES)
 
 forientation = np.radians(ndp.orientation)
 flength    = ndp.faultDepth/np.tan(forientation)
-fstart = ndp.subzone - 2.*ndp.w0
+fstart = ndp.subzone 
 faultLine1 = (fstart, 1.0)
 faultLine2 = (faultLine1[0] - flength * np.cos(forientation), faultLine1[1]-flength*np.sin(forientation) )
 
@@ -1260,6 +1262,19 @@ solver.print_stats()
 # solver.set_penalty(1.0)
 # solver.solve( nonLinearIterate=True, nonLinearTolerance=0.00001, print_stats=False)
 # solver.print_stats()
+
+# In[32]:
+
+if not checkpointLoad:
+    temperatureField.save('temp0.h5')
+    velocityField.save('vel0.h5')
+    pressureField.save('press0.h5')
+
+
+# In[ ]:
+
+
+
 
 # **Create an advective diffusive system**
 

@@ -1,7 +1,7 @@
-##PBS -P m18
+#PBS -P m18
 #PBS -q normal
 #PBS -l walltime=8:00:00
-#PBS -l mem=16GB
+#PBS -l mem=32GB
 #PBS -l ncpus=16
 #PBS -l wd
 #PBS -m ae
