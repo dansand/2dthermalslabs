@@ -826,6 +826,8 @@ swarm = uw.swarm.Swarm(mesh=mesh, particleEscape=True)
 
 #create material swarm
 swarm = uw.swarm.Swarm(mesh=mesh, particleEscape=True)
+vswarm = uw.swarm.Swarm(mesh=mesh, particleEscape=True)
+
 
 proximityVariable      = swarm.add_variable( dataType="int", count=1 )
 signedDistanceVariable = swarm.add_variable( dataType="float", count=1 )
@@ -855,6 +857,9 @@ else:
     # Layouts are used to populate the swarm across the whole domain
     layout = uw.swarm.layouts.PerCellRandomLayout(swarm=swarm, particlesPerCell=int(md.ppc))
     swarm.populate_using_layout( layout=layout ) # Now use it to populate.
+    
+    layout1 = uw.swarm.layouts.PerCellRandomLayout(swarm=vswarm, particlesPerCell=int(md.ppc/8))
+    vswarm.populate_using_layout( layout=layout1 ) # Now use it to populate.
     # Swarm variables
     directorVector.data[:,:] = 0.0
     proximityVariable.data[:] = 0
@@ -1487,13 +1492,13 @@ if figures == 'store':
     store = glucifer.Store(fullpath + 'subduction.gldb')
 
     figTemp = glucifer.Figure(store,figsize=(300*np.round(md.aspectRatio,2),300))
-    figTemp.append( glucifer.objects.Points(swarm,temperatureField))
+    figTemp.append( glucifer.objects.Points(vswarm,temperatureField))
 
     figVisc= glucifer.Figure(store, figsize=(300*np.round(md.aspectRatio,2),300))
-    figVisc.append( glucifer.objects.Points(swarm,mantleviscosityFn, logScale=True, valueRange =[1e-3,1e5]))
+    figVisc.append( glucifer.objects.Points(vswarm,mantleviscosityFn, logScale=True, valueRange =[1e-3,1e5]))
     
     figSr= glucifer.Figure(store, figsize=(300*np.round(md.aspectRatio,2),300))
-    figSr.append( glucifer.objects.Points(swarm,strainRate_2ndInvariant, logScale=True))
+    figSr.append( glucifer.objects.Points(vswarm,strainRate_2ndInvariant, logScale=True))
     figSr.append( glucifer.objects.VectorArrows(mesh,velocityField, scaling=0.0005))
     
 if figures == 'gldb':
@@ -1505,9 +1510,9 @@ if figures == 'gldb':
     #figDb.append( glucifer.objects.Points(swarm,materialVariable))
     #figDb.append( glucifer.objects.Points(swarm,viscMinVariable))
     #figDb.append( glucifer.objects.Points(swarm,fnViscMin))
-    figDb.append( glucifer.objects.Points(swarm, mantleviscosityFn, logScale=True))
+    figDb.append( glucifer.objects.Points(vswarm, mantleviscosityFn, logScale=True))
     #figDb.append( glucifer.objects.Points(swarm, strainRate_2ndInvariant, logScale=True))
-    figDb.append( glucifer.objects.Points(swarm,temperatureField))
+    figDb.append( glucifer.objects.Points(vswarm,temperatureField))
 
 
 # #### Miscellania
