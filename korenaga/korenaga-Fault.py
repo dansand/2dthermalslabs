@@ -1120,7 +1120,10 @@ fig.append( glucifer.objects.Points(swarm, proximityVariable))
 # Delta Visc 
 
 
-viscosityTI2_fn = fn.misc.min(mantleviscosityFn*0.999, fn.misc.max(0.0, mantleviscosityFn -  ndp.etaFault))
+#viscosityTI2_fn = fn.misc.min(mantleviscosityFn*0.999, fn.misc.max(0.0, mantleviscosityFn -  ndp.etaFault))
+
+viscosityTI2_fn = fn.misc.max(0.0, mantleviscosityFn -  ndp.etaFault)
+
 
 viscosityTIMap    = { 0: 0.0, 
                      1: viscosityTI2_fn
