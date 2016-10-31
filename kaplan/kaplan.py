@@ -1431,10 +1431,14 @@ slabCoords = slabCoords[slabCoords[:,1] > (MAXY - ndp.maxDepth)] #kill any deepe
 # In[142]:
 
 #Initiaze the swarms in a 
-fault_seg  = marker2D.markerLine2D(mesh, velocityField, [], [], faultthickness, 0.0, 0.0, crustIndex)
-surface_seg  = marker2D.markerLine2D(mesh, velocityField, [], [], ndp.StALS, 0.0, 0.0, airIndex)
-slab_seg  = marker2D.markerLine2D(mesh, velocityField, [], [], 1e9/dp.LS, 0.0, 0.0, crustIndex)   #Note very large fault thickness 
+#fault_seg  = marker2D.markerLine2D(mesh, velocityField, [], [], faultthickness, 0.0, 0.0, crustIndex)
+#surface_seg  = marker2D.markerLine2D(mesh, velocityField, [], [], ndp.StALS, 0.0, 0.0, airIndex)
+#slab_seg  = marker2D.markerLine2D(mesh, velocityField, [], [], 1e9/dp.LS, 0.0, 0.0, crustIndex)   #Note very large fault thickness 
 
+
+fault_seg  = markerLine2D(mesh, velocityField, [], [], faultthickness,  crustIndex)
+surface_seg  = markerLine2D(mesh, velocityField, [], [], ndp.StALS, airIndex)
+slab_seg  = markerLine2D(mesh, velocityField, [], [], 1e9/dp.LS,  crustIndex)
 
 #These lists are used to checkpoint the marker lines, similar to the swarm variables.        
 interfaces = []
@@ -1665,7 +1669,7 @@ if md.PIC_integration:
                               conditions=[freeslipBC,],
                               fn_viscosity=linearviscosityFn, 
                               fn_bodyforce=buoyancyFn,
-                             swarm=gSwarm)
+                             voronoi_swarm=gSwarm)
     
 
 else:

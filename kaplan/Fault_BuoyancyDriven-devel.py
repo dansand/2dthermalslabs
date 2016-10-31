@@ -8,7 +8,7 @@
 # 
 # 
 
-# In[1]:
+# In[19]:
 
 import underworld as uw
 from underworld import function as fn
@@ -27,21 +27,26 @@ import math
 import os
 
 
-# In[2]:
+# ## Output dirs. and model params
+
+# In[20]:
 
 
 workdir = os.path.abspath(".")
 outputPath = os.path.join(workdir,"output")
+faultswarmPath = os.path.join(outputPath ,"faultswarm")
 
 
 if uw.rank() == 0:
     if not os.path.exists(outputPath):
         os.makedirs(outputPath)
+    if not os.path.exists(faultswarmPath):
+        os.makedirs(faultswarmPath)
     
 uw.barrier()   
 
 
-# In[3]:
+# In[21]:
 
 
 pd = edict({}) #parameters dictionary
@@ -67,11 +72,14 @@ pd = edict({'fthickness':0.015,
     
 
 md = edict({'RES':64,
-            'elementType':"Q1/dQ0"})
+            'elementType':"Q1/dQ0",
+           'deformMesh':False,
+           'PIC_integration':False,
+           'epsilon':0.5}) #how far beyond fault to calculate certain metrics, given as a fraction of pd.fthickness
 
 
 
-# In[4]:
+# In[22]:
 
 #Model number identifier default:
 ModNum = 0
@@ -91,7 +99,7 @@ else:
                 Pass
 
 
-# In[5]:
+# In[23]:
 
 ###########
 #If extra arguments are provided to the script" eg:
@@ -134,15 +142,15 @@ for farg in sys.argv[1:]:
 uw.barrier()
 
 
-# In[6]:
+# In[24]:
 
 print("parameter dictionary: ", pd)
 print("model dictionary: ", md)
 
 
-# ## Model
+# ## Mesh and FEvariables
 
-# In[7]:
+# In[25]:
 
 #def run_the_fault(num=1, fthickness = 0.0075, friction_mu = 0.00001, friction_C  = 0.00001, friction_min = 0.00001):
 
@@ -204,11 +212,126 @@ depthFn = maxY - coordinate[1] #a function providing the depth
    
 
 
-# In[8]:
+# ## Mesh refinement
 
-#####
-#BCs
-#####
+# In[26]:
+
+
+if md.deformMesh:
+    mesh.reset()
+
+    sig = 0.25
+
+    coord = fn.input()
+    def disGen(centre):
+
+        offsetFn = coord - centre
+        return fn.math.sqrt((0.5*offsetFn[0])**2. + offsetFn[1]**2.)
+
+
+
+    centreX = (mesh.maxCoord[0] - mesh.minCoord[0])/2.
+    centreY = (mesh.maxCoord[1] - mesh.minCoord[1])/2.
+    fXdist = 1.0*sig*(faultLineXs.mean() - centreX)/centreX
+    fYdist = 0.5*sig*(faultLineYs.mean() - centreY)/centreY
+
+    centreX = faultLineXs.mean() - fXdist
+    centreY = faultLineYs.mean() - fYdist
+
+    dFn = disGen((centreX, centreY))
+
+
+    gammaFn =  fn.math.exp(-fn.math.pow(dFn, 2.) / (2. * fn.math.pow(sig, 2.)))
+
+
+
+    gammaFn  = fn.branching.conditional(  ( (dFn < sig,  1.),
+                                                  (        True, 0.)   ) )
+
+
+    gammaFn *= 1.
+    gammaFn += 1.
+
+
+
+
+# In[27]:
+
+if md.deformMesh:
+
+    #Fields to store mesh refinement stuff on
+    yField = uw.mesh.MeshVariable( mesh=mesh, nodeDofCount=1 )
+    yField.data[:] = 0.
+
+    yBC = uw.conditions.DirichletCondition( variable=yField, indexSetsPerDof=(jWalls,) )
+
+    xField = uw.mesh.MeshVariable( mesh=mesh, nodeDofCount=1 )
+    xField.data[:] = 0.
+
+    xBC = uw.conditions.DirichletCondition( variable=xField, indexSetsPerDof=(iWalls,) )
+
+    # set bottom wall temperature bc
+    for index in mesh.specialSets["MinJ_VertexSet"]:
+        yField.data[index] = mesh.minCoord[1]
+    # set top wall temperature bc
+    for index in mesh.specialSets["MaxJ_VertexSet"]:
+        yField.data[index] = mesh.maxCoord[1]
+
+    # set bottom wall temperature bc
+    for index in mesh.specialSets["MinI_VertexSet"]:
+        xField.data[index] = mesh.minCoord[0]
+    ## set top wall temperature bc
+    for index in mesh.specialSets["MaxI_VertexSet"]:
+        xField.data[index] = mesh.maxCoord[0]
+
+
+    yLaplaceEquation = uw.systems.SteadyStateHeat(temperatureField=yField, fn_diffusivity=gammaFn, conditions=[yBC,])
+    xLaplaceEquation = uw.systems.SteadyStateHeat(temperatureField=xField, fn_diffusivity=gammaFn, conditions=[xBC,])
+
+
+    # get the default heat equation solver
+    yLaplaceSolver = uw.systems.Solver(yLaplaceEquation)
+    # solve
+    yLaplaceSolver.solve()
+
+
+    # get the default heat equation solver
+    xLaplaceSolver = uw.systems.Solver(xLaplaceEquation)
+    # solve
+    xLaplaceSolver.solve()
+
+
+# In[28]:
+
+
+if md.deformMesh:
+    mesh.reset()
+
+    #Get the array of Y positions - copy may be necessary, not sure. 
+    newYpos = yField.data.copy()
+    newXpos = xField.data.copy() 
+
+
+    uw.barrier()
+    with mesh.deform_mesh():
+        mesh.data[:,0] = newXpos[:,0]
+        mesh.data[:,1] = newYpos[:,0]
+
+    swarm.update_particle_owners()
+
+
+# In[29]:
+
+fig= glucifer.Figure( figsize=(500,300) )
+fig.append( glucifer.objects.Mesh(mesh))
+#fig.show()
+
+
+# ## BCs
+
+# In[30]:
+
+
 iWalls = mesh.specialSets["MinI_VertexSet"] + mesh.specialSets["MaxI_VertexSet"]
 jWalls = mesh.specialSets["MinJ_VertexSet"] + mesh.specialSets["MaxJ_VertexSet"]
 
@@ -219,11 +342,11 @@ freeslipBC = uw.conditions.DirichletCondition( variable        = velocityField,
                                                indexSetsPerDof = (iWalls, jWalls) )     
 
 
-# In[9]:
+# ## Swarm
 
-#####
-#Swarm
-#####
+# In[31]:
+
+
 swarm  = uw.swarm.Swarm( mesh=mesh, particleEscape=True )
 swarmLayout = uw.swarm.layouts.GlobalSpaceFillerLayout( swarm=swarm, particlesPerCell=50 )
 swarm.populate_using_layout( layout=swarmLayout )
@@ -239,6 +362,10 @@ materialVariable       = swarm.add_variable( dataType="int", count=1 )
 proximityVariable      = swarm.add_variable( dataType="int", count=1 )
 signedDistanceVariable = swarm.add_variable( dataType="float", count=1 )
 directorVector   = swarm.add_variable( dataType="double", count=2)
+tangentVector   = swarm.add_variable( dataType="double", count=2)
+
+swarmNorm = swarm.add_variable( dataType="double", count=2)
+
 
 directorVector.data[:,:] = 0.0
 proximityVariable.data[:] = 0
@@ -260,13 +387,17 @@ conditions = [ (       yCoord > 1.1 ,                      materialA ),
 materialVariable.data[:] = fn.branching.conditional( conditions ).evaluate(swarm)
 
 
-# In[10]:
+# ## Faults and metric swarms
 
-#####
-#Faults 
-#####
-from marker2D import markerLine2D
-#from unsupported.interfaces import markerLine2D
+# In[ ]:
+
+
+
+
+# In[32]:
+
+#from marker2D import markerLine2D
+from unsupported.interfaces import markerLine2D
 faults = []
 
 forientation = np.radians(pd.orientation)
@@ -282,6 +413,38 @@ faultLineYs = np.linspace(faultLine1[1], faultLine2[1], 50)
 
 fault_seg1  = markerLine2D(mesh, velocityField, faultLineXs, faultLineYs, pd.fthickness, 0.0, 0.0, 1)
 faults.append(fault_seg1)
+
+
+#Also add some swarm variables which we'll use later
+refViscosity1 = fault_seg1.swarm.add_variable( dataType="float", count=1 )
+refedotn_SFn = fault_seg1.swarm.add_variable( dataType="float", count=1 )
+refedots_SFn = fault_seg1.swarm.add_variable( dataType="float", count=1 )
+
+wzViscosity1 = fault_seg1.swarm.add_variable( dataType="float", count=1 )
+wzedotn_SFn = fault_seg1.swarm.add_variable( dataType="float", count=1 )
+wzedots_SFn = fault_seg1.swarm.add_variable( dataType="float", count=1 )
+
+uwViscosity1 = fault_seg1.swarm.add_variable( dataType="float", count=1 )
+uwViscosity2 = fault_seg1.swarm.add_variable( dataType="float", count=1 )
+uwedotn_SFn = fault_seg1.swarm.add_variable( dataType="float", count=1 )
+uwedots_SFn = fault_seg1.swarm.add_variable( dataType="float", count=1 )
+
+
+
+
+
+#Build some swarms to track quantities 
+#- we'll advect these into required position laterm hence we'll add a proxy froxy velocity field
+
+#the increased thickness in these guys is a hack, but important
+
+depthCrit = pd.fthickness
+depthMask = np.where(faultLineYs < mesh.maxCoord[1] - depthCrit)
+aboveFault = markerLine2D(mesh, velocityField, faultLineXs[depthMask], faultLineYs[depthMask], pd.fthickness*10., 0.0, 0.0, 1) 
+belowFault = markerLine2D(mesh, velocityField, faultLineXs[depthMask], faultLineYs[depthMask], pd.fthickness*10., 0.0, 0.0, 1)
+
+
+
 
 uw.barrier()
 
@@ -395,7 +558,13 @@ def fault_strainrate_fns(fault_list, velocityField, faultNormalVariable, proximi
     return edotn_SFn, edots_SFn
 
 
+def faults_advance_in_time(faults,proximityVariable, directorVector, signedDistanceVariable, materialVariable, mmask):
+    for f in faults:
+        f.advection(dt)
 
+
+    update_swarm_from_faults(faults, proximityVariable, directorVector, signedDistanceVariable)
+    mask_materials(materialV, materialVariable, proximityVariable, directorVector, signedDistanceVariable)
 
 
 ## Call the Fault helper functions 
@@ -408,11 +577,30 @@ mask_materials(materialV, materialVariable, proximityVariable, directorVector, s
 edotn_SFn, edots_SFn = fault_strainrate_fns(faults, velocityField, directorVector, proximityVariable)
 
 
-# In[12]:
+# In[ ]:
 
-#####
-#Rheology
-#####
+
+
+
+# In[33]:
+
+#aboveFaultNormal  = swarm.add_variable( dataType="double", count=2)
+#aboveFaultNormal.data[:,:] = 0.0
+#dv, nzv = aboveFault.compute_normals(swarm.particleCoordinates.data)
+#aboveFaultNormal.data[nzv] = dv[nzv]
+
+
+# ## Rheology
+# 
+
+# In[34]:
+
+1. - pd.friction_min
+
+
+# In[35]:
+
+
 viscosity   = pd.viscosity
 deltaViscosity = pd.deltaViscosity
 expDepthConstant = fn.misc.constant(math.log(deltaViscosity))
@@ -438,10 +626,13 @@ firstViscosityFn   = pd.deltaViscosity*fn.math.exp(-1.*math.log(pd.deltaViscosit
 
 # Delta Visc 
 
-viscosityTI2_fn = fn.misc.min(firstViscosityFn*delta_f_min, fn.misc.max(0.0, 
+#viscosityTI2_fn = fn.misc.min(firstViscosityFn*delta_f_min, fn.misc.max(0.0, 
+#                     firstViscosityFn - (pd.friction_mu * (-edotn_SFn * firstViscosityFn + pressureField)  + pd.friction_C) / (fn.math.abs(edots_SFn) + 1.0e-15)))
+
+
+
+viscosityTI2_fn = fn.misc.min(firstViscosityFn - pd.friction_min, fn.misc.max(0.0, 
                      firstViscosityFn - (pd.friction_mu * (-edotn_SFn * firstViscosityFn + pressureField)  + pd.friction_C) / (fn.math.abs(edots_SFn) + 1.0e-15)))
-
-
 
 
 # This one maps to the fault-proximity variable 
@@ -468,11 +659,11 @@ viscosityWZFn       =  fn.branching.map( fn_key  = proximityVariable,
                                          mapping = viscosityWZMap )
 
 
-# In[13]:
+# ## Buoyancy and Stokes
 
-#####
-#Buoyancy and Stokes
-#####
+# In[67]:
+
+
 z_hat = ( 0.0, 1.0 )
 Ra = fn.misc.constant(1.0)
 
@@ -550,7 +741,7 @@ solver.solve( nonLinearIterate=True, nonLinearTolerance=0.00001, print_stats=Fal
 uw.barrier()   
 
 
-# In[14]:
+# In[68]:
 
 #pressureField.evaluate_global(mesh).max() 
 #thisGuy = fn.view.min_max(pressureField)
@@ -558,16 +749,9 @@ uw.barrier()
 #pd.friction_C /(thisGuy.max_global()*pd.friction_mu)
 
 
-# In[ ]:
+# ## Metrics and Output
 
-
-
-
-# In[15]:
-
-#####
-#Metrics and Output
-#####
+# In[69]:
 
 def volumeint(Fn = 1., rFn=1.):
     return uw.utils.Integral( Fn*rFn,  mesh )
@@ -576,59 +760,19 @@ def volumeint(Fn = 1., rFn=1.):
 def surfint(Fn = 1., rFn=1., surfaceIndexSet=mesh.specialSets["MaxJ_VertexSet"]):
     return uw.utils.Integral( Fn*rFn, mesh=mesh, integrationType='Surface', surfaceIndexSet=surfaceIndexSet)
 
-
-#First we create some swarm variables that we'll set to 0 or 1, 
-#which will help compute integrals on restricted portions of the domain
-
-onefaultRestFn = swarm.add_variable( dataType="double", count=1 )
-onefaultRestFn.data[:] = 0.
-
-if not fault_seg1.empty: #Can only call fault.kdtree on procs holding part of the fault swarm
-    onefaultRestFn.data[:,0] = fault_seg1.kdtree.query(swarm.particleCoordinates.data)[0][:]
-    onefaultRestFn.data[np.where(onefaultRestFn.data > pd.fthickness)] = 1.
-    onefaultRestFn.data[np.where(onefaultRestFn.data <= pd.fthickness)] = 0. 
-    
-    
-halffaultRestFn = swarm.add_variable( dataType="double", count=1 )
-halffaultRestFn.data[:] = 0.
-
-if not fault_seg1.empty: #Can only call fault.kdtree on procs holding part of the fault swarm
-    halffaultRestFn.data[:,0] = fault_seg1.kdtree.query(swarm.particleCoordinates.data)[0][:]
-    halffaultRestFn.data[np.where(halffaultRestFn.data > 0.5*pd.fthickness)] = 1.
-    halffaultRestFn.data[np.where(halffaultRestFn.data <= 0.5*pd.fthickness)] = 0. 
-    
-twofaultRestFn = swarm.add_variable( dataType="double", count=1 )
-twofaultRestFn.data[:] = 0.
-
-if not fault_seg1.empty: #Can only call fault.kdtree on procs holding part of the fault swarm
-    twofaultRestFn.data[:,0] = fault_seg1.kdtree.query(swarm.particleCoordinates.data)[0][:]
-    twofaultRestFn.data[np.where(twofaultRestFn.data > 2.*pd.fthickness)] = 1.
-    twofaultRestFn.data[np.where(twofaultRestFn.data <= 2.*pd.fthickness)] = 0
     
 oneelementRestFn = swarm.add_variable( dataType="double", count=1 )
 oneelementRestFn.data[:] = 0.
+
+#exactly the same as proximity variable, just to be consistent with the RestrictionFn thing
+faultRestFn = swarm.add_variable( dataType="double", count=1 )
+faultRestFn.data[:] = proximityVariable.data
+
 
 if not fault_seg1.empty: #Can only call fault.kdtree on procs holding part of the fault swarm
     oneelementRestFn.data[:,0] = fault_seg1.kdtree.query(swarm.particleCoordinates.data)[0][:]
     oneelementRestFn.data[np.where(oneelementRestFn.data > 1.0/(resY+1.))] = 1.
     oneelementRestFn.data[np.where(oneelementRestFn.data <= 1.0/(resY+1.))] = 0.
-    
-halfelementRestFn = swarm.add_variable( dataType="double", count=1 )
-halfelementRestFn.data[:] = 0.
-
-if not fault_seg1.empty: #Can only call fault.kdtree on procs holding part of the fault swarm
-    halfelementRestFn.data[:,0] = fault_seg1.kdtree.query(swarm.particleCoordinates.data)[0][:]
-    halfelementRestFn.data[np.where(halfelementRestFn.data > 0.5/(resY+1.))] = 1.
-    halfelementRestFn.data[np.where(halfelementRestFn.data <= 0.5/(resY+1.))] = 0. 
-    
-    
-twoelementRestFn = swarm.add_variable( dataType="double", count=1 )
-twoelementRestFn.data[:] = 0.
-
-if not fault_seg1.empty: #Can only call fault.kdtree on procs holding part of the fault swarm
-    twoelementRestFn.data[:,0] = fault_seg1.kdtree.query(swarm.particleCoordinates.data)[0][:]
-    twoelementRestFn.data[np.where(twoelementRestFn.data > 2.0/(resY+1.))] = 1.
-    twoelementRestFn.data[np.where(twoelementRestFn.data <= 2.0/(resY+1.))] = 0. 
     
     
     
@@ -666,42 +810,20 @@ deltaVuwwz = fn.misc.min(1.0, fn.math.dot(Vuwwz,  Vuwwz))
 
 #Set up the integrals
 
-_area1 = volumeint(1.)                   #integration over entire domain
-_area2 = volumeint(1., rFn=halffaultRestFn)
-_area3 = volumeint(1., rFn=onefaultRestFn)  #integration restricted to area beyond one faultthickness from fault
-_area4 = volumeint(1., rFn=twofaultRestFn)
-_area5 = volumeint(1., rFn=halfelementRestFn)
-_area6 = volumeint(1., rFn=oneelementRestFn) #integration restricted to area beyond one element away from fault
-_area7 = volumeint(1., rFn=twoelementRestFn)
 
+_area = volumeint(1., rFn=oneelementRestFn) #integration restricted to area beyond one element away from fault
+_Vuwr = volumeint(deltaVuwr, rFn=oneelementRestFn)
+_Vwzr = volumeint(deltaVwzr, rFn=oneelementRestFn)
+_Vuwwz = volumeint(deltaVuwwz, rFn=oneelementRestFn)
 
-_Vuwr1 = volumeint(deltaVuwr)
-_Vuwr2 = volumeint(deltaVuwr, rFn=halffaultRestFn)
-_Vuwr3 = volumeint(deltaVuwr, rFn=onefaultRestFn)
-_Vuwr4 = volumeint(deltaVuwr, rFn=twofaultRestFn)
-_Vuwr5 = volumeint(deltaVuwr, rFn=halfelementRestFn)
-_Vuwr6 = volumeint(deltaVuwr, rFn=oneelementRestFn)
-_Vuwr7 = volumeint(deltaVuwr, rFn=twoelementRestFn)
+#fault integrals
+_faultarea = volumeint(1., rFn=faultRestFn) 
+_faultsrSinv = volumeint(strainRate_2ndInvariantFn, rFn=faultRestFn) #integration restricted to area beyond one element away from fault
+_faultIsoVisc = volumeint(viscosityWZFn, rFn=faultRestFn)
+_faultsrShear = volumeint(edots_SFn, rFn=faultRestFn)
+_faultTIVisc = volumeint(firstViscosityFn - viscosityTI2_fn, rFn=faultRestFn) 
+_faultsrNormShear = volumeint(edots_SFn/edotn_SFn, rFn=faultRestFn)
 
-
-_Vwzr1 = volumeint(deltaVwzr)
-_Vwzr2 = volumeint(deltaVwzr, rFn=halffaultRestFn)
-_Vwzr3 = volumeint(deltaVwzr, rFn=onefaultRestFn)
-_Vwzr4 = volumeint(deltaVwzr, rFn=twofaultRestFn)
-_Vwzr5 = volumeint(deltaVwzr, rFn=halfelementRestFn)
-_Vwzr6 = volumeint(deltaVwzr, rFn=oneelementRestFn)
-_Vwzr7 = volumeint(deltaVwzr, rFn=twoelementRestFn)
-
-
-
-
-_Vuwwz1 = volumeint(deltaVuwwz)
-_Vuwwz2 = volumeint(deltaVuwwz, rFn=halffaultRestFn)
-_Vuwwz3 = volumeint(deltaVuwwz, rFn=onefaultRestFn)
-_Vuwwz4 = volumeint(deltaVuwwz, rFn=twofaultRestFn)
-_Vuwwz5 = volumeint(deltaVuwwz, rFn=halfelementRestFn)
-_Vuwwz6 = volumeint(deltaVuwwz, rFn=oneelementRestFn)
-_Vuwwz7 = volumeint(deltaVuwwz, rFn=twoelementRestFn)
 
 
 
@@ -714,40 +836,22 @@ _platenessWz = surfint(srRestFnWz)
 
 
 #Evaluate the integrals
-
-area1 = _area1.evaluate()[0]
-area2 = _area2.evaluate()[0]
-area3 = _area3.evaluate()[0]
-
-dVuwr1 = np.sqrt(_Vuwr1.evaluate()[0]) #TI - ref
-dVuwr2 = np.sqrt(_Vuwr2.evaluate()[0])
-dVuwr3 = np.sqrt(_Vuwr3.evaluate()[0])
-dVuwr4 = np.sqrt(_Vuwr4.evaluate()[0])
-dVuwr5 = np.sqrt(_Vuwr5.evaluate()[0])
-dVuwr6 = np.sqrt(_Vuwr6.evaluate()[0])
-dVuwr7 = np.sqrt(_Vuwr7.evaluate()[0])
-
-dVwzr1 = np.sqrt(_Vwzr1.evaluate()[0]) #Wz - ref
-dVwzr2 = np.sqrt(_Vwzr2.evaluate()[0])
-dVwzr3 = np.sqrt(_Vwzr3.evaluate()[0])
-dVwzr4 = np.sqrt(_Vwzr4.evaluate()[0])
-dVwzr5 = np.sqrt(_Vwzr5.evaluate()[0])
-dVwzr6 = np.sqrt(_Vwzr6.evaluate()[0])
-dVwzr7 = np.sqrt(_Vwzr7.evaluate()[0])
-
-
-dVuwwz1 = np.sqrt( _Vuwwz1.evaluate()[0]) #Ti - wz
-dVuwwz2 = np.sqrt(_Vuwwz2.evaluate()[0])
-dVuwwz3 = np.sqrt(_Vuwwz3.evaluate()[0])
-dVuwwz4 = np.sqrt( _Vuwwz4.evaluate()[0])
-dVuwwz5 = np.sqrt(_Vuwwz5.evaluate()[0])
-dVuwwz6 = np.sqrt(_Vuwwz6.evaluate()[0])
-dVuwwz7 = np.sqrt(_Vuwwz7.evaluate()[0])
+dVuwr = np.sqrt(_Vuwr.evaluate()[0])
+dVwzr = np.sqrt(_Vwzr.evaluate()[0])
+dVuwwz = np.sqrt(_Vuwwz.evaluate()[0])
 
 
 platenessRef = _platenessRef.evaluate()[0]
 platenessUw = _platenessUw.evaluate()[0]
 platenessWz = _platenessWz.evaluate()[0]
+
+
+faultarea = _faultarea.evaluate()[0]
+faultsrSinv = _faultsrSinv.evaluate()[0]
+faultIsoVisc = _faultIsoVisc.evaluate()[0]
+faultsrShear = _faultsrShear.evaluate()[0]
+faultTIVisc = _faultTIVisc.evaluate()[0]
+faultsrNormShear = _faultsrNormShear.evaluate()[0]
 
 
 #Also calculate the ratio of Cohesion to confinement-strength in the Drucker-Prager formulation
@@ -758,15 +862,199 @@ platenessWz = _platenessWz.evaluate()[0]
     
 if uw.rank() == 0:
     f_o = open(os.path.join(outputPath, outputFile), 'a') 
-    f_o.write((30*'%-15s ' + '\n') % (md.RES, md.elementType,
-                                      pd.fthickness, pd.friction_mu, pd.friction_C, pd.friction_min,
-                                      dVuwr1,dVuwr2,dVuwr3,dVuwr4,dVuwr5,dVuwr6, dVuwr7,
-                                      dVwzr1,dVwzr2,dVwzr3,dVwzr4,dVwzr5,dVwzr6, dVwzr7,
-                                      dVuwwz1, dVuwwz2, dVuwwz3,dVuwwz4, dVuwwz5, dVuwwz6, dVuwwz7,
-                                      platenessRef, platenessUw,platenessWz ))
+    f_o.write((21*'%-15s ' + '\n') % (md.RES, md.elementType,
+                                      pd.fthickness, pd.friction_mu, pd.friction_C, pd.friction_min,pd.orientation, pd.viscosity, pd.w0,
+                                      dVuwr,dVwzr,dVuwwz,
+                                      platenessRef, platenessUw,platenessWz,
+                                      faultarea,faultsrSinv,faultIsoVisc, faultsrShear,faultTIVisc,faultsrNormShear  ))
     f_o.close()
 
 
+# ## Save the strain rate normal, tangential and viscosity on the fault itself. 
+# 
+
+# In[36]:
+
+###
+#Reference case
+###
+edotn_SFn, edots_SFn = fault_strainrate_fns(faults, refVelocityField, directorVector, proximityVariable)
+
+refViscosity1.data[:] = firstViscosityFn.evaluate(fault_seg1.swarm)
+refViscosity1.save(os.path.join(faultswarmPath,'refVisc_fault'))
+
+meshedotn_SFn = uw.mesh.MeshVariable( mesh, 1)
+projectGuy = uw.utils.MeshVariable_Projection(meshedotn_SFn, edotn_SFn, type=0 )
+projectGuy.solve()  
+
+refedotn_SFn.data[:] = meshedotn_SFn.evaluate(fault_seg1.swarm)
+refedotn_SFn.save(os.path.join(faultswarmPath,'refedotn_fault'))
+
+meshedots_SFn = uw.mesh.MeshVariable( mesh, 1)
+projectGuy = uw.utils.MeshVariable_Projection(meshedots_SFn, edots_SFn, type=0 )
+projectGuy.solve()  
+
+refedots_SFn.data[:] = meshedots_SFn.evaluate(fault_seg1.swarm)
+refedots_SFn.save(os.path.join(faultswarmPath,'refedots_fault'))
+
+
+###
+#Isotropic weak zone
+###
+
+edotn_SFn, edots_SFn = fault_strainrate_fns(faults, wzVelocityField, directorVector, proximityVariable)
+
+refViscosity1.data[:] = firstViscosityFn.evaluate(fault_seg1.swarm)
+refViscosity1.save(os.path.join(faultswarmPath,'wzVisc_fault'))
+
+meshedotn_SFn = uw.mesh.MeshVariable( mesh, 1)
+projectGuy = uw.utils.MeshVariable_Projection(meshedotn_SFn, edotn_SFn, type=0 )
+projectGuy.solve()  
+
+wzedotn_SFn.data[:] = meshedotn_SFn.evaluate(fault_seg1.swarm)
+wzedotn_SFn.save(os.path.join(faultswarmPath,'wzedotn_fault'))
+
+meshedots_SFn = uw.mesh.MeshVariable( mesh, 1)
+projectGuy = uw.utils.MeshVariable_Projection(meshedots_SFn, edots_SFn, type=0 )
+projectGuy.solve()  
+
+wzedots_SFn.data[:] = meshedots_SFn.evaluate(fault_seg1.swarm)
+wzedots_SFn.save(os.path.join(faultswarmPath,'wzedots_fault'))
+
+###
+#TI weak zone
+###
+
+edotn_SFn, edots_SFn = fault_strainrate_fns(faults, velocityField, directorVector, proximityVariable)
+
+uwViscosity1.data[:] = firstViscosityFn.evaluate(fault_seg1.swarm)
+uwViscosity1.save(os.path.join(faultswarmPath,'uwVisc1_fault'))
+
+realTI = firstViscosityFn  - viscosityTI2_fn
+
+mesherealTI = uw.mesh.MeshVariable( mesh, 1)
+projectGuy = uw.utils.MeshVariable_Projection(mesherealTI, realTI, type=0 )
+projectGuy.solve()  
+
+
+uwViscosity2.data[:] = mesherealTI.evaluate(fault_seg1.swarm)
+uwViscosity2.save(os.path.join(faultswarmPath,'uwVisc2_fault'))
+
+refViscosity1.data[:] = firstViscosityFn.evaluate(fault_seg1.swarm)
+refViscosity1.save(os.path.join(faultswarmPath,'uwVisc_fault'))
+
+meshedotn_SFn = uw.mesh.MeshVariable( mesh, 1)
+projectGuy = uw.utils.MeshVariable_Projection(meshedotn_SFn, edotn_SFn, type=0 )
+projectGuy.solve()  
+
+uwedotn_SFn.data[:] = meshedotn_SFn.evaluate(fault_seg1.swarm)
+uwedotn_SFn.save(os.path.join(faultswarmPath,'uwedotn_fault'))
+
+meshedots_SFn = uw.mesh.MeshVariable( mesh, 1)
+projectGuy = uw.utils.MeshVariable_Projection(meshedots_SFn, edots_SFn, type=0 )
+projectGuy.solve()  
+
+uwedots_SFn.data[:] = meshedots_SFn.evaluate(fault_seg1.swarm)
+uwedots_SFn.save(os.path.join(faultswarmPath,'uwedots_fault'))
+
+
+# In[71]:
+
+#print(dVuwr2, dVuwrF*dE)    #swarm intagration vs node summation
+#print(dVwzr2, dVwzrF*dE)    
+#print(dVuwwz2, dVuwwzF*dE) 
+
+
+# ## Calculate normal and tangential fields on swarms parallel to fault
+
+# In[ ]:
+
+#This was crashing when it was in the fault_velocities function...seems to work if I have it here
+update_swarm_from_faults([belowFault], proximityVariable, directorVector, signedDistanceVariable)
+uw.barrier()  
+
+
+# In[72]:
+
+def fault_velocities(velocityField, faultWidth, fname):
+    #1.First update the director vector, so it extends a ways beyond the fault width
+    #update_swarm_from_faults([belowFault], proximityVariable, directorVector, signedDistanceVariable)
+
+    #2. fault tangent vector field
+    tangentVector.data[:,0] = np.copy(-1.*directorVector.data[:,1])
+    tangentVector.data[:,1] = np.copy(directorVector.data[:,0])
+
+    #3a. 
+    velocityNormal = fn.math.dot(velocityField, directorVector)
+    velocityTangent = fn.math.dot(velocityField, tangentVector)
+
+    #3b. Map these swarm functions to the mesh 
+    meshvelocityNormal = uw.mesh.MeshVariable( mesh, 1)
+    projectDirector = uw.utils.MeshVariable_Projection(meshvelocityNormal, velocityNormal, type=0 )
+    projectDirector.solve()  
+
+    meshvelocityShear = uw.mesh.MeshVariable( mesh, 1)
+    projectDirector = uw.utils.MeshVariable_Projection(meshvelocityShear, velocityTangent, type=0 )
+    projectDirector.solve()  
+    
+    #4.
+    #We're going to advect the tracking swarms along their own normals, 
+    #we want a 1st order advection scheme here
+
+    meshDirector = uw.mesh.MeshVariable( mesh, 2 )
+    projectDirector = uw.utils.MeshVariable_Projection( meshDirector, directorVector, type=0 )
+    projectDirector.solve()  
+
+    psuedoDt = 1.*pd.fthickness + md.epsilon*pd.fthickness
+
+    swarm_advector = uw.systems.SwarmAdvector( swarm=belowFault.swarm,
+                                                             velocityField=meshDirector, order=1)
+    swarm_advector.integrate(psuedoDt)
+
+    meshDirector.data[:] = -1.*meshDirector.data[:]
+
+    swarm_advector = uw.systems.SwarmAdvector( swarm=aboveFault.swarm,
+                                                             velocityField=meshDirector, order=1)
+    swarm_advector.integrate(psuedoDt)
+
+    
+    #5. set up swarm variables on our metric swarms:
+    aboveNormalVel = aboveFault.swarm.add_variable( dataType="float", count=1 )
+    aboveShearVel = aboveFault.swarm.add_variable( dataType="float", count=1 )
+
+    belowNormalVel = belowFault.swarm.add_variable( dataType="float", count=1 )
+    belowShearVel = belowFault.swarm.add_variable( dataType="float", count=1 )
+
+    aboveNormalVel.data[:] = meshvelocityNormal.evaluate(aboveFault.swarm)
+    belowNormalVel.data[:] = meshvelocityNormal.evaluate(belowFault.swarm)
+
+    aboveShearVel.data[:] = meshvelocityShear.evaluate(aboveFault.swarm)
+    belowShearVel.data[:] = meshvelocityShear.evaluate(belowFault.swarm)
+    
+    fname1 = fname + '_' + str(pd.fthickness) + '_1.h5'
+    fname2 = fname + '_' + str(pd.fthickness) + '_2.h5'
+    fname3 = fname + '_' + str(pd.fthickness) + '_3.h5'
+    fname4 = fname + '_' + str(pd.fthickness) + '_4.h5'
+    
+    
+    aboveNormalVel.save(os.path.join(faultswarmPath,fname1))
+    belowNormalVel.save(os.path.join(faultswarmPath,fname2))
+    aboveShearVel.save(os.path.join(faultswarmPath,fname3))
+    belowShearVel.save(os.path.join(faultswarmPath,fname4))
+    
+    
+
+    
+    
+
+
+# In[74]:
+
+fault_velocities(velocityField, faultWidth=pd.fthickness, fname = 'uw')
+fault_velocities(wzVelocityField, faultWidth=pd.fthickness, fname = 'wz')
+fault_velocities(refVelocityField, faultWidth=pd.fthickness, fname = 'ref')
+
+
 # In[ ]:
 
 
@@ -774,29 +1062,255 @@ if uw.rank() == 0:
 
 # In[ ]:
 
+## Take a look at the locations of the materials
 
+#meshDirector = uw.mesh.MeshVariable( mesh, 2 )
+#projectDirector = uw.utils.MeshVariable_Projection( meshDirector, directorVector, type=0 )
+#projectDirector.solve()  
 
+#meshTangentDirector = uw.mesh.MeshVariable( mesh, 2 )
+#projectDirector = uw.utils.MeshVariable_Projection( meshTangentDirector, tangentVector, type=0 )
+#projectDirector.solve()  
 
-# #print area1
-# #print area2
-# #print area3
-# if uw.rank()==0:
-#     print dVuwr1
-#     print dVuwr2
-#     print dVuwr3
-#     print dVwzr1
-#     print dVwzr2
-#     print dVwzr3
-#     print dVuwwz1
-#     print dVuwwz2
-#     print dVuwwz3
 
 # In[ ]:
 
 
 
 
-# In[17]:
+# In[ ]:
+
+#fig3= glucifer.Figure( figsize=(1000,600) )
+#fig3.append( glucifer.objects.Points(fault_seg1.swarm, pointSize=4 ) )
+#fig3.append( glucifer.objects.Points(aboveFault.swarm, pointSize=2 ) )
+#fig3.append( glucifer.objects.Points(belowFault.swarm, pointSize=2 ) )
+
+
+
+
+#fig3.append( glucifer.objects.Surface(mesh, firstViscosityFn) )
+#fig3.append( glucifer.objects.Points(swarm, velocityNormal, colourBar=True, pointSize=1 ) )
+#fig3.append( glucifer.objects.VectorArrows(mesh, meshDirector, scaling=.5, arrowHead=0.2, 
+#                                               resolutionI=20, resolutionJ=20, 
+#                                               opacity=0.25) )
+#fig3.append( glucifer.objects.Mesh(mesh))
+
+#fig3.append( glucifer.objects.VectorArrows(mesh, velocityField, scaling=1000.))
+#fig3.append( glucifer.objects.VectorArrows(mesh, meshTangentDirector , scaling=0.2))
+
+#fig3.show()
+#fig3.save_database('test.gldb')
+
+
+# In[ ]:
+
+#aboveFault.swarm.particleGlobalCount,belowFault.swarm.particleGlobalCount
+
+
+# ## Scratch
+
+# #####
+# #Metrics and Output
+# #####
+# 
+# def volumeint(Fn = 1., rFn=1.):
+#     return uw.utils.Integral( Fn*rFn,  mesh )
+# 
+# 
+# def surfint(Fn = 1., rFn=1., surfaceIndexSet=mesh.specialSets["MaxJ_VertexSet"]):
+#     return uw.utils.Integral( Fn*rFn, mesh=mesh, integrationType='Surface', surfaceIndexSet=surfaceIndexSet)
+# 
+# 
+# #First we create some swarm variables that we'll set to 0 or 1, 
+# #which will help compute integrals on restricted portions of the domain
+# 
+# onefaultRestFn = swarm.add_variable( dataType="double", count=1 )
+# onefaultRestFn.data[:] = 0.
+# 
+# if not fault_seg1.empty: #Can only call fault.kdtree on procs holding part of the fault swarm
+#     onefaultRestFn.data[:,0] = fault_seg1.kdtree.query(swarm.particleCoordinates.data)[0][:]
+#     onefaultRestFn.data[np.where(onefaultRestFn.data > pd.fthickness)] = 1.
+#     onefaultRestFn.data[np.where(onefaultRestFn.data <= pd.fthickness)] = 0. 
+#     
+#     
+# halffaultRestFn = swarm.add_variable( dataType="double", count=1 )
+# halffaultRestFn.data[:] = 0.
+# 
+# if not fault_seg1.empty: #Can only call fault.kdtree on procs holding part of the fault swarm
+#     halffaultRestFn.data[:,0] = fault_seg1.kdtree.query(swarm.particleCoordinates.data)[0][:]
+#     halffaultRestFn.data[np.where(halffaultRestFn.data > 0.5*pd.fthickness)] = 1.
+#     halffaultRestFn.data[np.where(halffaultRestFn.data <= 0.5*pd.fthickness)] = 0. 
+#     
+# twofaultRestFn = swarm.add_variable( dataType="double", count=1 )
+# twofaultRestFn.data[:] = 0.
+# 
+# if not fault_seg1.empty: #Can only call fault.kdtree on procs holding part of the fault swarm
+#     twofaultRestFn.data[:,0] = fault_seg1.kdtree.query(swarm.particleCoordinates.data)[0][:]
+#     twofaultRestFn.data[np.where(twofaultRestFn.data > 2.*pd.fthickness)] = 1.
+#     twofaultRestFn.data[np.where(twofaultRestFn.data <= 2.*pd.fthickness)] = 0
+#     
+# oneelementRestFn = swarm.add_variable( dataType="double", count=1 )
+# oneelementRestFn.data[:] = 0.
+# 
+# if not fault_seg1.empty: #Can only call fault.kdtree on procs holding part of the fault swarm
+#     oneelementRestFn.data[:,0] = fault_seg1.kdtree.query(swarm.particleCoordinates.data)[0][:]
+#     oneelementRestFn.data[np.where(oneelementRestFn.data > 1.0/(resY+1.))] = 1.
+#     oneelementRestFn.data[np.where(oneelementRestFn.data <= 1.0/(resY+1.))] = 0.
+#     
+# halfelementRestFn = swarm.add_variable( dataType="double", count=1 )
+# halfelementRestFn.data[:] = 0.
+# 
+# if not fault_seg1.empty: #Can only call fault.kdtree on procs holding part of the fault swarm
+#     halfelementRestFn.data[:,0] = fault_seg1.kdtree.query(swarm.particleCoordinates.data)[0][:]
+#     halfelementRestFn.data[np.where(halfelementRestFn.data > 0.5/(resY+1.))] = 1.
+#     halfelementRestFn.data[np.where(halfelementRestFn.data <= 0.5/(resY+1.))] = 0. 
+#     
+#     
+# twoelementRestFn = swarm.add_variable( dataType="double", count=1 )
+# twoelementRestFn.data[:] = 0.
+# 
+# if not fault_seg1.empty: #Can only call fault.kdtree on procs holding part of the fault swarm
+#     twoelementRestFn.data[:,0] = fault_seg1.kdtree.query(swarm.particleCoordinates.data)[0][:]
+#     twoelementRestFn.data[np.where(twoelementRestFn.data > 2.0/(resY+1.))] = 1.
+#     twoelementRestFn.data[np.where(twoelementRestFn.data <= 2.0/(resY+1.))] = 0. 
+#     
+#     
+#     
+# ###################
+# #Surface Restriction functions
+# ###################
+# 
+# def platenessFn(vField, val = 0.1):
+#     normgradV = fn.math.abs(vField.fn_gradient[0]/fn.math.sqrt(vField[0]*vField[0])) #[du*/dx]/sqrt(u*u)
+# 
+# 
+# 
+#     srconditions = [ (                                  normgradV < val, 1.),
+#                    (                                                   True , 0.) ]
+# 
+# 
+#     return fn.branching.conditional(srconditions)
+# 
+# 
+# srRestFnRef = platenessFn(refVelocityField, val = 0.1)
+# srRestFnUw = platenessFn(velocityField, val = 0.1)
+# srRestFnWz = platenessFn(wzVelocityField, val = 0.1)
+# 
+# 
+# 
+# #Dot product of the residual velocity field
+# 
+# Vuwr = velocityField-refVelocityField
+# Vwzr = wzVelocityField-refVelocityField
+# Vuwwz = velocityField-wzVelocityField
+# 
+# deltaVuwr  = fn.misc.min(1.0, fn.math.dot(Vuwr,  Vuwr))
+# deltaVwzr  = fn.misc.min(1.0, fn.math.dot(Vwzr,  Vwzr))
+# deltaVuwwz = fn.misc.min(1.0, fn.math.dot(Vuwwz,  Vuwwz))
+# 
+# #Set up the integrals
+# 
+# _area1 = volumeint(1.)                   #integration over entire domain
+# _area2 = volumeint(1., rFn=halffaultRestFn)
+# _area3 = volumeint(1., rFn=onefaultRestFn)  #integration restricted to area beyond one faultthickness from fault
+# _area4 = volumeint(1., rFn=twofaultRestFn)
+# _area5 = volumeint(1., rFn=halfelementRestFn)
+# _area6 = volumeint(1., rFn=oneelementRestFn) #integration restricted to area beyond one element away from fault
+# _area7 = volumeint(1., rFn=twoelementRestFn)
+# 
+# 
+# _Vuwr1 = volumeint(deltaVuwr)
+# _Vuwr2 = volumeint(deltaVuwr, rFn=halffaultRestFn)
+# _Vuwr3 = volumeint(deltaVuwr, rFn=onefaultRestFn)
+# _Vuwr4 = volumeint(deltaVuwr, rFn=twofaultRestFn)
+# _Vuwr5 = volumeint(deltaVuwr, rFn=halfelementRestFn)
+# _Vuwr6 = volumeint(deltaVuwr, rFn=oneelementRestFn)
+# _Vuwr7 = volumeint(deltaVuwr, rFn=twoelementRestFn)
+# 
+# 
+# _Vwzr1 = volumeint(deltaVwzr)
+# _Vwzr2 = volumeint(deltaVwzr, rFn=halffaultRestFn)
+# _Vwzr3 = volumeint(deltaVwzr, rFn=onefaultRestFn)
+# _Vwzr4 = volumeint(deltaVwzr, rFn=twofaultRestFn)
+# _Vwzr5 = volumeint(deltaVwzr, rFn=halfelementRestFn)
+# _Vwzr6 = volumeint(deltaVwzr, rFn=oneelementRestFn)
+# _Vwzr7 = volumeint(deltaVwzr, rFn=twoelementRestFn)
+# 
+# 
+# 
+# 
+# _Vuwwz1 = volumeint(deltaVuwwz)
+# _Vuwwz2 = volumeint(deltaVuwwz, rFn=halffaultRestFn)
+# _Vuwwz3 = volumeint(deltaVuwwz, rFn=onefaultRestFn)
+# _Vuwwz4 = volumeint(deltaVuwwz, rFn=twofaultRestFn)
+# _Vuwwz5 = volumeint(deltaVuwwz, rFn=halfelementRestFn)
+# _Vuwwz6 = volumeint(deltaVuwwz, rFn=oneelementRestFn)
+# _Vuwwz7 = volumeint(deltaVuwwz, rFn=twoelementRestFn)
+# 
+# 
+# 
+# #Platy-ness measure
+# _platenessRef = surfint(srRestFnRef)
+# _platenessUw = surfint(srRestFnUw)
+# _platenessWz = surfint(srRestFnWz)
+# 
+# 
+# 
+# 
+# #Evaluate the integrals
+# 
+# area1 = _area1.evaluate()[0]
+# area2 = _area2.evaluate()[0]
+# area3 = _area3.evaluate()[0]
+# 
+# dVuwr1 = np.sqrt(_Vuwr1.evaluate()[0]) #TI - ref
+# dVuwr2 = np.sqrt(_Vuwr2.evaluate()[0])
+# dVuwr3 = np.sqrt(_Vuwr3.evaluate()[0])
+# dVuwr4 = np.sqrt(_Vuwr4.evaluate()[0])
+# dVuwr5 = np.sqrt(_Vuwr5.evaluate()[0])
+# dVuwr6 = np.sqrt(_Vuwr6.evaluate()[0])
+# dVuwr7 = np.sqrt(_Vuwr7.evaluate()[0])
+# 
+# dVwzr1 = np.sqrt(_Vwzr1.evaluate()[0]) #Wz - ref
+# dVwzr2 = np.sqrt(_Vwzr2.evaluate()[0])
+# dVwzr3 = np.sqrt(_Vwzr3.evaluate()[0])
+# dVwzr4 = np.sqrt(_Vwzr4.evaluate()[0])
+# dVwzr5 = np.sqrt(_Vwzr5.evaluate()[0])
+# dVwzr6 = np.sqrt(_Vwzr6.evaluate()[0])
+# dVwzr7 = np.sqrt(_Vwzr7.evaluate()[0])
+# 
+# 
+# dVuwwz1 = np.sqrt( _Vuwwz1.evaluate()[0]) #Ti - wz
+# dVuwwz2 = np.sqrt(_Vuwwz2.evaluate()[0])
+# dVuwwz3 = np.sqrt(_Vuwwz3.evaluate()[0])
+# dVuwwz4 = np.sqrt( _Vuwwz4.evaluate()[0])
+# dVuwwz5 = np.sqrt(_Vuwwz5.evaluate()[0])
+# dVuwwz6 = np.sqrt(_Vuwwz6.evaluate()[0])
+# dVuwwz7 = np.sqrt(_Vuwwz7.evaluate()[0])
+# 
+# 
+# platenessRef = _platenessRef.evaluate()[0]
+# platenessUw = _platenessUw.evaluate()[0]
+# platenessWz = _platenessWz.evaluate()[0]
+# 
+# 
+# #Also calculate the ratio of Cohesion to confinement-strength in the Drucker-Prager formulation
+# #pressureField.evaluate_global(mesh).max() 
+# #thisGuy = fn.view.min_max(pressureField)
+# #thisGuy.evaluate(mesh)
+# #c_dp = pd.friction_C /(thisGuy.max_global()*pd.friction_mu)
+#     
+# if uw.rank() == 0:
+#     f_o = open(os.path.join(outputPath, outputFile), 'a') 
+#     f_o.write((30*'%-15s ' + '\n') % (md.RES, md.elementType,
+#                                       pd.fthickness, pd.friction_mu, pd.friction_C, pd.friction_min,
+#                                       dVuwr1,dVuwr2,dVuwr3,dVuwr4,dVuwr5,dVuwr6, dVuwr7,
+#                                       dVwzr1,dVwzr2,dVwzr3,dVwzr4,dVwzr5,dVwzr6, dVwzr7,
+#                                       dVuwwz1, dVuwwz2, dVuwwz3,dVuwwz4, dVuwwz5, dVuwwz6, dVuwwz7,
+#                                       platenessRef, platenessUw,platenessWz ))
+#     f_o.close()
+
+# In[ ]:
 
 #yElementFix = 1./(resY + 1)
 #xElementFix = 2./(resX + 1)
@@ -815,12 +1329,19 @@ if uw.rank() == 0:
 #print dVuwr2, dVwzr2, dVuwwz2, dVuwrF*dE, dVwzrF*dE, dVuwwzF*dE
 
 
-# In[18]:
-
-#print(dVuwr2, dVuwrF*dE)    #swarm intagration vs node summation
-#print(dVwzr2, dVwzrF*dE)    
-#print(dVuwwz2, dVuwwzF*dE) 
-
+# ### Comparison of 'masked' L2-norm via node summing, swarm integration
+# 
+# 
+# | Measure|  Node summing    | Swarm Int.        | Notes  | 
+# | ----- | ------------------ | ----------------- | -----  |
+# | TI-ref |  2.9904077129e-06 | 2.89617704796e-06 |   -    |
+# | WZ-ref  |  3.19641785284e-06 | 3.11754905069e-06 |   -    |
+# | TI-ref |  3.53800984835e-07 | 3.66782130797e-07 |     - |
+# 
+# * TI => velocity field with TI fault
+# * WZ => velocity field with isotropic fault
+# * ref => velocity field with no fault
+# 
 
 # Once output as a a script, this notebook cam be used for a parameter sweep. 
 # For example, to run models with a combination (outer product) of different fault thickness, mesh resolution, and element types:
@@ -840,40 +1361,9 @@ if uw.rank() == 0:
 # 
 # ```
 
-# ### Comparison of 'masked' L2-norm via node summing, swarm integration
-# 
-# 
-# | Measure|  Node summing    | Swarm Int.        | Notes  | 
-# | ----- | ------------------ | ----------------- | -----  |
-# | TI-ref |  2.9904077129e-06 | 2.89617704796e-06 |   -    |
-# | WZ-ref  |  3.19641785284e-06 | 3.11754905069e-06 |   -    |
-# | TI-ref |  3.53800984835e-07 | 3.66782130797e-07 |     - |
-# 
-# * TI => velocity field with TI fault
-# * WZ => velocity field with isotropic fault
-# * ref => velocity field with no fault
-# 
+# In[18]:
 
-# In[33]:
-
-#fig3= glucifer.Figure( figsize=(1000,600) )
-#fig3.append( glucifer.objects.Points(fault_seg1.swarm, pointSize=2 ) )
-#fig3.append( glucifer.objects.Surface(mesh, firstViscosityFn) )
-#fig3.append( glucifer.objects.Points(swarm, deltaVuwwz, colourBar=True, pointSize=1 ) )
-
-#fig3.show()
-#fig3.save_database('test.gldb')
-
-
-# In[32]:
-
-#fig3= glucifer.Figure( figsize=(1000,600) )
-#fig3.append( glucifer.objects.Surface(mesh, firstViscosityFn) )
-#fig3.append( glucifer.objects.Points(fault_seg1.swarm, pointSize=2 ) )
-
-
-#fig3.show()
-#fig3.save_database('test.gldb')
+#refViscosity1.data[:] = firstViscosityFn.evaluate(fault_seg1.swarm.particleCoordinates.data)
 
 
 # In[ ]:
