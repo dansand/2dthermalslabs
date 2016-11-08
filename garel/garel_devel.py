@@ -568,9 +568,9 @@ dp.TP/dp.deltaTa
 
 figures =  'store' #glucifer Store won't work on all machines, if not, set to 'gldb' 
 swarm_repop, swarm_update = 10, 10
-gldbs_output = 2
-checkpoint_every, files_output = 4, 50 #checkpoint every needs to be greater or equal to metric_output 
-metric_output = 2
+gldbs_output = 100
+checkpoint_every, files_output = 100, 50 #checkpoint every needs to be greater or equal to metric_output 
+metric_output = 50
 sticky_air_temp = 1e6
 
 
