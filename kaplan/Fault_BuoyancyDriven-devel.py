@@ -8,7 +8,7 @@
 # 
 # 
 
-# In[19]:
+# In[95]:
 
 import underworld as uw
 from underworld import function as fn
@@ -29,24 +29,7 @@ import os
 
 # ## Output dirs. and model params
 
-# In[20]:
-
-
-workdir = os.path.abspath(".")
-outputPath = os.path.join(workdir,"output")
-faultswarmPath = os.path.join(outputPath ,"faultswarm")
-
-
-if uw.rank() == 0:
-    if not os.path.exists(outputPath):
-        os.makedirs(outputPath)
-    if not os.path.exists(faultswarmPath):
-        os.makedirs(faultswarmPath)
-    
-uw.barrier()   
-
-
-# In[21]:
+# In[96]:
 
 
 pd = edict({}) #parameters dictionary
@@ -71,7 +54,7 @@ pd = edict({'fthickness':0.015,
              })
     
 
-md = edict({'RES':64,
+md = edict({'RES':96,
             'elementType':"Q1/dQ0",
            'deformMesh':False,
            'PIC_integration':False,
@@ -79,7 +62,7 @@ md = edict({'RES':64,
 
 
 
-# In[22]:
+# In[97]:
 
 #Model number identifier default:
 ModNum = 0
@@ -99,7 +82,25 @@ else:
                 Pass
 
 
-# In[23]:
+# In[99]:
+
+
+workdir = os.path.abspath(".")
+outputPath = os.path.join(workdir,"output")
+faultswarmPath0 = os.path.join(outputPath ,"faultswarm")
+faultswarmPath = os.path.join(faultswarmPath0 ,str(ModNum ))
+
+
+if uw.rank() == 0:
+    if not os.path.exists(outputPath):
+        os.makedirs(outputPath)
+    if not os.path.exists(faultswarmPath):
+        os.makedirs(faultswarmPath)
+    
+uw.barrier()   
+
+
+# In[5]:
 
 ###########
 #If extra arguments are provided to the script" eg:
@@ -142,15 +143,21 @@ for farg in sys.argv[1:]:
 uw.barrier()
 
 
-# In[24]:
+# In[6]:
 
 print("parameter dictionary: ", pd)
 print("model dictionary: ", md)
 
 
+# In[94]:
+
+#other files will have this apppended to their name, for id
+#fstring = str(pd.thickness)
+
+
 # ## Mesh and FEvariables
 
-# In[25]:
+# In[7]:
 
 #def run_the_fault(num=1, fthickness = 0.0075, friction_mu = 0.00001, friction_C  = 0.00001, friction_min = 0.00001):
 
@@ -214,7 +221,7 @@ depthFn = maxY - coordinate[1] #a function providing the depth
 
 # ## Mesh refinement
 
-# In[26]:
+# In[8]:
 
 
 if md.deformMesh:
@@ -255,7 +262,7 @@ if md.deformMesh:
 
 
 
-# In[27]:
+# In[9]:
 
 if md.deformMesh:
 
@@ -301,7 +308,7 @@ if md.deformMesh:
     xLaplaceSolver.solve()
 
 
-# In[28]:
+# In[10]:
 
 
 if md.deformMesh:
@@ -320,7 +327,7 @@ if md.deformMesh:
     swarm.update_particle_owners()
 
 
-# In[29]:
+# In[11]:
 
 fig= glucifer.Figure( figsize=(500,300) )
 fig.append( glucifer.objects.Mesh(mesh))
@@ -329,7 +336,7 @@ fig.append( glucifer.objects.Mesh(mesh))
 
 # ## BCs
 
-# In[30]:
+# In[38]:
 
 
 iWalls = mesh.specialSets["MinI_VertexSet"] + mesh.specialSets["MaxI_VertexSet"]
@@ -338,13 +345,20 @@ jWalls = mesh.specialSets["MinJ_VertexSet"] + mesh.specialSets["MaxJ_VertexSet"]
 baseWall   = mesh.specialSets["MinJ_VertexSet"]
 topWall    = mesh.specialSets["MaxJ_VertexSet"]
 
+reffreeslipBC = uw.conditions.DirichletCondition( variable        = refVelocityField, 
+                                               indexSetsPerDof = (iWalls, jWalls) )
+
+wzfreeslipBC = uw.conditions.DirichletCondition( variable        = wzVelocityField, 
+                                               indexSetsPerDof = (iWalls, jWalls) )
+
+
 freeslipBC = uw.conditions.DirichletCondition( variable        = velocityField, 
-                                               indexSetsPerDof = (iWalls, jWalls) )     
+                                               indexSetsPerDof = (iWalls, jWalls) )
 
 
 # ## Swarm
 
-# In[31]:
+# In[13]:
 
 
 swarm  = uw.swarm.Swarm( mesh=mesh, particleEscape=True )
@@ -394,7 +408,7 @@ materialVariable.data[:] = fn.branching.conditional( conditions ).evaluate(swarm
 
 
 
-# In[32]:
+# In[14]:
 
 #from marker2D import markerLine2D
 from unsupported.interfaces import markerLine2D
@@ -417,14 +431,17 @@ faults.append(fault_seg1)
 
 #Also add some swarm variables which we'll use later
 refViscosity1 = fault_seg1.swarm.add_variable( dataType="float", count=1 )
+refSrSinv = fault_seg1.swarm.add_variable( dataType="float", count=1 )
 refedotn_SFn = fault_seg1.swarm.add_variable( dataType="float", count=1 )
 refedots_SFn = fault_seg1.swarm.add_variable( dataType="float", count=1 )
 
 wzViscosity1 = fault_seg1.swarm.add_variable( dataType="float", count=1 )
+wzSrSinv = fault_seg1.swarm.add_variable( dataType="float", count=1 )
 wzedotn_SFn = fault_seg1.swarm.add_variable( dataType="float", count=1 )
 wzedots_SFn = fault_seg1.swarm.add_variable( dataType="float", count=1 )
 
 uwViscosity1 = fault_seg1.swarm.add_variable( dataType="float", count=1 )
+uwSrSinv = fault_seg1.swarm.add_variable( dataType="float", count=1 )
 uwViscosity2 = fault_seg1.swarm.add_variable( dataType="float", count=1 )
 uwedotn_SFn = fault_seg1.swarm.add_variable( dataType="float", count=1 )
 uwedots_SFn = fault_seg1.swarm.add_variable( dataType="float", count=1 )
@@ -567,22 +584,20 @@ def faults_advance_in_time(faults,proximityVariable, directorVector, signedDista
     mask_materials(materialV, materialVariable, proximityVariable, directorVector, signedDistanceVariable)
 
 
+
+
+# In[15]:
+
 ## Call the Fault helper functions 
 
 update_swarm_from_faults(faults, proximityVariable, directorVector, signedDistanceVariable)
 mask_materials(materialV, materialVariable, proximityVariable, directorVector, signedDistanceVariable)
 
 # These should be general enough not to need updating when the faults move etc
-
 edotn_SFn, edots_SFn = fault_strainrate_fns(faults, velocityField, directorVector, proximityVariable)
 
 
-# In[ ]:
-
-
-
-
-# In[33]:
+# In[16]:
 
 #aboveFaultNormal  = swarm.add_variable( dataType="double", count=2)
 #aboveFaultNormal.data[:,:] = 0.0
@@ -593,12 +608,12 @@ edotn_SFn, edots_SFn = fault_strainrate_fns(faults, velocityField, directorVecto
 # ## Rheology
 # 
 
-# In[34]:
+# In[17]:
 
-1. - pd.friction_min
+1. - pd.friction_min, pd.deltaViscosity
 
 
-# In[35]:
+# In[18]:
 
 
 viscosity   = pd.viscosity
@@ -647,7 +662,7 @@ secondViscosityFn  = fn.branching.map( fn_key  = proximityVariable,
 
 
 viscosityDP_fn = fn.misc.min(firstViscosityFn, fn.misc.max(pd.friction_min, 
-                     (pd.friction_mu * pressureField  + pd.friction_C) / (strainRate_2ndInvariantFn + 1.0e-15)))
+                     (pd.friction_mu * pressureField  + pd.friction_C) / (wzStrainRate_2ndInvariantFn + 1.0e-15)))
 
 
 viscosityWZMap   = { 0: firstViscosityFn,
@@ -659,10 +674,16 @@ viscosityWZFn       =  fn.branching.map( fn_key  = proximityVariable,
                                          mapping = viscosityWZMap )
 
 
+# In[19]:
+
+#strainRate_2ndInvariantFn = fn.tensor.second_invariant(strainRateFn)
+#wzStrainRate_2ndInvariantFn = fn.tensor.second_invariant(wzStrainRateFn)
+#refStrainRate_2ndInvariantFn = fn.tensor.second_invariant(refStrainRateFn)
+
+
 # ## Buoyancy and Stokes
 
-# In[67]:
-
+# In[39]:
 
 z_hat = ( 0.0, 1.0 )
 Ra = fn.misc.constant(1.0)
@@ -672,10 +693,16 @@ buoyancyFn = z_hat * T_fn
 
 
 
+
+
 # Build a reference case
-stokesPIC1 = uw.systems.Stokes( velocityField  = velocityField, 
-                               pressureField  = pressureField,
-                               conditions     = [freeslipBC,],
+
+refVelocityField.data[...] = 0.0
+refPressureField.data[...] = 0.0
+
+stokesPIC1 = uw.systems.Stokes( velocityField  = refVelocityField, 
+                               pressureField  = refPressureField,
+                               conditions     = [reffreeslipBC,],
                                fn_viscosity   = firstViscosityFn, 
                                fn_bodyforce   = buoyancyFn )
 
@@ -687,19 +714,22 @@ solver.options.scr.ksp_rtol = 1.0e-6
 
 solver.solve( nonLinearIterate=False, print_stats=False)
 
-refVelocityField.data[:,:] = velocityField.data[:,:]
-refPressureField.data[:]   = pressureField.data[:]
+#refVelocityField.data[:,:] = velocityField.data[:,:]
+#refPressureField.data[:]   = pressureField.data[:]
 
 del solver
 del stokesPIC1
 
-# Build a weak zone equivalent case
-velocityField.data[...] = 0.0
-pressureField.data[...] = 0.0
 
-stokesPIC1 = uw.systems.Stokes( velocityField  = velocityField, 
-                               pressureField  = pressureField,
-                               conditions     = [freeslipBC,],
+# In[43]:
+
+# Build a weak zone equivalent case
+#velocityField.data[...] = 0.0
+#pressureField.data[...] = 0.0
+
+stokesPIC1 = uw.systems.Stokes( velocityField  = wzVelocityField, 
+                               pressureField  = wzPressureField ,
+                               conditions     = [wzfreeslipBC,],
                                fn_viscosity   = viscosityWZFn, 
                                fn_bodyforce   = buoyancyFn )
 
@@ -711,12 +741,14 @@ solver.options.scr.ksp_rtol = 1.0e-6
 
 solver.solve( nonLinearIterate=True, nonLinearTolerance=0.00001, print_stats=False)
 
-wzVelocityField.data[:,:] = velocityField.data[:,:]
-wzPressureField.data[:]   = pressureField.data[:]
+#wzVelocityField.data[:,:] = velocityField.data[:,:]
+#wzPressureField.data[:]   = pressureField.data[:]
 
 del solver
 del stokesPIC1
 
+
+# In[69]:
 
 # The anisotropic case 
 velocityField.data[...] = 0.0
@@ -741,7 +773,7 @@ solver.solve( nonLinearIterate=True, nonLinearTolerance=0.00001, print_stats=Fal
 uw.barrier()   
 
 
-# In[68]:
+# In[ ]:
 
 #pressureField.evaluate_global(mesh).max() 
 #thisGuy = fn.view.min_max(pressureField)
@@ -751,7 +783,7 @@ uw.barrier()
 
 # ## Metrics and Output
 
-# In[69]:
+# In[80]:
 
 def volumeint(Fn = 1., rFn=1.):
     return uw.utils.Integral( Fn*rFn,  mesh )
@@ -760,11 +792,11 @@ def volumeint(Fn = 1., rFn=1.):
 def surfint(Fn = 1., rFn=1., surfaceIndexSet=mesh.specialSets["MaxJ_VertexSet"]):
     return uw.utils.Integral( Fn*rFn, mesh=mesh, integrationType='Surface', surfaceIndexSet=surfaceIndexSet)
 
-    
+#This fucntion is zero if within one element of the fault
 oneelementRestFn = swarm.add_variable( dataType="double", count=1 )
 oneelementRestFn.data[:] = 0.
 
-#exactly the same as proximity variable, just to be consistent with the RestrictionFn thing
+#This fucntion is exactly the same as proximity variable i.e 1, where within a distance 'thickness' of the fault.
 faultRestFn = swarm.add_variable( dataType="double", count=1 )
 faultRestFn.data[:] = proximityVariable.data
 
@@ -817,13 +849,13 @@ _Vwzr = volumeint(deltaVwzr, rFn=oneelementRestFn)
 _Vuwwz = volumeint(deltaVuwwz, rFn=oneelementRestFn)
 
 #fault integrals
-_faultarea = volumeint(1., rFn=faultRestFn) 
-_faultsrSinv = volumeint(strainRate_2ndInvariantFn, rFn=faultRestFn) #integration restricted to area beyond one element away from fault
-_faultIsoVisc = volumeint(viscosityWZFn, rFn=faultRestFn)
-_faultsrShear = volumeint(edots_SFn, rFn=faultRestFn)
-_faultTIVisc = volumeint(firstViscosityFn - viscosityTI2_fn, rFn=faultRestFn) 
-_faultsrNormShear = volumeint(edots_SFn/edotn_SFn, rFn=faultRestFn)
-
+_farea = volumeint(1., rFn=faultRestFn) 
+_fsrSinvWz = volumeint(wzStrainRate_2ndInvariantFn, rFn=faultRestFn) #integration restricted to area beyond one element away from fault
+_fsrSinvUw = volumeint(strainRate_2ndInvariantFn, rFn=faultRestFn) #integration restricted to area beyond one element away from fault
+_fIsoVisc = volumeint(viscosityWZFn, rFn=faultRestFn)
+_fsrShear = volumeint(edots_SFn, rFn=faultRestFn)
+_fTIVisc = volumeint(firstViscosityFn - viscosityTI2_fn, rFn=faultRestFn) 
+_fsrNormShear = volumeint(edots_SFn/edotn_SFn, rFn=faultRestFn)
 
 
 
@@ -831,7 +863,6 @@ _faultsrNormShear = volumeint(edots_SFn/edotn_SFn, rFn=faultRestFn)
 _platenessRef = surfint(srRestFnRef)
 _platenessUw = surfint(srRestFnUw)
 _platenessWz = surfint(srRestFnWz)
-
 
 
 
@@ -846,12 +877,13 @@ platenessUw = _platenessUw.evaluate()[0]
 platenessWz = _platenessWz.evaluate()[0]
 
 
-faultarea = _faultarea.evaluate()[0]
-faultsrSinv = _faultsrSinv.evaluate()[0]
-faultIsoVisc = _faultIsoVisc.evaluate()[0]
-faultsrShear = _faultsrShear.evaluate()[0]
-faultTIVisc = _faultTIVisc.evaluate()[0]
-faultsrNormShear = _faultsrNormShear.evaluate()[0]
+faultarea = _farea.evaluate()[0]
+faultsrSinvWz = _fsrSinvWz.evaluate()[0]
+faultsrSinvUw = _fsrSinvUw.evaluate()[0]
+faultIsoVisc = _fIsoVisc.evaluate()[0]
+faultsrShear = _fsrShear.evaluate()[0]
+faultTIVisc = _fTIVisc.evaluate()[0]
+faultsrNormShear = _fsrNormShear.evaluate()[0]
 
 
 #Also calculate the ratio of Cohesion to confinement-strength in the Drucker-Prager formulation
@@ -862,100 +894,12 @@ faultsrNormShear = _faultsrNormShear.evaluate()[0]
     
 if uw.rank() == 0:
     f_o = open(os.path.join(outputPath, outputFile), 'a') 
-    f_o.write((21*'%-15s ' + '\n') % (md.RES, md.elementType,
+    f_o.write((22*'%-15s ' + '\n') % (md.RES, md.elementType,
                                       pd.fthickness, pd.friction_mu, pd.friction_C, pd.friction_min,pd.orientation, pd.viscosity, pd.w0,
                                       dVuwr,dVwzr,dVuwwz,
                                       platenessRef, platenessUw,platenessWz,
-                                      faultarea,faultsrSinv,faultIsoVisc, faultsrShear,faultTIVisc,faultsrNormShear  ))
+                                      faultarea,faultsrSinvWz,faultsrSinvUw, faultIsoVisc, faultsrShear,faultTIVisc,faultsrNormShear  ))
     f_o.close()
-
-
-# ## Save the strain rate normal, tangential and viscosity on the fault itself. 
-# 
-
-# In[36]:
-
-###
-#Reference case
-###
-edotn_SFn, edots_SFn = fault_strainrate_fns(faults, refVelocityField, directorVector, proximityVariable)
-
-refViscosity1.data[:] = firstViscosityFn.evaluate(fault_seg1.swarm)
-refViscosity1.save(os.path.join(faultswarmPath,'refVisc_fault'))
-
-meshedotn_SFn = uw.mesh.MeshVariable( mesh, 1)
-projectGuy = uw.utils.MeshVariable_Projection(meshedotn_SFn, edotn_SFn, type=0 )
-projectGuy.solve()  
-
-refedotn_SFn.data[:] = meshedotn_SFn.evaluate(fault_seg1.swarm)
-refedotn_SFn.save(os.path.join(faultswarmPath,'refedotn_fault'))
-
-meshedots_SFn = uw.mesh.MeshVariable( mesh, 1)
-projectGuy = uw.utils.MeshVariable_Projection(meshedots_SFn, edots_SFn, type=0 )
-projectGuy.solve()  
-
-refedots_SFn.data[:] = meshedots_SFn.evaluate(fault_seg1.swarm)
-refedots_SFn.save(os.path.join(faultswarmPath,'refedots_fault'))
-
-
-###
-#Isotropic weak zone
-###
-
-edotn_SFn, edots_SFn = fault_strainrate_fns(faults, wzVelocityField, directorVector, proximityVariable)
-
-refViscosity1.data[:] = firstViscosityFn.evaluate(fault_seg1.swarm)
-refViscosity1.save(os.path.join(faultswarmPath,'wzVisc_fault'))
-
-meshedotn_SFn = uw.mesh.MeshVariable( mesh, 1)
-projectGuy = uw.utils.MeshVariable_Projection(meshedotn_SFn, edotn_SFn, type=0 )
-projectGuy.solve()  
-
-wzedotn_SFn.data[:] = meshedotn_SFn.evaluate(fault_seg1.swarm)
-wzedotn_SFn.save(os.path.join(faultswarmPath,'wzedotn_fault'))
-
-meshedots_SFn = uw.mesh.MeshVariable( mesh, 1)
-projectGuy = uw.utils.MeshVariable_Projection(meshedots_SFn, edots_SFn, type=0 )
-projectGuy.solve()  
-
-wzedots_SFn.data[:] = meshedots_SFn.evaluate(fault_seg1.swarm)
-wzedots_SFn.save(os.path.join(faultswarmPath,'wzedots_fault'))
-
-###
-#TI weak zone
-###
-
-edotn_SFn, edots_SFn = fault_strainrate_fns(faults, velocityField, directorVector, proximityVariable)
-
-uwViscosity1.data[:] = firstViscosityFn.evaluate(fault_seg1.swarm)
-uwViscosity1.save(os.path.join(faultswarmPath,'uwVisc1_fault'))
-
-realTI = firstViscosityFn  - viscosityTI2_fn
-
-mesherealTI = uw.mesh.MeshVariable( mesh, 1)
-projectGuy = uw.utils.MeshVariable_Projection(mesherealTI, realTI, type=0 )
-projectGuy.solve()  
-
-
-uwViscosity2.data[:] = mesherealTI.evaluate(fault_seg1.swarm)
-uwViscosity2.save(os.path.join(faultswarmPath,'uwVisc2_fault'))
-
-refViscosity1.data[:] = firstViscosityFn.evaluate(fault_seg1.swarm)
-refViscosity1.save(os.path.join(faultswarmPath,'uwVisc_fault'))
-
-meshedotn_SFn = uw.mesh.MeshVariable( mesh, 1)
-projectGuy = uw.utils.MeshVariable_Projection(meshedotn_SFn, edotn_SFn, type=0 )
-projectGuy.solve()  
-
-uwedotn_SFn.data[:] = meshedotn_SFn.evaluate(fault_seg1.swarm)
-uwedotn_SFn.save(os.path.join(faultswarmPath,'uwedotn_fault'))
-
-meshedots_SFn = uw.mesh.MeshVariable( mesh, 1)
-projectGuy = uw.utils.MeshVariable_Projection(meshedots_SFn, edots_SFn, type=0 )
-projectGuy.solve()  
-
-uwedots_SFn.data[:] = meshedots_SFn.evaluate(fault_seg1.swarm)
-uwedots_SFn.save(os.path.join(faultswarmPath,'uwedots_fault'))
 
 
 # In[71]:
@@ -966,6 +910,8 @@ uwedots_SFn.save(os.path.join(faultswarmPath,'uwedots_fault'))
 
 
 # ## Calculate normal and tangential fields on swarms parallel to fault
+# 
+# Compare the true velocity either side of the fault, with the strain reat estimates either side of the fault
 
 # In[ ]:
 
@@ -1055,10 +1001,158 @@ fault_velocities(wzVelocityField, faultWidth=pd.fthickness, fname = 'wz')
 fault_velocities(refVelocityField, faultWidth=pd.fthickness, fname = 'ref')
 
 
+# ## Save the strain rate normal, tangential and viscosity on the fault itself. 
+# 
+# This bit can be left out larger paramter sweeps. Run this for a few individual models.
+# 
+
+# ###
+# #Reference case
+# ###
+# edotn_SFn, edots_SFn = fault_strainrate_fns(faults, refVelocityField, directorVector, proximityVariable)
+# 
+# refViscosity1.data[:] = firstViscosityFn.evaluate(fault_seg1.swarm)
+# refViscosity1.save(os.path.join(faultswarmPath,'refVisc_fault'))
+# refSrSinv.data[:] = refStrainRate_2ndInvariantFn.evaluate(fault_seg1.swarm)
+# 
+# 
+# meshedotn_SFn = uw.mesh.MeshVariable( mesh, 1)
+# projectGuy = uw.utils.MeshVariable_Projection(meshedotn_SFn, edotn_SFn, type=0 )
+# projectGuy.solve()  
+# 
+# refedotn_SFn.data[:] = meshedotn_SFn.evaluate(fault_seg1.swarm)
+# refedotn_SFn.save(os.path.join(faultswarmPath,'refedotn_fault'))
+# 
+# meshedots_SFn = uw.mesh.MeshVariable( mesh, 1)
+# projectGuy = uw.utils.MeshVariable_Projection(meshedots_SFn, edots_SFn, type=0 )
+# projectGuy.solve()  
+# 
+# refedots_SFn.data[:] = meshedots_SFn.evaluate(fault_seg1.swarm)
+# refedots_SFn.save(os.path.join(faultswarmPath,'refedots_fault'))
+# 
+# 
+# ###
+# #Isotropic weak zone
+# ###
+# 
+# edotn_SFn, edots_SFn = fault_strainrate_fns(faults, wzVelocityField, directorVector, proximityVariable)
+# wzSrSinv.data[:] = wzStrainRate_2ndInvariantFn.evaluate(fault_seg1.swarm)
+# 
+# 
+# meshviscosityWZFn = uw.mesh.MeshVariable( mesh, 1)
+# projectGuy = uw.utils.MeshVariable_Projection(meshviscosityWZFn, viscosityWZFn, type=0 )
+# projectGuy.solve() 
+# 
+# refViscosity1.data[:] = meshviscosityWZFn.evaluate(fault_seg1.swarm)
+# refViscosity1.save(os.path.join(faultswarmPath,'wzVisc_fault'))
+# 
+# meshedotn_SFn = uw.mesh.MeshVariable( mesh, 1)
+# projectGuy = uw.utils.MeshVariable_Projection(meshedotn_SFn, edotn_SFn, type=0 )
+# projectGuy.solve()  
+# 
+# wzedotn_SFn.data[:] = meshedotn_SFn.evaluate(fault_seg1.swarm)
+# wzedotn_SFn.save(os.path.join(faultswarmPath,'wzedotn_fault'))
+# 
+# meshedots_SFn = uw.mesh.MeshVariable( mesh, 1)
+# projectGuy = uw.utils.MeshVariable_Projection(meshedots_SFn, edots_SFn, type=0 )
+# projectGuy.solve()  
+# 
+# wzedots_SFn.data[:] = meshedots_SFn.evaluate(fault_seg1.swarm)
+# wzedots_SFn.save(os.path.join(faultswarmPath,'wzedots_fault'))
+# 
+# ###
+# #TI weak zone
+# ###
+# 
+# edotn_SFn, edots_SFn = fault_strainrate_fns(faults, velocityField, directorVector, proximityVariable)
+# 
+# uwSrSinv.data[:] = uwStrainRate_2ndInvariantFn.evaluate(fault_seg1.swarm)
+# uwViscosity1.data[:] = firstViscosityFn.evaluate(fault_seg1.swarm)
+# uwViscosity1.save(os.path.join(faultswarmPath,'uwVisc1_fault'))
+# 
+# realTI = firstViscosityFn  - viscosityTI2_fn
+# 
+# mesherealTI = uw.mesh.MeshVariable( mesh, 1)
+# projectGuy = uw.utils.MeshVariable_Projection(mesherealTI, realTI, type=0 )
+# projectGuy.solve()  
+# 
+# 
+# uwViscosity2.data[:] = mesherealTI.evaluate(fault_seg1.swarm)
+# uwViscosity2.save(os.path.join(faultswarmPath,'uwVisc2_fault'))
+# 
+# refViscosity1.data[:] = firstViscosityFn.evaluate(fault_seg1.swarm)
+# refViscosity1.save(os.path.join(faultswarmPath,'uwVisc_fault'))
+# 
+# meshedotn_SFn = uw.mesh.MeshVariable( mesh, 1)
+# projectGuy = uw.utils.MeshVariable_Projection(meshedotn_SFn, edotn_SFn, type=0 )
+# projectGuy.solve()  
+# 
+# uwedotn_SFn.data[:] = meshedotn_SFn.evaluate(fault_seg1.swarm)
+# uwedotn_SFn.save(os.path.join(faultswarmPath,'uwedotn_fault'))
+# 
+# meshedots_SFn = uw.mesh.MeshVariable( mesh, 1)
+# projectGuy = uw.utils.MeshVariable_Projection(meshedots_SFn, edots_SFn, type=0 )
+# projectGuy.solve()  
+# 
+# uwedots_SFn.data[:] = meshedots_SFn.evaluate(fault_seg1.swarm)
+# uwedots_SFn.save(os.path.join(faultswarmPath,'uwedots_fault'))
+
 # In[ ]:
 
+#%pylab inline
+#plt.plot(uwViscosity2.data[:]*uwedots_SFn.data[:], c= 'b')
+#plt.plot(refViscosity1.data*wzedots_SFn.data[:], c='g')
+#plt.plot(refViscosity1.data*wzStrainRate_2ndInvariantFn.evaluate(fault_seg1.swarm), c='r')
 
 
+# In[103]:
+
+#stress = viscosityWZFn*strainRate_2ndInvariantFn
+#stress = viscosityWZFn*wzStrainRate_2ndInvariantFn
+#stress.evaluate(swarm).max()
+
+
+# In[ ]:
+
+#((faultsrSinv/faultarea)*(faultIsoVisc/faultarea))
+
+
+# In[58]:
+
+#yc = pd.friction_mu * pressureField  + pd.friction_C
+#pd.friction_C, yc.evaluate(mesh).max()
+
+
+# In[102]:
+
+#fig3= glucifer.Figure( figsize=(1000,600) )
+#fig3.append( glucifer.objects.Points(fault_seg1.swarm, pointSize=4 ) )
+#fig3.append( glucifer.objects.Points(aboveFault.swarm, pointSize=2 ) )
+#fig3.append( glucifer.objects.Points(belowFault.swarm, pointSize=2 ) )
+
+
+
+
+#fig3.append( glucifer.objects.Surface(mesh,viscosityWZFn) )
+#fig3.append( glucifer.objects.Points(swarm, edots_SFn, colourBar=True, pointSize=1 ) )
+#fig3.append( glucifer.objects.VectorArrows(mesh, meshDirector, scaling=.5, arrowHead=0.2, 
+#                                               resolutionI=20, resolutionJ=20, 
+#                                               opacity=0.25) )
+
+#fig3.append( glucifer.objects.Mesh(mesh))
+#fig3.append( glucifer.objects.VectorArrows(mesh, wzVelocityField, scaling=2000.1))
+
+#fig3.show()
+#fig3.save_database('test.gldb')
+
+
+# In[83]:
+
+#print(((faultsrSinv/faultarea)*(faultIsoVisc/faultarea)))
+#print((faultsrShear/faultarea)*(faultTIVisc/faultarea))
+
+
+# ## Scratch
 
 # In[ ]:
 
@@ -1072,42 +1166,6 @@ fault_velocities(refVelocityField, faultWidth=pd.fthickness, fname = 'ref')
 #projectDirector = uw.utils.MeshVariable_Projection( meshTangentDirector, tangentVector, type=0 )
 #projectDirector.solve()  
 
-
-# In[ ]:
-
-
-
-
-# In[ ]:
-
-#fig3= glucifer.Figure( figsize=(1000,600) )
-#fig3.append( glucifer.objects.Points(fault_seg1.swarm, pointSize=4 ) )
-#fig3.append( glucifer.objects.Points(aboveFault.swarm, pointSize=2 ) )
-#fig3.append( glucifer.objects.Points(belowFault.swarm, pointSize=2 ) )
-
-
-
-
-#fig3.append( glucifer.objects.Surface(mesh, firstViscosityFn) )
-#fig3.append( glucifer.objects.Points(swarm, velocityNormal, colourBar=True, pointSize=1 ) )
-#fig3.append( glucifer.objects.VectorArrows(mesh, meshDirector, scaling=.5, arrowHead=0.2, 
-#                                               resolutionI=20, resolutionJ=20, 
-#                                               opacity=0.25) )
-#fig3.append( glucifer.objects.Mesh(mesh))
-
-#fig3.append( glucifer.objects.VectorArrows(mesh, velocityField, scaling=1000.))
-#fig3.append( glucifer.objects.VectorArrows(mesh, meshTangentDirector , scaling=0.2))
-
-#fig3.show()
-#fig3.save_database('test.gldb')
-
-
-# In[ ]:
-
-#aboveFault.swarm.particleGlobalCount,belowFault.swarm.particleGlobalCount
-
-
-# ## Scratch
 
 # #####
 # #Metrics and Output
@@ -1361,9 +1419,19 @@ fault_velocities(refVelocityField, faultWidth=pd.fthickness, fname = 'ref')
 # 
 # ```
 
-# In[18]:
+# In[105]:
 
 #refViscosity1.data[:] = firstViscosityFn.evaluate(fault_seg1.swarm.particleCoordinates.data)
+
+
+# In[104]:
+
+#refVelocityField.data
+
+
+# In[100]:
+
+
 
 
 # In[ ]:
