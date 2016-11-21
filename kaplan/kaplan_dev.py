@@ -240,7 +240,7 @@ def load_pickles():
     return dp, ndp, sf, md
 
 
-# In[92]:
+# In[111]:
 
 ###########
 #Store the physical parameters, scale factors and dimensionless pramters in easyDicts
@@ -308,7 +308,7 @@ dp.deltaT = dp.TP - dp.TS
 
 
 
-# In[93]:
+# In[112]:
 
 #Modelling and Physics switches
 
@@ -334,7 +334,7 @@ md = edict({'refineMesh':True,
 
 
 
-# In[94]:
+# In[113]:
 
 ###########
 #If starting from a checkpoint load params from file
@@ -344,7 +344,7 @@ if checkpointLoad:
     dp, ndp, sf, md = load_pickles()  #remember to add any extra dictionaries
 
 
-# In[95]:
+# In[114]:
 
 ###########
 #If command line args are given, overwrite
@@ -403,12 +403,12 @@ for farg in sys.argv[1:]:
 comm.barrier()
 
 
-# In[96]:
+# In[115]:
 
 #print('refine Mesh is: ', md.refineMesh)
 
 
-# In[97]:
+# In[116]:
 
 #Only build these guys first time around, otherwise the read from checkpoints
 #Important because some of these params (like SZ location) may change during model evolution
@@ -477,7 +477,7 @@ if not checkpointLoad:
     ndp.CVR = dp.CVR*sf.vel #characteristic velocity
 
 
-# In[100]:
+# In[117]:
 
 ndp.Edf, ndp.RA
 #sf.lith_grad
@@ -554,9 +554,9 @@ if md.periodicBcs:
 #Metric output stuff
 figures =  'store' #glucifer Store won't work on all machines, if not, set to 'gldb' 
 swarm_repop, swarm_update = 10, 10
-gldbs_output = 5
-checkpoint_every, files_output = 10, 10
-metric_output = 2
+gldbs_output = 50
+checkpoint_every, files_output = 100, 100
+metric_output = 20
 sticky_air_temp = 1e6
 
 
@@ -1497,16 +1497,16 @@ if md.PIC_integration:
     stokesPIC = uw.systems.Stokes(velocityField=velocityField, 
                               pressureField=pressureField,
                               conditions=[freeslipBC,],
-                              fn_viscosity=linearviscosityFn, 
+                              fn_viscosity=diffusion, 
                               fn_bodyforce=buoyancyFn,
-                             swarm=gSwarm)
+                              swarm=gSwarm)
     
 
 else:
     stokesPIC = uw.systems.Stokes(velocityField=velocityField, 
                               pressureField=pressureField,
                               conditions=[freeslipBC,],
-                              fn_viscosity=linearviscosityFn, 
+                              fn_viscosity=diffusion, 
                               fn_bodyforce=buoyancyFn )
 
 
