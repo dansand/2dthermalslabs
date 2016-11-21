@@ -2019,7 +2019,6 @@ elif figures == 'store':
     store1 = glucifer.Store(fullpath + 'subduction1.gldb')
     store2 = glucifer.Store(fullpath + 'subduction2.gldb')
     store3 = glucifer.Store(fullpath + 'subduction3.gldb')
-    store4 = glucifer.Store(fullpath + 'subduction4.gldb')
 
 
     figTemp = glucifer.Figure(store1,figsize=(300*np.round(md.aspectRatio,2),300))
@@ -2029,7 +2028,7 @@ elif figures == 'store':
     figVisc.append( glucifer.objects.Points(gSwarm,viscosityMapFn1, logScale=True, valueRange =[1.,1e5], fn_mask=vizVariable))
 
 
-    figMat= glucifer.Figure(store4, figsize=(300*np.round(md.aspectRatio,2),300))
+    figMat= glucifer.Figure(store3, figsize=(300*np.round(md.aspectRatio,2),300))
     figMat.append( glucifer.objects.Points(gSwarm,materialVariable, fn_mask=vizVariable))
     figMat.append( glucifer.objects.Points(fault.swarm, pointSize=3))
 
@@ -2374,7 +2373,9 @@ while realtime < 0.002:
             
         elif figures == 'store':      
             fullpath = os.path.join(outputPath + "gldbs/")
-            store.step = step
+            store1.step = step
+            store2.step = step
+            store3.step = step
             #Save figures to store
             figVisc.save( fullpath + "Visc" + str(step).zfill(4))
             #figMech.save( fullPath + "Mech" + str(step).zfill(4))
