@@ -2313,15 +2313,17 @@ while realtime < 0.002:
         
         #set up some swarm variables
         interfaceSinv = metricSwarm.swarm.add_variable( dataType="float", count=1 )
-        interfaceSinv.data[:] = strainRate_2ndInvariant.evaluate(metricSwarm.swarm)
+        if len(metricSwarm.swarm.particleCoordinates.data) > 0:
+            interfaceSinv.data[:] = strainRate_2ndInvariant.evaluate(metricSwarm.swarm)
         
         interfaceVisc = metricSwarm.swarm.add_variable( dataType="float", count=1 )
-        #interfaceVisc.data[:] = meshVisc.evaluate(metricSwarm.swarm)
-        interfaceVisc.data[:][:,0] =  np.average(viscosityMapFn1.evaluate(gSwarm)[_ix][:,:,0], weights=_weights, axis=1)
+        if len(metricSwarm.swarm.particleCoordinates.data) > 0:
+            interfaceVisc.data[:][:,0] =  np.average(viscosityMapFn1.evaluate(gSwarm)[_ix][:,:,0], weights=_weights, axis=1)
 
     
         interfaceStress = metricSwarm.swarm.add_variable( dataType="float", count=1 )
-        interfaceStress.data[:][:,0] =  np.average(swarmStressFn.evaluate(gSwarm)[_ix][:,:,0], weights=_weights, axis=1)
+        if len(metricSwarm.swarm.particleCoordinates.data) > 0:
+            interfaceStress.data[:][:,0] =  np.average(swarmStressFn.evaluate(gSwarm)[_ix][:,:,0], weights=_weights, axis=1)
 
         
         uw.barrier()
