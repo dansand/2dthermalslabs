@@ -26,4 +26,4 @@ export MPIRUN=mpiexec
 export PYTHONPATH=/short/m18/dds563/underworld2/:$PYTHONPATH
 
 
-$MPIRUN -np $PBS_NCPUS --mca mpi_warn_on_fork 0 python kaplan.py R $COUNTER md.elementType=$A md.PIC_integration=$B md.RES=$C md.ppc=$D
+$MPIRUN -np $PBS_NCPUS --mca mpi_warn_on_fork 0 python kaplan_dev.py R $COUNTER md.RES=$A md.elementType=$B dp.Edf*=0.5
