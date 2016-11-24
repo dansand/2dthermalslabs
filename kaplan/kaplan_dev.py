@@ -561,8 +561,8 @@ if md.periodicBcs:
 #Metric output stuff
 figures =  'gldb' #glucifer Store won't work on all machines, if not, set to 'gldb' 
 swarm_repop, swarm_update = 10, 10
-gldbs_output = 20
-checkpoint_every, files_output = 100, 10
+gldbs_output = 50
+checkpoint_every, files_output = 100, 50
 metric_output = 20
 sticky_air_temp = 1e6
 
