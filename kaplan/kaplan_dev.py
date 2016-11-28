@@ -16,7 +16,7 @@
 # 
 # Kaplan, Michael. Numerical Geodynamics of Solid Planetary Deformation. Diss. University of Southern California, 2015.
 
-# In[22]:
+# In[1]:
 
 import numpy as np
 import underworld as uw
@@ -308,7 +308,7 @@ dp.deltaT = dp.TP - dp.TS
 
 
 
-# In[12]:
+# In[22]:
 
 #Modelling and Physics switches
 
@@ -320,7 +320,7 @@ md = edict({'refineMesh':True,
             'aspectRatio':6,
             'compBuoyancy':False, #use compositional & phase buoyancy, or simply thermal
             'periodicBcs':False,
-            'RES':192,
+            'RES':256,
             'PIC_integration':True,
             'ppc':50,
             'elementType':"Q1/dQ0"
@@ -329,19 +329,12 @@ md = edict({'refineMesh':True,
 #"Q2/DPC1"
 
 
-# In[13]:
-
-#this block mostly helps with consistency in resolutions test, 
-#allowing to test consistent particle density / node spacing 
-#in models with different res. / element types
-
-if md.elementType != "Q1/dQ0":
-    md.RES = int(md.RES/2)     #halve the resolution if using Q2 element
-    
-md.ppc = int(md.ppc / (md.RES/128.))          #this keeps the total particles uniform, normalised by 50 ppc @ 128
+# In[ ]:
 
 
-# In[14]:
+
+
+# In[23]:
 
 ###########
 #If starting from a checkpoint load params from file
@@ -351,7 +344,7 @@ if checkpointLoad:
     dp, ndp, sf, md = load_pickles()  #remember to add any extra dictionaries
 
 
-# In[15]:
+# In[24]:
 
 ###########
 #If command line args are given, overwrite
@@ -410,7 +403,22 @@ for farg in sys.argv[1:]:
 comm.barrier()
 
 
-# In[16]:
+# In[25]:
+
+#this block mostly helps with consistency in resolutions test, 
+#allowing to test consistent particle density / node spacing 
+#in models with different res. / element types
+
+if md.elementType != "Q1/dQ0":
+    md.RES = int(md.RES/2)     #halve the resolution if using Q2 element
+    
+
+
+comm.barrier()    
+md.ppc = int(md.ppc / (md.RES/128.))          #this keeps the total particles uniform, normalised by 50 ppc @ 128
+
+
+# In[26]:
 
 #print('refine Mesh is: ', md.refineMesh)
 
@@ -500,8 +508,7 @@ ndp.Edf, ndp.RA
 
 # In[19]:
 
-if 'Q2' in md.elementType:
-    md.RES = int(0.5*md.RES)
+
 
 
 # In[19]:
@@ -2270,7 +2277,7 @@ start = time.clock()
 # In[188]:
 
 #while step < 6:
-while realtime < 0.002:
+while realtime < 0.00004:
 
     # solve Stokes and advection systems
     solver.solve(nonLinearIterate=True)
