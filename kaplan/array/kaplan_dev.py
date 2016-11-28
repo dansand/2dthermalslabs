@@ -2493,6 +2493,20 @@ while realtime < 0.00004:
     #Gldb output
     ################ 
     if (step % gldbs_output == 0): 
+        
+        #ReBuild the depth dependent mask for the vizualisation
+        depthVariable      = gSwarm.add_variable( dataType="float", count=1 )
+        depthVariable.data[:] = depthFn.evaluate(gSwarm)
+        vizVariable      = gSwarm.add_variable( dataType="int", count=1 )
+        vizVariable.data[:] = 0
+        for index, value in enumerate(depthVariable.data[:]):
+            #print index, value
+            if np.random.rand(1)**5 > value/(MAXY - MINY):
+                vizVariable.data[index] = 1
+        del index, value    #get rid of any variables that might be pointing at the .data handles (these are!)
+        
+        
+        
         if figures == 'gldb':
             
             
@@ -2500,12 +2514,7 @@ while realtime < 0.00004:
             fnamedb = "dbFig" + "_" + str(step) + ".gldb"
             fullpath = os.path.join(outputPath + "gldbs/" + fnamedb)
             figDb.save_database(fullpath)
-            
-            #Temp figure
-            #fnamedb = "restrictFig" + "_" + str(step) + ".gldb"
-            #fullpath = os.path.join(outputPath + "gldbs/" + fnamedb)
-            #figRestrict.save_database(fullpath)
-            
+
             
             
             

@@ -1,6 +1,6 @@
 #!/bin/bash
 counter=1
-for a in 128 160 192 256
+for a in 128 160 192 256 320
 do
    for b in "Q1/dQ0" "Q2/DPC1"
    do
