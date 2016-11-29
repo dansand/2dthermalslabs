@@ -1032,7 +1032,7 @@ else:
 ###########
 swarmPlateBoundary = uw.swarm.Swarm( mesh=mesh )
 
-swarmCoords = np.array([ [0.0,1.], [-0.6999,1.],[0.6999,1.],[ndp.subzone,1.], [ndp.lRidge,1.],[ndp.rRidge,1.]])
+swarmCoords = np.array([ [ndp.subzone,1.], [ndp.lRidge,1.],[ndp.rRidge,1.]])
 
 
 swarmPlateBoundary.add_particles_with_coordinates(swarmCoords)
@@ -1216,7 +1216,7 @@ for i in range(2): #Need to go through a number of times
 
 # In[51]:
 
-DG.add_transition((crustIndex,mantleIndex), xFn, operator.gt, ndp.subzone + 4.*ndp.MANTLETOCRUST)
+DG.add_transition((crustIndex,mantleIndex), xFn, operator.gt, ndp.subzone + 2.*ndp.MANTLETOCRUST)
 
 
 # ## Fault stuff
@@ -2581,7 +2581,7 @@ while realtime < 0.00004:
         DG.add_transition((crustIndex,mantleIndex), depthFn, operator.gt, ndp.CRUSTTOMANTLE + hs)
     
         DG.add_edges_from([(crustIndex,mantleIndex)])
-        DG.add_transition((crustIndex,mantleIndex), xFn, operator.gt, ndp.subzone + 4.*ndp.MANTLETOCRUST)
+        DG.add_transition((crustIndex,mantleIndex), xFn, operator.gt, ndp.subzone + 2.*ndp.MANTLETOCRUST)
 
         
     
