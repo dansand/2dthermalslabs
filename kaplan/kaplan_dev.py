@@ -308,7 +308,7 @@ dp.deltaT = dp.TP - dp.TS
 
 
 
-# In[22]:
+# In[12]:
 
 #Modelling and Physics switches
 
@@ -320,7 +320,7 @@ md = edict({'refineMesh':True,
             'aspectRatio':6,
             'compBuoyancy':False, #use compositional & phase buoyancy, or simply thermal
             'periodicBcs':False,
-            'RES':256,
+            'RES':64,
             'PIC_integration':True,
             'ppc':50,
             'elementType':"Q1/dQ0"
@@ -334,7 +334,7 @@ md = edict({'refineMesh':True,
 
 
 
-# In[23]:
+# In[13]:
 
 ###########
 #If starting from a checkpoint load params from file
@@ -344,7 +344,7 @@ if checkpointLoad:
     dp, ndp, sf, md = load_pickles()  #remember to add any extra dictionaries
 
 
-# In[24]:
+# In[14]:
 
 ###########
 #If command line args are given, overwrite
@@ -403,7 +403,7 @@ for farg in sys.argv[1:]:
 comm.barrier()
 
 
-# In[25]:
+# In[15]:
 
 #this block mostly helps with consistency in resolutions test, 
 #allowing to test consistent particle density / node spacing 
@@ -418,7 +418,7 @@ comm.barrier()
 md.ppc = int(md.ppc / (md.RES/128.))          #this keeps the total particles uniform, normalised by 50 ppc @ 128
 
 
-# In[26]:
+# In[16]:
 
 #print('refine Mesh is: ', md.refineMesh)
 
@@ -492,12 +492,12 @@ if not checkpointLoad:
     ndp.CVR = dp.CVR*sf.vel #characteristic velocity
 
 
-# In[21]:
+# In[18]:
 
 #0.05*dp.LS
 
 
-# In[18]:
+# In[19]:
 
 ndp.Edf, ndp.RA
 #sf.lith_grad
@@ -506,12 +506,12 @@ ndp.Edf, ndp.RA
 
 # **Model setup parameters**
 
-# In[19]:
+# In[ ]:
 
 
 
 
-# In[19]:
+# In[20]:
 
 ###########
 #Model setup parameters
@@ -568,7 +568,7 @@ if md.periodicBcs:
 
 # ### Metric output
 
-# In[20]:
+# In[21]:
 
 #Metric output stuff
 figures =  'store' #glucifer Store won't work on all machines, if not, set to 'gldb' 
@@ -579,7 +579,7 @@ metric_output = 20
 sticky_air_temp = 1e6
 
 
-# In[21]:
+# In[22]:
 
 #dp.lRidge/dp.LS, np.round(0.5*(dp.depth/dp.LS)*md.aspectRatio, 1)
 #np.round(0.5*(dp.depth/dp.LS)*md.aspectRatio, 1), ndp.lRidge
@@ -592,7 +592,7 @@ sticky_air_temp = 1e6
 # Create mesh and finite element variables
 # ------
 
-# In[22]:
+# In[23]:
 
 mesh = uw.mesh.FeMesh_Cartesian( elementType = (md.elementType),
                                  elementRes  = (Xres, Yres), 
@@ -610,7 +610,7 @@ pressureField.data[:]       = 0.
 temperatureDotField.data[:] = 0.
 
 
-# In[23]:
+# In[24]:
 
 coordinate = fn.input()
 depthFn = MAXY - coordinate[1] #a function providing the depth
@@ -620,7 +620,7 @@ xFn = coordinate[0]  #a function providing the x-coordinate
 yFn = coordinate[1]
 
 
-# In[24]:
+# In[25]:
 
 mesh.reset()
 
@@ -662,7 +662,7 @@ with mesh.deform_mesh():
      mesh.data[:,1] = newYpos[:,0]
 
 
-# In[25]:
+# In[26]:
 
 #THis is a hack for adding a sticky air domain, we refine MAXY and things like the temperature stencil work from Y = 1. 
 
@@ -684,7 +684,7 @@ if md.stickyAir:
 
 
 
-# In[26]:
+# In[27]:
 
 
 def age_fn(xFn, sz = 0.0, lMOR=MINX, rMOR=MAXX, opFac=1., conjugate_plate = False):
@@ -718,12 +718,12 @@ def age_fn(xFn, sz = 0.0, lMOR=MINX, rMOR=MAXX, opFac=1., conjugate_plate = Fals
     return ageFn
 
 
-# In[27]:
+# In[28]:
 
 #ndp.lRidge *= 0.5
 
 
-# In[28]:
+# In[29]:
 
 ###########
 #Thermal initial condition - half-space cooling
@@ -752,12 +752,12 @@ if not md.symmetricIcs:
 
 
 
-# In[29]:
+# In[30]:
 
 w0
 
 
-# In[30]:
+# In[31]:
 
 #Now build the perturbation part
 def inCircleFnGenerator(centre, radius):
@@ -797,14 +797,14 @@ if not md.symmetricIcs:
                 temperatureField.data[index] = slabFn.evaluate(mesh)[index]
 
 
-# In[31]:
+# In[32]:
 
 #sdFn = ((RocM - fn.math.sqrt((coordinate[0] - Org[0])**2. + (coordinate[1] - Org[1])**2.)))
 #slabFn = ndp.TPP*fn.math.erf((sdFn*dp.LS)/(2.*math.sqrt(dp.k*ageAtTrenchSeconds))) + ndp.TSP
 #sdFn, slabFn
 
 
-# In[32]:
+# In[33]:
 
 #Make sure material in sticky air region is at the surface temperature.
 for index, coord in enumerate(mesh.data):
@@ -812,7 +812,7 @@ for index, coord in enumerate(mesh.data):
                 temperatureField.data[index] = ndp.TSP
 
 
-# In[33]:
+# In[34]:
 
 #fn.math.erf((sdFn*dp.LS)/(2.*fn.math.sqrt(dp.k*(slabmaxAge*(3600*24*365))))) 
 #CRUSTVISCUTOFF, MANTLETOCRUST*3
@@ -842,12 +842,12 @@ for index, coord in enumerate(mesh.data):
 # fig, ax = matplot_field(temperatureField, dp)
 # fig.savefig('test.png')       
 
-# In[34]:
+# In[35]:
 
 temperatureField.data.min(), temperatureField.data.max()
 
 
-# In[35]:
+# In[36]:
 
 #fig= glucifer.Figure(quality=3)
 #fig.append( glucifer.objects.Surface(mesh,temperatureField))
@@ -865,7 +865,7 @@ temperatureField.data.min(), temperatureField.data.max()
 # Boundary conditions
 # -------
 
-# In[36]:
+# In[37]:
 
 for index in mesh.specialSets["MinJ_VertexSet"]:
     temperatureField.data[index] = ndp.TBP
@@ -946,7 +946,7 @@ neumannTempBC = uw.conditions.NeumannCondition( dT_dy, variable=temperatureField
 
 
 
-# In[37]:
+# In[38]:
 
 #check VelBCs are where we want them
 #test = np.zeros(len(tWalls.data))
@@ -967,7 +967,7 @@ neumannTempBC = uw.conditions.NeumannCondition( dT_dy, variable=temperatureField
 # -----
 # 
 
-# In[38]:
+# In[39]:
 
 ###########
 #Material Swarm and variables
@@ -987,7 +987,7 @@ varlist = [materialVariable, yieldingCheck, ageVariable]
 varnames = ['materialVariable', 'yieldingCheck', 'ageVariable']
 
 
-# In[39]:
+# In[40]:
 
 mantleIndex = 0
 crustIndex = 1
@@ -1025,7 +1025,7 @@ else:
                  materialVariable.data[particleID] = crustIndex
 
 
-# In[40]:
+# In[41]:
 
 ###########
 #Little swarm to track subduction zone, ridge location
@@ -1068,7 +1068,7 @@ swarmPlateBoundary.add_particles_with_coordinates(swarmCoords)
 
 
 
-# In[41]:
+# In[42]:
 
 ##############
 #Set the initial particle age for particles above the critical depth; 
@@ -1090,7 +1090,7 @@ ageVariable.data[:] = fn.branching.conditional( ageConditions ).evaluate(gSwarm)
 ageDT = 0.#this is used in the main loop for short term time increments
 
 
-# In[42]:
+# In[43]:
 
 #fig= glucifer.Figure()
 #fig.append( glucifer.objects.Points(gSwarm,ageVariable))
@@ -1100,7 +1100,7 @@ ageDT = 0.#this is used in the main loop for short term time increments
 #fig.show()
 
 
-# In[43]:
+# In[44]:
 
 ##############
 #Here we set up a directed graph object that we we use to control the transformation from one material type to another
@@ -1153,17 +1153,17 @@ DG.add_transition((crustIndex,airIndex), depthFn, operator.lt, 0. )
 DG.add_transition((harzIndex,airIndex), depthFn, operator.lt, 0. )
 
 
-# In[44]:
+# In[45]:
 
 #CRUSTTOMANTLE, HARZBURGDEPTH, 0. + 7.*MANTLETOCRUST
 
 
-# In[45]:
+# In[46]:
 
 #gSwarm.particleCoordinates.data[particleID][1]
 
 
-# In[46]:
+# In[47]:
 
 ##############
 #For the slab_IC, we'll also add a crustal weak zone following the dipping perturbation
@@ -1194,7 +1194,7 @@ if checkpointLoad != True:
                 materialVariable.data[particleID] = harzIndex
 
 
-# In[47]:
+# In[48]:
 
 ##############
 #This is how we use the material graph object to test / apply material transformations
@@ -1205,9 +1205,18 @@ for i in range(2): #Need to go through a number of times
     materialVariable.data[:] = fn.branching.conditional(DG.condition_list).evaluate(gSwarm)
 
 
-# In[48]:
+# In[49]:
 
 #maxDepth
+
+
+# ## Test - careful
+# 
+# see how killing crust on the upper plate can help
+
+# In[51]:
+
+DG.add_transition((crustIndex,mantleIndex), xFn, operator.gt, ndp.subzone + 4.*ndp.MANTLETOCRUST)
 
 
 # ## Fault stuff
@@ -2096,6 +2105,7 @@ elif figures == 'store':
     figMat= glucifer.Figure(store3, figsize=(300*np.round(md.aspectRatio,2),300))
     figMat.append( glucifer.objects.Points(gSwarm,materialVariable, fn_mask=vizVariable))
     figMat.append( glucifer.objects.Points(fault.swarm, pointSize=3))
+    figMat.append( glucifer.objects.Points(swarmPlateBoundary, pointSize=4))
 
 
 # **Miscellania**
@@ -2563,6 +2573,16 @@ while realtime < 0.00004:
         DG.add_transition((harzIndex,crustIndex), ageVariable, operator.gt, crustageCond)
         
         comm.barrier()
+        
+        #Test 
+        #Remove and rebuild edges related to crust on upper plate
+        DG.remove_edges_from([(crustIndex,mantleIndex)])
+    
+        DG.add_transition((crustIndex,mantleIndex), depthFn, operator.gt, ndp.CRUSTTOMANTLE + hs)
+    
+        DG.add_edges_from([(crustIndex,mantleIndex)])
+        DG.add_transition((crustIndex,mantleIndex), xFn, operator.gt, ndp.subzone + 4.*ndp.MANTLETOCRUST)
+
         
     
         
