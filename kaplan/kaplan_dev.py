@@ -573,7 +573,7 @@ if md.periodicBcs:
 #Metric output stuff
 figures =  'store' #glucifer Store won't work on all machines, if not, set to 'gldb' 
 swarm_repop, swarm_update = 10, 10
-gldbs_output = 50
+gldbs_output = 25
 checkpoint_every, files_output = 100, 50
 metric_output = 20
 sticky_air_temp = 1e6
@@ -1208,7 +1208,7 @@ for i in range(2): #Need to go through a number of times
     materialVariable.data[:] = fn.branching.conditional(DG.condition_list).evaluate(gSwarm)
 
 
-# In[144]:
+# In[145]:
 
 #fig= glucifer.Figure(quality=3)
 
@@ -2079,18 +2079,18 @@ del index, value    #get rid of any variables that might be pointing at the .dat
 if figures == 'gldb':
     #Pack some stuff into a database as well
     figDb = glucifer.Figure()
-    figDb.append( glucifer.objects.Points(swarmPlateBoundary, pointSize=4))
+    #figDb.append( glucifer.objects.Points(swarmPlateBoundary, pointSize=4))
     #figDb.append( glucifer.objects.Mesh(mesh))
-    figDb.append( glucifer.objects.VectorArrows(mesh,velocityField, scaling=0.0005))
+    #figDb.append( glucifer.objects.VectorArrows(mesh,velocityField, scaling=0.0005))
     #figDb.append( glucifer.objects.Points(gSwarm,tracerVariable, colours= 'white black'))
     figDb.append( glucifer.objects.Points(gSwarm,materialVariable))
     
     #figDb.append( glucifer.objects.Points(gSwarm,viscMinVariable))
-    #figDb.append( glucifer.objects.Points(gSwarm,fnViscMin))
+    figDb.append( glucifer.objects.Points(gSwarm, ageVariable))
     #figDb.append( glucifer.objects.Points(gSwarm, viscosityMapFn1, logScale=True))
     #figDb.append( glucifer.objects.Points(gSwarm, strainRate_2ndInvariant, logScale=True))
-    figDb.append( glucifer.objects.Points(gSwarm,temperatureField))
-    figDb.append( glucifer.objects.Points(gSwarm,pressureField))
+    #figDb.append( glucifer.objects.Points(gSwarm,temperatureField))
+    #figDb.append( glucifer.objects.Points(gSwarm,pressureField))
     figDb.append( glucifer.objects.Points(fault.swarm, pointSize=3))
     
     
@@ -2120,6 +2120,7 @@ elif figures == 'store':
 
     figMat= glucifer.Figure(store3, figsize=(300*np.round(md.aspectRatio,2),300))
     figMat.append( glucifer.objects.Points(gSwarm,materialVariable, fn_mask=vizVariable))
+    figMat.append( glucifer.objects.Points(gSwarm,ageVariable, fn_mask=vizVariable))
     figMat.append( glucifer.objects.Points(fault.swarm, pointSize=3))
     figMat.append( glucifer.objects.Points(swarmPlateBoundary, pointSize=4))
 
@@ -2567,6 +2568,12 @@ while realtime < 0.00004:
     
     if step % swarm_update == 0:
         
+        #Increment age stuff. 
+        ageConditions = [ (depthFn < ndp.AGETRACKDEPTH, ageVariable + ageDT ),  #add ageDThere
+                  (True, 0.) ]
+        ageVariable.data[:] = fn.branching.conditional( ageConditions ).evaluate(gSwarm)        
+        ageDT = 0. #reset the age incrementer
+        
         
         #This is hardcoded to assume subduction is towards the right
         tempop = operator.lt
@@ -2594,11 +2601,7 @@ while realtime < 0.00004:
     
         
         
-        #Increment age stuff. 
-        ageConditions = [ (depthFn < ndp.AGETRACKDEPTH, ageVariable + ageDT ),  #add ageDThere
-                  (True, 0.) ]
-        ageVariable.data[:] = fn.branching.conditional( ageConditions ).evaluate(gSwarm)        
-        ageDT = 0. #reset the age incrementer
+        
         
         #Apply any materialVariable changes
         for i in range(2): #go through twice
@@ -2661,24 +2664,4 @@ print 'step =',step
 #axes.plot(surface_xs, vxTi - vxIso)
 #fig.savefig('Ti_minus_Iso.png')
 #plt.title('surface velocity residual - T. Iso minus Iso. weak zone')
-
-
-# In[130]:
-
-from scipy.interpolate import Rbf
-
-
-# In[131]:
-
-rbfi = Rbf(fault.swarm.particleCoordinates.data[:,0], fault.swarm.particleCoordinates.data[:,0])
-
-
-# In[132]:
-
-rbfi
-
-
-# In[ ]:
-
-
 
