@@ -2599,10 +2599,7 @@ while realtime < 0.00004:
         elif figures == 'store':      
             
             
-            #rebuild the figures masks - see if this helps with 'seeing' the vizVariable (and doesn't bugger the store)
-            matPoints._fn_mask=vizVariable
-    
-            
+        
             store1.step = step
             store2.step = step
             store3.step = step
