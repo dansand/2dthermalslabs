@@ -1246,49 +1246,7 @@ def copy_markerLine2D(ml, thickness=False, ID=False):
 
 # In[84]:
 
-from scipy.spatial import cKDTree as kdTree
 
-def nn_evaluation(fromSwarm, toSwarm, n=1, weighted=False):
-    """
-    This function provides nearest neighbour information for uw swarms, 
-    given the "toSwarm", this function returns the indices of the n nearest neighbours in "fromSwarm"
-    it also returns the inverse-distance if weighted=True. 
-    
-    The function works in parallel.
-    
-    The arrays come out a bit differently when used in nearest neighbour form
-    (n = 1), or IDW: (n > 1). The examples belowe show how to fill out a swarm variable in each case. 
-    
-    
-    Usage n = 1:
-    ------------
-    ix, weights = nn_evaluation(swarm, fault.swarm, n=n, weighted=False)
-    toSwarmVar.data[:][:,0] =  fromSwarmVar.evaluate(fromSwarm)[_ix][:,0]
-    
-    Usage n > 1:
-    ------------
-    ix, weights = nn_evaluation(swarm, fault.swarm, n=n, weighted=False)
-    toSwarmVar.data[:][:,0] =  np.average(fromSwarmVar.evaluate(fromSwarm)[ix][:,:,0], weights=weights, axis=1)
-    
-    """
-    
-    #print("fromSwarm data shape", fromSwarm.particleCoordinates.data.shape)
-    
-    if len(toSwarm.particleCoordinates.data) > 0: #this is required for safety in parallel
-        
-        #we rebuild the tree as we assume the fromSwarm is being advected
-        fromSwarm.tree = kdTree(fromSwarm.particleCoordinates.data) 
-        tree = fromSwarm.tree
-        d, ix = tree.query(toSwarm.particleCoordinates.data, n)
-        if n == 1:
-            weights = np.ones(toSwarm.particleCoordinates.data.shape[0])
-        elif not weighted:
-            weights = np.ones((toSwarm.particleCoordinates.data.shape[0], n))*(1./n)
-        else:
-            weights = (1./d[:])/(1./d[:]).sum(axis=1)[:,None]
-        return ix,  weights 
-    else:
-        return  np.empty(0., dtype="int"),  np.empty(0., dtype="int")
 
 
 # In[52]:
@@ -1749,6 +1707,54 @@ for ti, val in enumerate(eig1.data):
 
 # ## Polar stress tensor
 
+# In[203]:
+
+from scipy.spatial import cKDTree as kdTree
+
+def nn_evaluation(fromSwarm, _data, n=1, weighted=False):
+    """
+    This function provides nearest neighbour information for uw swarms, 
+    given the "_data", whcih could be the .data handle of a mesh or a swarm, this function returns the indices of the n nearest neighbours in "fromSwarm"
+    it also returns the inverse-distance if weighted=True. 
+    
+    The function works in parallel.
+    
+    The arrays come out a bit differently when used in nearest neighbour form
+    (n = 1), or IDW: (n > 1). The examples belowe show how to fill out a swarm variable in each case. 
+    
+    
+    Usage n = 1:
+    ------------
+    ix, weights = nn_evaluation(swarm, fault.swarm, n=n, weighted=False)
+    toSwarmVar.data[:][:,0] =  fromSwarmVar.evaluate(fromSwarm)[_ix][:,0]
+    
+    Usage n > 1:
+    ------------
+    ix, weights = nn_evaluation(swarm, fault.swarm, n=n, weighted=False)
+    toSwarmVar.data[:][:,0] =  np.average(fromSwarmVar.evaluate(fromSwarm)[ix][:,:,0], weights=weights, axis=1)
+    
+    """
+    
+    
+    #print("fromSwarm data shape", fromSwarm.particleCoordinates.data.shape)
+    
+    if len(toSwarm_data) > 0: #this is required for safety in parallel
+        
+        #we rebuild the tree as we assume the fromSwarm is being advected
+        fromSwarm.tree = kdTree(fromSwarm.particleCoordinates.data) 
+        tree = fromSwarm.tree
+        d, ix = tree.query(_data, n)
+        if n == 1:
+            weights = np.ones(_data.shape[0])
+        elif not weighted:
+            weights = np.ones((_data.shape[0], n))*(1./n)
+        else:
+            weights = (1./d[:])/(1./d[:]).sum(axis=1)[:,None]
+        return ix,  weights 
+    else:
+        return  np.empty(0., dtype="int"),  np.empty(0., dtype="int")
+
+
 # In[133]:
 
 #construct an atan2 function, for angle around origin
@@ -1792,18 +1798,39 @@ poltoCart.data[:,2] = -1.*np.sin(thetaField.evaluate(mesh)[:,0])
 poltoCart.data[:,3] = np.cos(thetaField.evaluate(mesh)[:,0])
 
 
-# In[99]:
+# In[204]:
 
 #Set up a nearest-neighbour interpolation for the velocity field
 
-mesh_swarm = uw.swarm.Swarm(mesh)
-mesh_swarm.add_particles_with_coordinates(mesh.data)
+#mesh_swarm = uw.swarm.Swarm(mesh)
 
-ix, weights = nn_evaluation(gSwarm, mesh_swarm, n=3, weighted=False)
+#little hack, to fix another hack
+#dt = mesh.data.copy()
+#dm = dt.mean(axis = 0)
+#_dt = dt - dm
+#_dt[:,0] /= np.linalg.norm(dt - dm, axis=1)
+#_dt[:,1] /= np.linalg.norm(dt - dm, axis=1)
+#dt -= _dt*1e-10
+
+#mesh_swarm.add_particles_with_coordinates(dt)
+
+ix, weights = nn_evaluation(gSwarm, mesh.data, n=3, weighted=False)
 meshVisc = np.average(stokesPIC.fn_viscosity.evaluate(gSwarm)[ix][:,:,0], weights=weights, axis=1)
 
 
-# In[120]:
+# In[206]:
+
+#stressTensor = uw.mesh.MeshVariable( mesh, 4)
+#print(mesh.data.shape, mesh_swarm.particleCoordinates.data.shape)
+
+
+# In[207]:
+
+stressTensor = uw.mesh.MeshVariable( mesh, 4)
+stressTensor.data[:,0] = 2.*meshVisc
+
+
+# In[208]:
 
 #Construct and populate the cartesian and polar stress tensors
 
@@ -1830,7 +1857,7 @@ for i, val in enumerate(mesh.data):
 
 
 
-# In[140]:
+# In[211]:
 
 #Level 3. lithosphere - mantle:
 tempMM = fn.view.min_max(temperatureField)
@@ -2438,7 +2465,7 @@ start = time.clock()
 # In[109]:
 
 #while step < 6:
-while realtime < 0.00004:
+while realtime < 0.0004:
 
     # solve Stokes and advection systems
     solver.solve(nonLinearIterate=True)
@@ -2498,7 +2525,7 @@ while realtime < 0.00004:
          
         comm.barrier()
         #build the arrays for nearest neighbour evaluation on the metric swarm
-        _ix, _weights = nn_evaluation(gSwarm, metricSwarm.swarm, n=5, weighted=True)
+        _ix, _weights = nn_evaluation(gSwarm, metricSwarm.swarm.data, n=5, weighted=True)
         #_ix, _weights = nn_evaluation(gSwarm, metricSwarm.swarm, n=1, weighted=False)
         
         
@@ -2806,6 +2833,63 @@ print 'step =',step
 #axes.plot(surface_xs, vxTi - vxIso)
 #fig.savefig('Ti_minus_Iso.png')
 #plt.title('surface velocity residual - T. Iso minus Iso. weak zone')
+
+
+# In[212]:
+
+fxs = fault.swarm.particleCoordinates.data[:,0]
+fys = fault.swarm.particleCoordinates.data[:,1]
+
+
+# In[213]:
+
+plt.scatter(fxs,
+           fys, s= 0.1)
+
+
+# In[201]:
+
+from scipy.interpolate.rbf import Rbf
+
+
+# In[216]:
+
+get_ipython().set_next_input(u'testXs = np.linspace');get_ipython().magic(u'pinfo np.linspace')
+
+
+# In[222]:
+
+testXs = np.linspace(fxs.min(),fxs.max(), 20 )
+
+
+# In[223]:
+
+rbf_adj = Rbf(fxs, fys, function='linear')
+lin_bimes = rbf_adj(testXs)
+plot3 = plt.plot(testXs, lin_bimes, '-', label='lin')
+#plt.scatter(fxs,fys, s= 0.1)
+
+
+# In[231]:
+
+def PointsInCircum(r,n=100):
+    return np.array([(math.cos(2*pi/n*x)*r,math.sin(2*pi/n*x)*r) for x in xrange(0,n+1)])
+
+circle = PointsInCircum(r=1)
+
+
+# In[232]:
+
+plt.scatter(circle[:,0],
+           circle[:,1], s= 0.1)
+
+
+# In[234]:
+
+rbf_adj = Rbf(circle[:,0], circle[:,1], function='linear')
+#lin_bimes = rbf_adj(circle[:,0])
+#plot3 = plt.plot(circle[:,0], lin_bimes, '-', label='lin')
+#plt.scatter(fxs,fys, s= 0.1)
 
 
 # In[ ]:
