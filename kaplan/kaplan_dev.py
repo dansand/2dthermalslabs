@@ -1675,13 +1675,13 @@ projectGuy = uw.utils.MeshVariable_Projection(meshVisc, viscosityMapFn1, type=0 
 projectGuy.solve() 
 
 
-# In[78]:
+# In[163]:
 
 ssr = sym_strainRate.evaluate(mesh)
 
 
 for ti, val in enumerate(eig1.data):
-    eigVals, eigVex= np.linalg.eigh(np.array([[ssr[ti][0],ssr[ti][2]],[ssr[ti][2],ssr[ti][0]]]), UPLO='U')
+    eigVals, eigVex= np.linalg.eigh(np.array([[ssr[ti][0],ssr[ti][2]],[ssr[ti][2],ssr[ti][1]]]), UPLO='U')
     #eig1.data[ti] = meshVisc.data[ti]*eigVals[0]*eigVex[0]
     #eig2.data[ti] = meshVisc.data[ti]*eigVals[1]*eigVex[1]
     eig1.data[ti] = eigVex[0]
@@ -1759,10 +1759,10 @@ yeq0 = operator.and_(yrel + 1e-20 > 0., yrel - 1e-20 < 0. )
 
 conditions = [ ( xrel > 0. ,                      fn.math.atan(yoverx) ),
                ( operator.and_(xrel < 0.,yrel >= 0. ) ,   fn.math.atan(yoverx) + np.pi),
-              ( operator.and_(xrel < 0.,yrel < 0. ) ,     fn.math.atan(yoverx) - np.pi),
-              ( operator.and_(xeq0, yrel > 0. ) ,     np.pi/2.),
-              ( operator.and_(xeq0, yrel < 0. ) ,     -1.*np.pi/2.),
-              ( operator.and_(xeq0, yrel == 0. ) ,     fn.math.atan(yoverx) - np.pi),
+               ( operator.and_(xrel < 0.,yrel < 0. ) ,     fn.math.atan(yoverx) - np.pi),
+               ( operator.and_(xeq0, yrel > 0. ) ,     np.pi/2.),
+               ( operator.and_(xeq0, yrel < 0. ) ,     -1.*np.pi/2.),
+               ( operator.and_(xeq0, yrel == 0. ) ,     fn.math.atan(yoverx) - np.pi),
                ( True,                                    9999999.) ]
 
 thetaField= fn.branching.conditional( conditions )
@@ -1774,13 +1774,18 @@ thetaField= fn.branching.conditional( conditions )
 #rField = fn.math.sqrt(xx*xx + yy*yy)
 
 
-# In[103]:
+# In[150]:
 
 #make an Nx4 mesh variable to store a transformation matrix
 
+#for notes on transformation, see
+#http://www.brown.edu/Departments/Engineering/Courses/En221/Notes/Polar_Coords/Polar_Coords.htm
+#2.7 Converting tensors between Cartesian and Spherical-Polar bases
+
+#Note that this is NOT how uw2 stores the tensor components
 poltoCart    = uw.mesh.MeshVariable( mesh=mesh, nodeDofCount=4 )
 #######        ##############
-# 0 1 #   ===> # cosX sinX #
+# 0 1 #   ===> # cosX sinX #      ===> Q
 # 2 3 #        # -sinX  cosX #
 #######        ##############
 
@@ -1791,7 +1796,7 @@ poltoCart.data[:,2] = -1.*np.sin(thetaField.evaluate(mesh)[:,0])
 poltoCart.data[:,3] = np.cos(thetaField.evaluate(mesh)[:,0])
 
 
-# In[104]:
+# In[151]:
 
 #Set up a nearest-neighbour interpolation for the velocity field
 
@@ -1811,25 +1816,39 @@ ix, weights = nn_evaluation(gSwarm, mesh.data, n=3, weighted=False)
 meshVisc = np.average(stokesPIC.fn_viscosity.evaluate(gSwarm)[ix][:,:,0], weights=weights, axis=1)
 
 
-# In[105]:
+# In[152]:
 
 #stressTensor = uw.mesh.MeshVariable( mesh, 4)
 #print(mesh.data.shape, mesh_swarm.particleCoordinates.data.shape)
 
 
-# In[106]:
+# In[153]:
 
 stressTensor = uw.mesh.MeshVariable( mesh, 4)
 stressTensor.data[:,0] = 2.*meshVisc
 
 
-# In[141]:
+# In[155]:
 
 #Construct and populate the cartesian and polar stress tensors
 
+#take uw2 2-D tensor components:
+
+#######        
+# 0 2 #  
+# . 1 #  
+####### 
+
+#and put them in to the form above
+
+#######        
+# 0 1 #  
+# 2 3 #  
+####### 
+
 stressTensor = uw.mesh.MeshVariable( mesh, 4)
 stressTensor.data[:,0] = 2.*meshVisc*fn.tensor.symmetric( velocityField.fn_gradient ).evaluate(mesh)[:,0] 
-stressTensor.data[:,1] = 2.*meshVisc*fn.tensor.symmetric( velocityField.fn_gradient ).evaluate(mesh)[:,1] 
+stressTensor.data[:,1] = 2.*meshVisc*fn.tensor.symmetric( velocityField.fn_gradient ).evaluate(mesh)[:,2] 
 stressTensor.data[:,2] = 2.*meshVisc*fn.tensor.symmetric( velocityField.fn_gradient ).evaluate(mesh)[:,2] 
 stressTensor.data[:,3] = 2.*meshVisc*fn.tensor.symmetric( velocityField.fn_gradient ).evaluate(mesh)[:,1] 
 
@@ -1845,12 +1864,12 @@ for i, val in enumerate(mesh.data):
     
 
 
-# In[142]:
+# In[156]:
 
 #Q.T
 
 
-# In[149]:
+# In[157]:
 
 #check that the tensor contaractions are the same
 print(np.dot(polarstressTensor.data[1], polarstressTensor.data[1]))
@@ -1869,18 +1888,19 @@ mantleconditions = [ (                                  operator.and_(temperatur
 restFn = fn.branching.conditional(mantleconditions)
 
 
-# In[ ]:
+# In[170]:
 
-fig= glucifer.Figure(quality=3)
+fig1= glucifer.Figure(quality=3)
 
 
 fig1.append( glucifer.objects.VectorArrows(mesh,eig1*restFn,arrowHead=0., scaling=1e-2, resolutionI=16*10, resolutionJ=16*2 ))
 fig1.append( glucifer.objects.VectorArrows(mesh,eig2*restFn,arrowHead=0., scaling=1e-2, resolutionI=16*10, resolutionJ=16*2 ))
 
-fig1.append( glucifer.objects.Surface(mesh,polarstressTensor[2], valueRange=[0.001, 1e6]))
+fig1.append( glucifer.objects.Surface(mesh,polarstressTensor[0], valueRange=[0.001, 1e6]))
 fig1.append( glucifer.objects.Surface(mesh,polarstressTensor[1], valueRange=[0.001, 1e6]))
 fig1.append( glucifer.objects.Surface(mesh,polarstressTensor[2], valueRange=[0.001, 1e6]))
 
+#fig1.show()
 fig1.save_database('test1.gldb')
 
 
