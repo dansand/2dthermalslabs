@@ -2295,22 +2295,12 @@ elif figures == 'store':
 
 
     figMat= glucifer.Figure(store3, figsize=(300*np.round(md.aspectRatio,2),300))
-    #fn_mask=vizVariable
-    #matPoints = glucifer.objects.Points(gSwarm,materialVariable, fn_mask=vizVariable)
     figMat.append(glucifer.objects.Points(gSwarm,materialVariable, fn_mask=vizVariable))
     figMat.append( glucifer.objects.VectorArrows(mesh,velocityField, scaling=0.0005))
     
     
     figRest= glucifer.Figure(store4, figsize=(300*np.round(md.aspectRatio,2),300))
-    #fn_mask=vizVariable
-    #matPoints = glucifer.objects.Points(gSwarm,materialVariable, fn_mask=vizVariable)
-    figRest.append(glucifer.objects.Points(gSwarm,materialVariable, fn_mask=vizVariable))
-    figRest.append( glucifer.objects.VectorArrows(mesh,velocityField, scaling=0.0005))
-
-    #matPoints._fn_mask = uw.function.Function.convert(fn_mask)
-    #figMat.append(matPoints )
-    #figMat.append( glucifer.objects.Points(fault.swarm, pointSize=3))
-    #figMat.append( glucifer.objects.Points(swarmPlateBoundary, pointSize=4))
+    figRest.append( glucifer.objects.Points(gSwarm,respltFn))
 
 
 # In[102]:
