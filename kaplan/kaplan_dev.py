@@ -572,8 +572,8 @@ if md.periodicBcs:
 figures =  'store' #glucifer Store won't work on all machines, if not, set to 'gldb' 
 swarm_repop, swarm_update = 5, 10
 gldbs_output = 25
-checkpoint_every, files_output = 1, 50
-metric_output = 1
+checkpoint_every, files_output = 100, 50
+metric_output = 10
 sticky_air_temp = 1e6
 
 
@@ -825,7 +825,7 @@ for index, coord in enumerate(mesh.data):
 # fig, ax = matplot_field(temperatureField, dp)
 # fig.savefig('test.png')       
 
-# In[33]:
+# In[36]:
 
 fig= glucifer.Figure(quality=3)
 fig.append( glucifer.objects.Surface(mesh,temperatureField))
@@ -2284,6 +2284,7 @@ elif figures == 'store':
     store1 = glucifer.Store(fullpath + 'subduction1.gldb')
     store2 = glucifer.Store(fullpath + 'subduction2.gldb')
     store3 = glucifer.Store(fullpath + 'subduction3.gldb')
+    store4 = glucifer.Store(fullpath + 'subduction4.gldb')
 
 
     figTemp = glucifer.Figure(store1,figsize=(300*np.round(md.aspectRatio,2),300))
@@ -2297,6 +2298,15 @@ elif figures == 'store':
     #fn_mask=vizVariable
     #matPoints = glucifer.objects.Points(gSwarm,materialVariable, fn_mask=vizVariable)
     figMat.append(glucifer.objects.Points(gSwarm,materialVariable, fn_mask=vizVariable))
+    figMat.append( glucifer.objects.VectorArrows(mesh,velocityField, scaling=0.0005))
+    
+    
+    figRest= glucifer.Figure(store4, figsize=(300*np.round(md.aspectRatio,2),300))
+    #fn_mask=vizVariable
+    #matPoints = glucifer.objects.Points(gSwarm,materialVariable, fn_mask=vizVariable)
+    figRest.append(glucifer.objects.Points(gSwarm,materialVariable, fn_mask=vizVariable))
+    figRest.append( glucifer.objects.VectorArrows(mesh,velocityField, scaling=0.0005))
+
     #matPoints._fn_mask = uw.function.Function.convert(fn_mask)
     #figMat.append(matPoints )
     #figMat.append( glucifer.objects.Points(fault.swarm, pointSize=3))
@@ -2717,6 +2727,7 @@ while realtime < 0.0004:
             #figMech.save( fullPath + "Mech" + str(step).zfill(4))
             figTemp.save( fullpath + "Temp"    + str(step).zfill(4))
             figMat.save( fullpath + "Mat"    + str(step).zfill(4))
+            figRest.save( fullpath + "Rest"    + str(step).zfill(4))
 
         
 
