@@ -825,7 +825,7 @@ for index, coord in enumerate(mesh.data):
 # fig, ax = matplot_field(temperatureField, dp)
 # fig.savefig('test.png')       
 
-# In[36]:
+# In[33]:
 
 fig= glucifer.Figure(quality=3)
 fig.append( glucifer.objects.Surface(mesh,temperatureField))
@@ -1618,7 +1618,7 @@ if md.stickyAir or md.subductionFault:
     stokesPIC._fn_director   = directorVector
 
 
-# In[77]:
+# In[74]:
 
 solver.set_inner_method("mumps")
 solver.options.scr.ksp_type="cg"
@@ -1628,7 +1628,7 @@ solver.solve(nonLinearIterate=True)
 solver.print_stats()
 
 
-# In[74]:
+# In[75]:
 
 #Check which particles are yielding
 #yieldingCheck.data[:] = 0
@@ -1640,7 +1640,7 @@ solver.print_stats()
 #yieldingCheck.data[:] = fn.branching.conditional( yieldconditions ).evaluate(gSwarm)
 
 
-# In[75]:
+# In[76]:
 
 #velocityFieldIso       = uw.mesh.MeshVariable( mesh=mesh,         nodeDofCount=2 )
 #velocityFieldIso.data[:] = velocityField.data.copy()
@@ -1652,14 +1652,14 @@ solver.print_stats()
 #                            velocityFieldIso.fn_gradient ))
 
 
-# In[76]:
+# In[77]:
 
 #Set up a swarm Stress function
 
 swarmStressFn = 2.*stokesPIC.fn_viscosity*strainRate_2ndInvariant
 
 
-# In[77]:
+# In[78]:
 
 sym_strainRate = fn.tensor.symmetric( 
                             velocityField.fn_gradient )
@@ -1675,7 +1675,7 @@ projectGuy = uw.utils.MeshVariable_Projection(meshVisc, viscosityMapFn1, type=0 
 projectGuy.solve() 
 
 
-# In[163]:
+# In[79]:
 
 ssr = sym_strainRate.evaluate(mesh)
 
@@ -1688,14 +1688,14 @@ for ti, val in enumerate(eig1.data):
     eig2.data[ti] = eigVex[1]
 
 
-# In[101]:
+# In[80]:
 
 #fig.save_database('test.gldb')
 
 
 # ## Polar stress tensor
 
-# In[2]:
+# In[81]:
 
 from scipy.spatial import cKDTree as kdTree
 
@@ -1877,7 +1877,7 @@ def nn_evaluation(fromSwarm, _data, n=1, weighted=False):
 # Advection-diffusion System setup
 # -----
 
-# In[74]:
+# In[82]:
 
 advDiff = uw.systems.AdvectionDiffusion( phiField       = temperatureField, 
                                          phiDotField    = temperatureDotField, 
@@ -1892,7 +1892,7 @@ passiveadvector = uw.systems.SwarmAdvector( swarm         = gSwarm,
                                      order         = 1)
 
 
-# In[75]:
+# In[83]:
 
 #population_control = uw.swarm.PopulationControl(gSwarm,deleteThreshold=0.2,splitThreshold=1.,maxDeletions=3,maxSplits=0, aggressive=True, particlesPerCell=int(md.ppc))
 
@@ -1916,7 +1916,7 @@ population_control = uw.swarm.PopulationControl(gSwarm,deleteThreshold=0.006,spl
 # 
 # In general, averages are found afterwards by combining the integral and the area of the relavent subregion
 
-# In[89]:
+# In[84]:
 
 ###################
 #Volume Restriction functions
@@ -1985,7 +1985,7 @@ interfaceRestFn.data[np.where(materialVariable.data[:] == crustIndex)] = 1.
 interfaceRestFn *= hinge60RestFn #Add next level up in heirarchy
 
 
-# In[90]:
+# In[85]:
 
 respltconditions = [ 
                     (                                  hinge60RestFn*2. > rockRestFn*1., 1.),
@@ -1996,19 +1996,19 @@ respltconditions = [
 respltFn = fn.branching.conditional(respltconditions )
 
 
-# In[93]:
+# In[95]:
 
 figR= glucifer.Figure()
 #figR.append( glucifer.objects.Points(gSwarm,respltFn))
-#figR.append( glucifer.objects.Points(gSwarm,lithRestFn))
-figR.append( glucifer.objects.Points(gSwarm,lowerPlateRestFn))
-#figR.append( glucifer.objects.Points(gSwarm,hinge180RestFn))
+figR.append( glucifer.objects.Points(gSwarm,lithRestFn))
+#figR.append( glucifer.objects.Points(gSwarm,lowerPlateRestFn))
+#figR.append( glucifer.objects.Points(gSwarm,hinge60RestFn))
 #fig.append( glucifer.objects.Points(gSwarm,interfaceRestFn))
 #figR.show()
 #figR.save_database('lptest.gldb')
 
 
-# In[95]:
+# In[97]:
 
 #figR.show()
 
@@ -2299,8 +2299,8 @@ elif figures == 'store':
     figMat.append( glucifer.objects.VectorArrows(mesh,velocityField, scaling=0.0005))
     
     
-    figRest= glucifer.Figure(store4, figsize=(300*np.round(md.aspectRatio,2),300))
-    figRest.append( glucifer.objects.Points(gSwarm,respltFn))
+    #figRest= glucifer.Figure(store4, figsize=(300*np.round(md.aspectRatio,2),300))
+    #figRest.append( glucifer.objects.Points(gSwarm,respltFn))
 
 
 # In[102]:
@@ -2579,7 +2579,7 @@ while realtime < 0.0004:
     ################ 
     
     comm.barrier()
-    if (step % files_output == 0):
+    if (step % metric_output == 0):
         
 
         ndp.subzone = plate_infoFn(velocityField,xFn,  20e3/dp.LS, xsearchlim = 200e3/dp.LS, currentloc = ndp.subzone, plateType='convergent')
@@ -2717,7 +2717,7 @@ while realtime < 0.0004:
             #figMech.save( fullPath + "Mech" + str(step).zfill(4))
             figTemp.save( fullpath + "Temp"    + str(step).zfill(4))
             figMat.save( fullpath + "Mat"    + str(step).zfill(4))
-            figRest.save( fullpath + "Rest"    + str(step).zfill(4))
+            #figRest.save( fullpath + "Rest"    + str(step).zfill(4))
 
         
 
