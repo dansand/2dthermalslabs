@@ -2761,13 +2761,7 @@ while realtime < 1.:
         #subduction fault
         introPoint = ndp.subzone - abs(ndp.subzone - ndp.lRidge)/2. #half way between ridge and Sz
         fault.add_points([introPoint],[MAXY - faultthickness])
-        
-        #Slab / mid swarm
-        if dp.sense == 'Right':
-            introPoint = ndp.lRidge + midthickness #
-        else:
-            introPoint = ndp.rRidge - midthickness #
-        slab_seg.add_points([introPoint],[MAXY - midthickness])
+
 
         
     ################
