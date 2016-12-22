@@ -323,11 +323,11 @@ dp = edict({#Main physical paramters
            'CRUSTVISCUTOFF':250.*1e3, #Deeper than this, crust material rheology reverts to mantle rheology
            'AGETRACKDEPTH':100e3, #above this depth we track the age of the lithsphere (below age is assumed zero)
            #Slab and plate parameters
-           'roc':750e3,     #radius of curvature of slab
+           'roc':250e3,     #radius of curvature of slab
            'subzone':0.0,   #X position of subduction zone...km
            'lRidge':-1.*(5000e3),  #For depth = 670 km, aspect ratio of 4, this puts the ridges at MINX, MAXX
            'rRidge':(5000e3),
-           'maxDepth':550e3,
+           'maxDepth':200e3,
            'theta':70., #Angle to truncate the slab (can also control with a maxDepth param)
            'slabmaxAge':100e6, #age of subduction plate at trench
            'platemaxAge':100e6, #max age of slab (Plate model)
@@ -2028,7 +2028,7 @@ v2x = fn.math.dot(velocityField[0],velocityField[0])
 sqrtv2x = fn.math.sqrt(fn.math.dot(velocityField[0],velocityField[0]))
 dw = temperatureField*velocityField[1]
 sinner = fn.math.dot( strainRate_2ndInvariant, strainRate_2ndInvariant )
-vd = 2.*viscosityMapFn*sinner
+vd = 4.*viscosityMapFn*sinner #there's an extra factor of 2, which is necessary because the of factor of 0.5 in the UW second invariant 
 dTdZ = temperatureField.fn_gradient[1]
 
 
@@ -2496,7 +2496,7 @@ def plate_infoFn(velocityField,xFn,  depthLimit, xsearchlim = 1.0, currentloc = 
 #This will allow us to evaluate viscous shear heating, and add the result directly to the temperature field
 ##############
 
-viscDisMapFn = 2.*viscosityMapFn*sinner
+viscDisMapFn = 4.*viscosityMapFn*sinner
 viscDisFnmesh = uw.mesh.MeshVariable(mesh,nodeDofCount=1)
 viscDisProj = uw.utils.MeshVariable_Projection( viscDisFnmesh, viscDisMapFn)
 viscDisProj.solve()
@@ -2537,9 +2537,9 @@ while realtime < 1.:
     
     #Add the viscous heating term
     #Need to fix this (forgot 'dissipation number')
-    #viscDisProj = uw.utils.MeshVariable_Projection( viscDisFnmesh, viscDisMapFn)
-    #viscDisProj.solve()
-    #temperatureField.data[:] += dt*viscDisFnmesh.evaluate(mesh)
+    viscDisProj = uw.utils.MeshVariable_Projection( viscDisFnmesh, viscDisMapFn)
+    viscDisProj.solve()
+    temperatureField.data[:] += ndp.Di*dt*viscDisFnmesh.evaluate(mesh)
     
 
     # Increment
