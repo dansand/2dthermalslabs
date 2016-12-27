@@ -16,7 +16,7 @@
 # 
 # Kaplan, Michael. Numerical Geodynamics of Solid Planetary Deformation. Diss. University of Southern California, 2015.
 
-# In[1]:
+# In[2]:
 
 import numpy as np
 import underworld as uw
@@ -44,7 +44,7 @@ comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 
 
-# In[2]:
+# In[3]:
 
 #####
 #Stubborn version number conflicts - need to figure out my Docker container runs an old version. For now...
@@ -58,7 +58,7 @@ except:
 # Model name and directories
 # -----
 
-# In[3]:
+# In[4]:
 
 ############
 #Model letter and number
@@ -86,7 +86,7 @@ else:
                 Model  = farg
 
 
-# In[4]:
+# In[5]:
 
 ###########
 #Standard output directory setup
@@ -116,7 +116,7 @@ if uw.rank()==0:
 comm.Barrier() #Barrier here so no procs run the check in the next cell too early
 
 
-# In[5]:
+# In[6]:
 
 ###########
 #Check if starting from checkpoint
@@ -133,7 +133,7 @@ for dirpath, dirnames, files in os.walk(checkpointPath):
         checkpointLoad = False
 
 
-# In[6]:
+# In[7]:
 
 # setup summary output file (name above)
 if checkpointLoad:
@@ -163,7 +163,7 @@ else:
 
 # **Use pint to setup any unit conversions we'll need**
 
-# In[7]:
+# In[8]:
 
 u = pint.UnitRegistry()
 cmpery = 1.*u.cm/u.year
@@ -173,7 +173,7 @@ spery = year.to(u.sec)
 cmpery.to(mpermy)
 
 
-# In[8]:
+# In[9]:
 
 box_half_width =4000e3
 age_at_trench = 100e6
@@ -189,7 +189,7 @@ print(cmperyear, mpersec )
 # * If params are passed in as flags to the script, they overwrite 
 # 
 
-# In[9]:
+# In[10]:
 
 ###########
 #Parameter / settings dictionaries get saved&loaded using pickle
@@ -203,7 +203,7 @@ md = edict({}) #model paramters, flags etc
 
 
 
-# In[10]:
+# In[11]:
 
 dict_list = [dp, sf, ndp, md]
 dict_names = ['dp.pkl', 'sf.pkl', 'ndp.pkl', 'md.pkl']
@@ -240,7 +240,7 @@ def load_pickles():
     return dp, ndp, sf, md
 
 
-# In[11]:
+# In[12]:
 
 ###########
 #Store the physical parameters, scale factors and dimensionless pramters in easyDicts
@@ -287,7 +287,7 @@ dp = edict({'LS':2900*1e3, #Scaling Length scale
             'subzone':0.0,   #X position of subduction zone..
             'lRidge':-0.5*(660e3*6),  #For depth = 670 km, aspect ratio of 6, this puts the ridges at MINX, MAXX
             'rRidge':0.5*(660e3*6),
-            'maxDepth':250e3,
+            'maxDepth':125e3,
             'theta':70., #Angle to truncate the slab (can also control with a maxDepth param)
             'slabmaxAge':60e6, #age of subduction plate at trench
             'platemaxAge':60e6, #max age of slab (Plate model)
@@ -308,7 +308,7 @@ dp.deltaT = dp.TP - dp.TS
 
 
 
-# In[12]:
+# In[13]:
 
 #Modelling and Physics switches
 
@@ -329,12 +329,12 @@ md = edict({'refineMesh':True,
 #"Q2/DPC1"
 
 
-# In[13]:
+# In[14]:
 
 #dp.lRidge/1e3
 
 
-# In[14]:
+# In[15]:
 
 ###########
 #If starting from a checkpoint load params from file
@@ -344,7 +344,7 @@ if checkpointLoad:
     dp, ndp, sf, md = load_pickles()  #remember to add any extra dictionaries
 
 
-# In[15]:
+# In[16]:
 
 ###########
 #If command line args are given, overwrite
@@ -403,7 +403,7 @@ for farg in sys.argv[1:]:
 comm.barrier()
 
 
-# In[16]:
+# In[17]:
 
 #this block mostly helps with consistency in resolutions test, 
 #allowing to test consistent particle density / node spacing 
@@ -418,12 +418,12 @@ comm.barrier()
 #md.ppc = int(md.ppc / (md.RES/128.))          #this keeps the total particles uniform, normalised by 50 ppc @ 128
 
 
-# In[17]:
+# In[18]:
 
 #print('refine Mesh is: ', md.refineMesh)
 
 
-# In[18]:
+# In[19]:
 
 #Only build these guys first time around, otherwise the read from checkpoints
 #Important because some of these params (like SZ location) may change during model evolution
@@ -492,12 +492,12 @@ if not checkpointLoad:
     ndp.CVR = dp.CVR*sf.vel #characteristic velocity
 
 
-# In[19]:
+# In[20]:
 
 #0.05*dp.LS
 
 
-# In[20]:
+# In[21]:
 
 ndp.Edf, ndp.RA
 
@@ -509,7 +509,7 @@ ndp.Edf, ndp.RA
 
 
 
-# In[21]:
+# In[22]:
 
 ###########
 #Model setup parameters
@@ -566,7 +566,7 @@ if md.periodicBcs:
 
 # ### Metric output
 
-# In[22]:
+# In[23]:
 
 #Metric output stuff
 figures =  'store' #glucifer Store won't work on all machines, if not, set to 'gldb' 
@@ -577,7 +577,7 @@ metric_output = 20
 sticky_air_temp = 1e6
 
 
-# In[23]:
+# In[24]:
 
 #dp.lRidge/dp.LS, np.round(0.5*(dp.depth/dp.LS)*md.aspectRatio, 1)
 #np.round(0.5*(dp.depth/dp.LS)*md.aspectRatio, 1), ndp.lRidge
@@ -590,7 +590,7 @@ sticky_air_temp = 1e6
 # Create mesh and finite element variables
 # ------
 
-# In[24]:
+# In[25]:
 
 mesh = uw.mesh.FeMesh_Cartesian( elementType = (md.elementType),
                                  elementRes  = (Xres, Yres), 
@@ -608,7 +608,7 @@ pressureField.data[:]       = 0.
 temperatureDotField.data[:] = 0.
 
 
-# In[25]:
+# In[26]:
 
 coordinate = fn.input()
 depthFn = MAXY - coordinate[1] #a function providing the depth
@@ -618,7 +618,7 @@ xFn = coordinate[0]  #a function providing the x-coordinate
 yFn = coordinate[1]
 
 
-# In[26]:
+# In[27]:
 
 mesh.reset()
 
@@ -660,7 +660,7 @@ with mesh.deform_mesh():
      mesh.data[:,1] = newYpos[:,0]
 
 
-# In[27]:
+# In[28]:
 
 #THis is a hack for adding a sticky air domain, we refine MAXY and things like the temperature stencil work from Y = 1. 
 
@@ -682,7 +682,7 @@ if md.stickyAir:
 
 
 
-# In[28]:
+# In[29]:
 
 
 def age_fn(xFn, sz = 0.0, lMOR=MINX, rMOR=MAXX, opFac=1., conjugate_plate = False):
@@ -716,7 +716,7 @@ def age_fn(xFn, sz = 0.0, lMOR=MINX, rMOR=MAXX, opFac=1., conjugate_plate = Fals
     return ageFn
 
 
-# In[29]:
+# In[30]:
 
 ###########
 #Thermal initial condition - half-space cooling
@@ -748,12 +748,12 @@ if not md.symmetricIcs:
 
 
 
-# In[30]:
+# In[31]:
 
 #testFn = min(fn.misc.constant(dp.platemaxAge*(3600*24*365)), dp.slabmaxAge*(3600*24*365)) #seconds to year
 
 
-# In[31]:
+# In[32]:
 
 #Now build the perturbation part
 def inCircleFnGenerator(centre, radius):
@@ -793,7 +793,7 @@ if not md.symmetricIcs:
                 temperatureField.data[index] = slabFn.evaluate(mesh)[index]
 
 
-# In[32]:
+# In[33]:
 
 #Make sure material in sticky air region is at the surface temperature.
 for index, coord in enumerate(mesh.data):
@@ -825,7 +825,7 @@ for index, coord in enumerate(mesh.data):
 # fig, ax = matplot_field(temperatureField, dp)
 # fig.savefig('test.png')       
 
-# In[33]:
+# In[34]:
 
 fig= glucifer.Figure(quality=3)
 fig.append( glucifer.objects.Surface(mesh,temperatureField))
@@ -840,7 +840,7 @@ fig.append( glucifer.objects.Surface(mesh,temperatureField))
 #fig.save_image('test.png')
 
 
-# In[34]:
+# In[35]:
 
 #ageFn.evaluate(mesh).max()/(3600*24*365.)
 
