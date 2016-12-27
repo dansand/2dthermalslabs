@@ -252,7 +252,7 @@ dp = edict({'LS':2900*1e3, #Scaling Length scale
             'depth':660*1e3, #Depth of domain
             'rho':3300.,  #reference density
             'g':9.8, #surface gravity
-            'eta0':2.5e20, #reference viscosity
+            'eta0':1.25e20, #reference viscosity
             'k':1e-6, #thermal diffusivity
             'a':3e-5, #surface thermal expansivity
             'R':8.314, #gas constant
@@ -269,8 +269,8 @@ dp = edict({'LS':2900*1e3, #Scaling Length scale
             #Rheology - cutoff values
             'eta_min':1e17, 
             'eta_max':1e25, #viscosity max in the mantle material
-            'eta_min_crust':2.5e19, #viscosity min in the weak-crust material
-            'eta_max_crust':2.5e19, #viscosity max in the weak-crust material
+            'eta_min_crust':1.25e19, #viscosity min in the weak-crust material
+            'eta_max_crust':1.25e19, #viscosity max in the weak-crust material
             #Length scales
             'MANTLETOCRUST':8.*1e3, #Crust depth
             'HARZBURGDEPTH':40e3,
@@ -571,9 +571,9 @@ if md.periodicBcs:
 #Metric output stuff
 figures =  'store' #glucifer Store won't work on all machines, if not, set to 'gldb' 
 swarm_repop, swarm_update = 5, 10
-gldbs_output = 25
+gldbs_output = 200
 checkpoint_every, files_output = 100, 50
-metric_output = 10
+metric_output = 20
 sticky_air_temp = 1e6
 
 
@@ -1887,7 +1887,7 @@ advDiff = uw.systems.AdvectionDiffusion( phiField       = temperatureField,
                                          #conditions     = [neumannTempBC, dirichTempBC] )
                                          conditions     = [ dirichTempBC] )
 
-passiveadvector = uw.systems.SwarmAdvector( swarm         = gSwarm, 
+materialadvector= uw.systems.SwarmAdvector( swarm         = gSwarm, 
                                      velocityField = velocityField, 
                                      order         = 1)
 
@@ -2045,7 +2045,7 @@ v2x = fn.math.dot(velocityField[0],velocityField[0])
 sqrtv2x = fn.math.sqrt(fn.math.dot(velocityField[0],velocityField[0]))
 dw = temperatureField*velocityField[1]
 sinner = fn.math.dot( strainRate_2ndInvariant, strainRate_2ndInvariant )
-vd = 2.*viscosityMapFn1*sinner
+vd = 4.*viscosityMapFn1*sinner # there's an extra factor of 2, which is necessary because the of factor of 0.5 in the UW second invariant 
 dTdZ = temperatureField.fn_gradient[1]
 
 
@@ -2455,7 +2455,7 @@ start = time.clock()
 # -----
 # 
 
-# In[109]:
+# In[1]:
 
 #while step < 6:
 while realtime < 0.0004:
@@ -2471,7 +2471,7 @@ while realtime < 0.0004:
     if step == 0:
         dt = 0.
     advDiff.integrate(dt)
-    passiveadvector.integrate(dt)
+    materialadvector.integrate(dt)
     #advect any interfaces
     fault.advection(dt)
     
@@ -2676,6 +2676,8 @@ while realtime < 0.0004:
     ################
     if step % swarm_repop == 0:
         population_control.repopulate()   
+        
+        
     ################
     #Gldb output
     ################ 
