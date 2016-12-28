@@ -573,7 +573,7 @@ figures =  'store' #glucifer Store won't work on all machines, if not, set to 'g
 swarm_repop, swarm_update = 5, 10
 gldbs_output = 200
 checkpoint_every, files_output = 100, 50
-metric_output = 20
+metric_output = 30
 sticky_air_temp = 1e6
 
 
