@@ -1,8 +1,8 @@
 #!/bin/bash
 #PBS -P m18
 #PBS -q normal
-#PBS -l walltime=36:00:00
-#PBS -l mem=32GB
+#PBS -l walltime=06:00:00
+#PBS -l mem=16GB
 #PBS -l ncpus=16
 #PBS -l wd
 #PBS -m ae
@@ -27,4 +27,4 @@ export MPIRUN=mpiexec
 export PYTHONPATH=/short/m18/dds563/underworld2/:$PYTHONPATH
 
 
-$MPIRUN -np $PBS_NCPUS --mca mpi_warn_on_fork 0 python kaplan_dev.py B1 $COUNTER md.RES=192 md.ppc=50 dp.Edf*=0.7 dp.fcm*=$A dp.cm*=$B dp.eta_max*=$C
+$MPIRUN -np $PBS_NCPUS --mca mpi_warn_on_fork 0 python kaplan_dev.py A3 $COUNTER md.RES=192 md.ppc=50 dp.eta_min_crust*=$A dp.eta_max_crust*=$A dp.eta0*=$B dp.Edf*=0.7

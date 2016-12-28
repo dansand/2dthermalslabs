@@ -1,15 +1,12 @@
 #!/bin/bash
 counter=1
-for a in 0.25 0.75 1.0 1.25 1.5 2.0 3.0
+for a in 0.2 0.5 1.0 2.0 4.0 10.0 20.0
 do
-   for b in 0.1 0.5 1.0 1.5 2.0 3.0
+   for b in 0.5 0.75 1.0 1.5 2.0 2.5 3.0 4.0
    do
-     for c in 1.0
-     do
-         #qsub -v COUNTER=$counter,A=$a,B=$b,C=$c array.pbs
-         echo $counter $a $b $c
-         let counter=counter+1
-         #if [ "$counter" -gt 1 ]; then break 3; fi;
-      done
+      #qsub -v COUNTER=$counter,A=$a,B=$b array.pbs
+      echo $counter $a $b $c $d
+      let counter=counter+1
+      #if [ "$counter" -gt 1 ]; then break 2; fi;
    done
 done
