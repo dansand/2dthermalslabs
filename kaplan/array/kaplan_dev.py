@@ -16,7 +16,7 @@
 # 
 # Kaplan, Michael. Numerical Geodynamics of Solid Planetary Deformation. Diss. University of Southern California, 2015.
 
-# In[2]:
+# In[1]:
 
 import numpy as np
 import underworld as uw
@@ -44,7 +44,7 @@ comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 
 
-# In[3]:
+# In[2]:
 
 #####
 #Stubborn version number conflicts - need to figure out my Docker container runs an old version. For now...
@@ -58,7 +58,7 @@ except:
 # Model name and directories
 # -----
 
-# In[4]:
+# In[3]:
 
 ############
 #Model letter and number
@@ -86,7 +86,7 @@ else:
                 Model  = farg
 
 
-# In[5]:
+# In[4]:
 
 ###########
 #Standard output directory setup
@@ -116,7 +116,7 @@ if uw.rank()==0:
 comm.Barrier() #Barrier here so no procs run the check in the next cell too early
 
 
-# In[6]:
+# In[5]:
 
 ###########
 #Check if starting from checkpoint
@@ -133,7 +133,7 @@ for dirpath, dirnames, files in os.walk(checkpointPath):
         checkpointLoad = False
 
 
-# In[7]:
+# In[6]:
 
 # setup summary output file (name above)
 if checkpointLoad:
@@ -163,7 +163,7 @@ else:
 
 # **Use pint to setup any unit conversions we'll need**
 
-# In[8]:
+# In[7]:
 
 u = pint.UnitRegistry()
 cmpery = 1.*u.cm/u.year
@@ -173,7 +173,7 @@ spery = year.to(u.sec)
 cmpery.to(mpermy)
 
 
-# In[9]:
+# In[8]:
 
 box_half_width =4000e3
 age_at_trench = 100e6
@@ -189,7 +189,7 @@ print(cmperyear, mpersec )
 # * If params are passed in as flags to the script, they overwrite 
 # 
 
-# In[10]:
+# In[9]:
 
 ###########
 #Parameter / settings dictionaries get saved&loaded using pickle
@@ -203,7 +203,7 @@ md = edict({}) #model paramters, flags etc
 
 
 
-# In[11]:
+# In[10]:
 
 dict_list = [dp, sf, ndp, md]
 dict_names = ['dp.pkl', 'sf.pkl', 'ndp.pkl', 'md.pkl']
@@ -240,7 +240,7 @@ def load_pickles():
     return dp, ndp, sf, md
 
 
-# In[12]:
+# In[11]:
 
 ###########
 #Store the physical parameters, scale factors and dimensionless pramters in easyDicts
@@ -265,11 +265,11 @@ dp = edict({'LS':2900*1e3, #Scaling Length scale
             'cm':40e6, #mantle cohesion in Byerlee law
             'cc':40e6, #mantle cohesion in Byerlee law
             'fcm':0.06,   #mantle friction coefficient in Byerlee law (tan(phi))
-            'fcc':0.06,   #crust friction coefficient 
+            'fcc':0.006,   #crust friction coefficient 
             #Rheology - cutoff values
             'eta_min':1e17, 
             'eta_max':1e25, #viscosity max in the mantle material
-            'eta_min_crust':1.25e19, #viscosity min in the weak-crust material
+            'eta_min_crust':1e17, #viscosity min in the weak-crust material
             'eta_max_crust':1.25e19, #viscosity max in the weak-crust material
             #Length scales
             'MANTLETOCRUST':8.*1e3, #Crust depth
@@ -308,7 +308,7 @@ dp.deltaT = dp.TP - dp.TS
 
 
 
-# In[13]:
+# In[12]:
 
 #Modelling and Physics switches
 
@@ -327,11 +327,6 @@ md = edict({'refineMesh':True,
             })
 
 #"Q2/DPC1"
-
-
-# In[14]:
-
-#dp.lRidge/1e3
 
 
 # In[15]:
@@ -571,9 +566,9 @@ if md.periodicBcs:
 #Metric output stuff
 figures =  'store' #glucifer Store won't work on all machines, if not, set to 'gldb' 
 swarm_repop, swarm_update = 5, 10
-gldbs_output = 200
-checkpoint_every, files_output = 100, 50
-metric_output = 30
+gldbs_output = 25
+checkpoint_every, files_output = 100, 25
+metric_output = 10
 sticky_air_temp = 1e6
 
 
@@ -966,8 +961,8 @@ ageVariable = gSwarm.add_variable( dataType="double", count=1 )
 
 
 #these lists  are part of the checkpointing implementation
-varlist = [materialVariable, yieldingCheck, ageVariable]
-varnames = ['materialVariable', 'yieldingCheck', 'ageVariable']
+varlist = [materialVariable,  ageVariable]
+varnames = ['materialVariable',  'ageVariable']
 
 
 # In[38]:
@@ -1631,25 +1626,12 @@ solver.print_stats()
 # In[75]:
 
 #Check which particles are yielding
-#yieldingCheck.data[:] = 0
 
-#yieldconditions = [ ( finalviscosityFn < Visc , 1), 
-#               ( True                                           , 0) ]
-
+yieldingCheck.data[:] = 0
+yieldconditions = [ ( diffusion > yielding , 1), 
+               ( True                                           , 0) ]
 # use the branching conditional function to set each particle's index
-#yieldingCheck.data[:] = fn.branching.conditional( yieldconditions ).evaluate(gSwarm)
-
-
-# In[76]:
-
-#velocityFieldIso       = uw.mesh.MeshVariable( mesh=mesh,         nodeDofCount=2 )
-#velocityFieldIso.data[:] = velocityField.data.copy()
-
-
-
-#strainRate_2ndInvariantIso = fn.tensor.second_invariant( 
-#                            fn.tensor.symmetric( 
-#                            velocityFieldIso.fn_gradient ))
+yieldingCheck.data[:] = fn.branching.conditional( yieldconditions ).evaluate(gSwarm)
 
 
 # In[77]:
@@ -2296,7 +2278,10 @@ elif figures == 'store':
 
     figMat= glucifer.Figure(store3, figsize=(300*np.round(md.aspectRatio,2),300))
     figMat.append(glucifer.objects.Points(gSwarm,materialVariable, fn_mask=vizVariable))
-    figMat.append( glucifer.objects.VectorArrows(mesh,velocityField, scaling=0.0005))
+    figMat.append( glucifer.objects.VectorArrows(mesh,velocityField,resolutionI=int(16*md.aspectRatio), resolutionJ=16*2,  scaling=0.0005))
+    figMat.append(glucifer.objects.Points(gSwarm,yieldingCheck, fn_mask=vizVariable))
+
+    
     
     
     #figRest= glucifer.Figure(store4, figsize=(300*np.round(md.aspectRatio,2),300))
@@ -2694,7 +2679,8 @@ while realtime < 0.0004:
                 vizVariable.data[index] = 1
         del index, value    #get rid of any variables that might be pointing at the .data handles (these are!)
         
-        
+        #rebuild the yielding check
+        yieldingCheck.data[:] = fn.branching.conditional( yieldconditions ).evaluate(gSwarm)
         
         if figures == 'gldb':
             

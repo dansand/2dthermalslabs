@@ -265,11 +265,11 @@ dp = edict({'LS':2900*1e3, #Scaling Length scale
             'cm':40e6, #mantle cohesion in Byerlee law
             'cc':40e6, #mantle cohesion in Byerlee law
             'fcm':0.06,   #mantle friction coefficient in Byerlee law (tan(phi))
-            'fcc':0.06,   #crust friction coefficient 
+            'fcc':0.006,   #crust friction coefficient 
             #Rheology - cutoff values
             'eta_min':1e17, 
             'eta_max':1e25, #viscosity max in the mantle material
-            'eta_min_crust':1.25e19, #viscosity min in the weak-crust material
+            'eta_min_crust':1e17, #viscosity min in the weak-crust material
             'eta_max_crust':1.25e19, #viscosity max in the weak-crust material
             #Length scales
             'MANTLETOCRUST':8.*1e3, #Crust depth
@@ -566,9 +566,9 @@ if md.periodicBcs:
 #Metric output stuff
 figures =  'store' #glucifer Store won't work on all machines, if not, set to 'gldb' 
 swarm_repop, swarm_update = 5, 10
-gldbs_output = 200
-checkpoint_every, files_output = 100, 50
-metric_output = 30
+gldbs_output = 25
+checkpoint_every, files_output = 100, 25
+metric_output = 10
 sticky_air_temp = 1e6
 
 
@@ -2278,7 +2278,7 @@ elif figures == 'store':
 
     figMat= glucifer.Figure(store3, figsize=(300*np.round(md.aspectRatio,2),300))
     figMat.append(glucifer.objects.Points(gSwarm,materialVariable, fn_mask=vizVariable))
-    figMat.append( glucifer.objects.VectorArrows(mesh,velocityField,resolutionI=int(24*md.aspectRatio), resolutionJ=24*2,  scaling=0.0005))
+    figMat.append( glucifer.objects.VectorArrows(mesh,velocityField,resolutionI=int(16*md.aspectRatio), resolutionJ=16*2,  scaling=0.0005))
     figMat.append(glucifer.objects.Points(gSwarm,yieldingCheck, fn_mask=vizVariable))
 
     
@@ -2679,7 +2679,8 @@ while realtime < 0.0004:
                 vizVariable.data[index] = 1
         del index, value    #get rid of any variables that might be pointing at the .data handles (these are!)
         
-        
+        #rebuild the yielding check
+        yieldingCheck.data[:] = fn.branching.conditional( yieldconditions ).evaluate(gSwarm)
         
         if figures == 'gldb':
             
