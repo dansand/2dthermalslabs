@@ -2548,7 +2548,13 @@ while realtime < 1.:
     #Files output
     ################ 
     if (step % files_output == 0):
-        pass
+        
+        gSwarm.update_particle_owners()
+        
+        #Save the fault swarm
+        fnametemp1 = "faultSwarm" + "_" + str(step)
+        fullpath1 = os.path.join(outputPath + "files/" + fnametemp1)
+        fault.swarm.save(fullpath1)
         
         #any fields / swarms to be saved go here
 
