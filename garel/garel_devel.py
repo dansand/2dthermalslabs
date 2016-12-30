@@ -326,7 +326,7 @@ dp = edict({#Main physical paramters
            'theta':70., #Angle to truncate the slab (can also control with a maxDepth param)
            'slabmaxAge':100e6, #age of subduction plate at trench
            'platemaxAge':100e6, #max age of slab (Plate model)
-           'opmaxAge':40e6, #age of op
+           'opmaxAge':100e6, #age of op
            'sense':'Right', #dip direction
            #'op_age_fac':0.2, #this controls the overidding plate age reduction
            #Misc
@@ -2282,7 +2282,7 @@ elif figures == 'store':
     
     figMat= glucifer.Figure(store4, figsize=(300*np.round(md.aspectRatio,2),300))
     figMat.append( glucifer.objects.Points(gSwarm,materialVariable, fn_mask=vizVariable))
-    figMat.append( glucifer.objects.VectorArrows(mesh,velocityField, scaling=0.0005))
+    figMat.append( glucifer.objects.VectorArrows(mesh,velocityField,resolutionI=int(16*md.aspectRatio), resolutionJ=16*2,  scaling=0.0001))
 
 
 # In[ ]:
