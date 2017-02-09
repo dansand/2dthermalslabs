@@ -22,7 +22,7 @@
 # Arredondo, Katrina M., and Magali I. Billen. "The Effects of Phase Transitions and Compositional Layering in Two-dimensional Kinematic Models of Subduction." Journal of Geodynamics (2016).
 # 
 
-# In[294]:
+# In[1]:
 
 import numpy as np
 import underworld as uw
@@ -51,7 +51,7 @@ comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 
 
-# In[295]:
+# In[2]:
 
 #####
 #Stubborn version number conflicts - need to figure out my Docker container runs an old version. For now...
@@ -67,7 +67,7 @@ except:
 
 
 
-# In[296]:
+# In[3]:
 
 #store = glucifer.Store('subduction')
 #figParticle = glucifer.Figure( store, figsize=(960,300), name="Particles" )
@@ -78,7 +78,7 @@ except:
 # Model name and directories
 # -----
 
-# In[297]:
+# In[4]:
 
 ############
 #Model letter and number
@@ -106,7 +106,7 @@ else:
                 Model  = farg
 
 
-# In[298]:
+# In[5]:
 
 ###########
 #Standard output directory setup
@@ -135,7 +135,7 @@ if uw.rank()==0:
 comm.Barrier() #Barrier here so no procs run the check in the next cell too early
 
 
-# In[299]:
+# In[6]:
 
 ###########
 #Check if starting from checkpoint
@@ -152,7 +152,7 @@ for dirpath, dirnames, files in os.walk(checkpointPath):
         checkpointLoad = False
 
 
-# In[300]:
+# In[7]:
 
 # setup summary output file (name above)
 if checkpointLoad:
@@ -182,7 +182,7 @@ else:
 
 # **Use pint to setup any unit conversions we'll need**
 
-# In[301]:
+# In[8]:
 
 u = pint.UnitRegistry()
 cmpery = 1.*u.cm/u.year
@@ -192,7 +192,7 @@ spery = year.to(u.sec)
 cmpery.to(mpermy)
 
 
-# In[302]:
+# In[9]:
 
 box_half_width =4000e3
 age_at_trench = 100e6
@@ -207,7 +207,7 @@ print(cmperyear, mpersec )
 # * If starting from checkpoint, parameters are loaded using pickle
 # * If params are passed in as flags to the script, they overwrite 
 
-# In[303]:
+# In[10]:
 
 ###########
 #Parameter / settings dictionaries get saved&loaded using pickle
@@ -220,7 +220,7 @@ md = edict({}) #model paramters, flags etc
 #od = edict({}) #output frequencies
 
 
-# In[304]:
+# In[11]:
 
 dict_list = [dp, sf, ndp, md]
 dict_names = ['dp.pkl', 'sf.pkl', 'ndp.pkl', 'md.pkl']
@@ -257,7 +257,7 @@ def load_pickles():
     return dp, ndp, sf, md
 
 
-# In[305]:
+# In[12]:
 
 ###########
 #Store the physical parameters, scale factors and dimensionless pramters in easyDicts
@@ -348,7 +348,7 @@ dp.deltaTa = (dp.TP + dp.dTa*dp.LS) - dp.TS  #Adiabatic Temp at base of mantle, 
 dp.rTemp= dp.TP + dp.rDepth*dp.dTa #reference temp, (potential temp + adiabat)
 
 
-# In[306]:
+# In[13]:
 
 #Modelling and Physics switches
 
@@ -373,7 +373,7 @@ md = edict({'refineMesh':False,
             })
 
 
-# In[307]:
+# In[14]:
 
 ###########
 #If starting from a checkpoint load params from file
@@ -383,7 +383,7 @@ if checkpointLoad:
     dp, ndp, sf, md = load_pickles()  #remember to add any extra dictionaries
 
 
-# In[308]:
+# In[15]:
 
 ###########
 #If command line args are given, overwrite
@@ -442,12 +442,12 @@ for farg in sys.argv[1:]:
 comm.barrier()
 
 
-# In[309]:
+# In[16]:
 
 dp.deltaTa
 
 
-# In[310]:
+# In[17]:
 
 if not checkpointLoad:
     
@@ -468,6 +468,7 @@ if not checkpointLoad:
     
      #dimensionless parameters
     ndp = edict({'RA':(dp.g*dp.rho*dp.a*dp.deltaTa*(dp.LS)**3)/(dp.k*dp.eta0),
+             'depth':dp.depth/dp.LS,
              'Di': dp.a*dp.g*dp.LS/dp.Cp, #Dissipation number
              'H':0.,
              #Temperatures and reference depth
@@ -534,27 +535,32 @@ if not checkpointLoad:
     ndp.TaP = 1. - ndp.TPP,  #Dimensionles adiabtic component of deltaT
 
 
-# In[311]:
+# In[18]:
 
-ndp.lRidge*dp.LS
-
-
-# ### Metric output
-
-# In[312]:
+ndp.Adf, ndp.Alm
 
 
+# ### Output Frequency
+
+# In[22]:
+
+#Metric output stuff
 figures =  'store' #glucifer Store won't work on all machines, if not, set to 'gldb' 
-swarm_repop, swarm_update = 10, 10
-gldbs_output = 100
-checkpoint_every, files_output = 100, 50 #checkpoint every needs to be greater or equal to metric_output 
-metric_output = 50
+
+#The following are step-based actions
+swarm_repop, swarm_update = 5, 10
+checkpoint_every = 100
+metric_output = 10
 sticky_air_temp = 1e6
+
+
+#The following are time-based actions
+files_freq  = 1e6*(3600.*365.*24.)/sf.SR  #applies to files and gldbs
 
 
 # ### Model/ mesh  setup parameters
 
-# In[313]:
+# In[20]:
 
 ###########
 #Model setup parameters
@@ -568,7 +574,7 @@ Xres = int(md.RES*8)   #more than twice the resolution in X-dim, which will be '
 
 
 
-MINY = 1. - (dp.depth/dp.LS)
+MINY = 1. - (ndp.depth)
 if md.stickyAir:
     Yres = int(md.RES)
     MAXY = 1. + dp.StALS/dp.LS #150km
@@ -583,17 +589,17 @@ if md.periodicBcs:
     periodic = [True, False]
     
     
-hw = np.round(0.5*(dp.depth/dp.LS)*md.aspectRatio, 1)
-MINX = -1.*hw
+half_width = np.round(0.5*(ndp.depth)*md.aspectRatio, 1)
+MINX = -1.*half_width
 
-MAXX = hw
+MAXX = half_width
 MAXY = 1.
 
 
 
 
 
-# In[314]:
+# In[21]:
 
 #ndp.lRidge*dp.LS
 #10000./(2*660)
@@ -1430,14 +1436,17 @@ edotn_SFn, edots_SFn = fault_coll.global_fault_strainrate_fns(velocityField, dir
 # 
 # 
 
-# In[109]:
+# In[23]:
 
 ##############
 #Set up any functions required by the rheology
 ##############
+
+sym_strainRate = fn.tensor.symmetric( 
+                            velocityField.fn_gradient )
+
 strainRate_2ndInvariant = fn.tensor.second_invariant( 
-                            fn.tensor.symmetric( 
-                            velocityField.fn_gradient ))/md.secInvFac # secInvFac sometimes required if differnet definition of eii is used.
+                            sym_strainRate)/md.secInvFac # secInvFac sometimes required if differnet definition of eii is used.
 
 def safe_visc(func, viscmin=ndp.eta_min, viscmax=ndp.eta_max):
     return fn.misc.max(viscmin, fn.misc.min(viscmax, func))
@@ -1794,9 +1803,9 @@ solver.print_stats()
 
 # In[126]:
 
-fig= glucifer.Figure()
+#fig= glucifer.Figure()
 #fig.append( glucifer.objects.Points(gSwarm,lowerPlateRestFn))
-fig.append( glucifer.objects.Points(gSwarm, diffusion, logScale=True, valueRange =[1e-1,1e5]))
+#fig.append( glucifer.objects.Points(gSwarm, diffusion, logScale=True, valueRange =[1e-1,1e5]))
 #fig.append( glucifer.objects.Surface(mesh, temperatureField ))#
 #fig.append( glucifer.objects.VectorArrows(mesh,velocityField, scaling=0.002))
 #fig.append( glucifer.objects.Surface(mesh,densityMapFn))
@@ -1804,6 +1813,23 @@ fig.append( glucifer.objects.Points(gSwarm, diffusion, logScale=True, valueRange
 #fig.append( glucifer.objects.Points(swarmPlateBoundary, pointSize=4))
 #fig.show()
 #fig.save_database('test.gldb')
+
+
+# ## Set up principal stress vectors
+# 
+
+# In[ ]:
+
+eig1       = uw.mesh.MeshVariable( mesh=mesh,         nodeDofCount=2 )
+
+sRt = sym_strainRate.evaluate(mesh)
+
+tau = np.sqrt(((sRt[:,0]+ 1e-14 - sRt[:,1])**2)/4. + sRt[:,2]**2) #shear stress max.
+principalAngles = 0.5*np.arcsin(sRt[:,2]/tau)*(180./np.pi)
+
+
+eig1.data[:,0] = np.cos(np.radians(principalAngles))
+eig1.data[:,1] = np.sin(np.radians(principalAngles))
 
 
 # Advection-diffusion System setup
@@ -2094,6 +2120,7 @@ _rmsSurf = surfint(sqrtv2x)
 _nuTop = surfint(dTdZ)
 _nuBottom = surfint(dTdZ, surfaceIndexSet=mesh.specialSets["MinJ_VertexSet"])
 _plateness = surfint(srRestFn)
+_pressure = surfint(pressureField)
 
 
 # In[82]:
@@ -2153,6 +2180,8 @@ rmsSurf = _rmsSurf.evaluate()[0]
 nuTop = _nuTop.evaluate()[0]
 nuBottom = _nuBottom.evaluate()[0]
 plateness = _plateness.evaluate()[0]
+pressureSurf = _pressure.evaluate()[0]
+
 
 #Max mins
 maxVel = _maxMinVel.max_global()
@@ -2496,6 +2525,10 @@ viscDisProj.solve()
 start = time.clock()
 
 
+next_image_step = np.ceil((0./files_freq)+ 1/sf.SR) *files_freq #increment time for our next image / file dump
+#the 1/sf.SR kludge represents a dimensionless value of 1 second - avoids np.ceil(0.) = 0
+
+
 # In[94]:
 
 #ndp.lRidge, mesh.minCoord
@@ -2512,9 +2545,23 @@ while realtime < 1.:
 
     # solve Stokes and advection systems
     solver.solve(nonLinearIterate=True)
+    
+    
+    #remove drift /null space in pressure
+    pressureField.data[:] -= pressureSurf/surfLength
+    
+    files_this_step = False #don't write files / images unless conditions are triggered
     dt = advDiff.get_max_dt()*md.courantFac
     if step == 0:
         dt = 0.
+        files_this_step = True #write files on the zeroth step
+    
+    #This relates to file writing at set period - override make sure we hit certain time values
+    if realtime + dt >= next_image_step:
+        dt = next_image_step - realtime
+        files_this_step = True
+        next_image_step += files_freq #increment time for our next image / file dump
+        
     advDiff.integrate(dt)
     materialadvector.integrate(dt)
     #advect any interfaces
@@ -2548,7 +2595,7 @@ while realtime < 1.:
     ################
     #Files output
     ################ 
-    if (step % files_output == 0):
+    if files_this_step:
         
         gSwarm.update_particle_owners()
         
@@ -2558,6 +2605,8 @@ while realtime < 1.:
         fault.swarm.save(fullpath1)
         
         #any fields / swarms to be saved go here
+        
+        
 
                           
 
@@ -2579,6 +2628,7 @@ while realtime < 1.:
     ################
     # Calculate the Metrics
     ################
+    
     if (step % metric_output == 0):
         ###############
         #Rebuild the restriction functions where necessary
@@ -2668,7 +2718,7 @@ while realtime < 1.:
     ################
     #Gldb output
     ################ 
-    if (step % gldbs_output == 0): 
+    if files_this_step: 
         if figures == 'gldb':
             #Remember to rebuild any necessary swarm variables
             fnamedb = "dbFig" + "_" + str(step) + ".gldb"
