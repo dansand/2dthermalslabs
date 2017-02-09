@@ -542,7 +542,7 @@ ndp.Adf, ndp.Alm
 
 # ### Output Frequency
 
-# In[22]:
+# In[19]:
 
 #Metric output stuff
 figures =  'store' #glucifer Store won't work on all machines, if not, set to 'gldb' 
@@ -597,12 +597,6 @@ MAXY = 1.
 
 
 
-
-
-# In[21]:
-
-#ndp.lRidge*dp.LS
-#10000./(2*660)
 
 
 # In[315]:
@@ -2701,11 +2695,12 @@ while realtime < 1.:
         minVxsurf = _maxMinVxSurf.min_global()
         # output to text file...root proc. handles this one
         if uw.rank()==0:
-            f_o.write((30*'%-15s ' + '\n') % (areaintRock, tempintRock, rmsintRock, dwintRock, vdintRock,
+            f_o.write((34*'%-15s ' + '\n') % (areaintRock, tempintRock, rmsintRock, dwintRock, vdintRock,
                                   areaintLith, tempintLith,rmsintLith, dwintLith, vdintLith,
                                   areaintLower, tempintLower, rmsintLower, dwintLower, vdintLower, 
                                   areaintHinge180,vdintHinge180, areaintHinge60, vdintHinge60, 
                                   areaintInterface, vdintInterface, vdintInterface,
+                                  minVel,maxVel, minVxsurf, maxVxsurf,             
                                   rmsSurf, nuTop, nuBottom, plateness, ndp.subzone,ndp.lRidge, ndp.rRidge, realtime))
     ################
     #Also repopulate entire swarm periodically
