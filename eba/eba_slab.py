@@ -117,6 +117,7 @@ imagePath = outputPath + 'images/'
 filePath = outputPath + 'files/'
 checkpointPath = outputPath + 'checkpoint/'
 dbPath = outputPath + 'gldbs/'
+xdmfPath = outputPath + 'xdmf/'
 outputFile = 'results_model' + Model + '_' + str(ModNum) + '.dat'
 
 if uw.rank()==0:
@@ -131,6 +132,8 @@ if uw.rank()==0:
         os.makedirs(dbPath)
     if not os.path.isdir(filePath):
         os.makedirs(filePath)
+    if not os.path.isdir(xdmfPath):
+        os.makedirs(xdmfPath)
         
 comm.Barrier() #Barrier here so no procs run the check in the next cell too early
 
@@ -2735,7 +2738,22 @@ while realtime < 1.:
             figMech.save( fullpath + "Mech" + str(step).zfill(4))
             figTemp.save( fullpath + "Temp"    + str(step).zfill(4))
             figMat.save( fullpath + "Mat"    + str(step).zfill(4))
-            #figSr.save( fullpath + "Str_rte"    + str(step).zfill(4))        
+            #figSr.save( fullpath + "Str_rte"    + str(step).zfill(4))     
+            
+            
+    ################
+    #xdmf output
+    ################ 
+    
+    if files_this_step:
+        prefix = str(step)
+        if step == 0: #only save the mesh once
+            _mH = mesh.save(prefix+"mesh.h5") 
+            mh = _mH
+        vH = velocityField.save(prefix+"velocity"+".h5")
+        tH = temperatureField.save(prefix+"temp"+".h5")
+        velocityField.xdmf("velocity_" + prefix, vH, 'velocity', mh, 'mesh')
+        temperatureField.xdmf("temperature_" + prefix, tH, 'temperature', mh, 'mesh')
         
     ################
     #Particle update
