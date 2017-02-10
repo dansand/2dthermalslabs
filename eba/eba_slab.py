@@ -22,7 +22,7 @@
 # Arredondo, Katrina M., and Magali I. Billen. "The Effects of Phase Transitions and Compositional Layering in Two-dimensional Kinematic Models of Subduction." Journal of Geodynamics (2016).
 # 
 
-# In[1]:
+# In[9]:
 
 import numpy as np
 import underworld as uw
@@ -51,7 +51,7 @@ comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 
 
-# In[2]:
+# In[10]:
 
 #####
 #Stubborn version number conflicts - need to figure out my Docker container runs an old version. For now...
@@ -67,7 +67,7 @@ except:
 
 
 
-# In[3]:
+# In[11]:
 
 #store = glucifer.Store('subduction')
 #figParticle = glucifer.Figure( store, figsize=(960,300), name="Particles" )
@@ -78,7 +78,7 @@ except:
 # Model name and directories
 # -----
 
-# In[4]:
+# In[12]:
 
 ############
 #Model letter and number
@@ -106,7 +106,7 @@ else:
                 Model  = farg
 
 
-# In[5]:
+# In[13]:
 
 ###########
 #Standard output directory setup
@@ -138,7 +138,7 @@ if uw.rank()==0:
 comm.Barrier() #Barrier here so no procs run the check in the next cell too early
 
 
-# In[6]:
+# In[14]:
 
 ###########
 #Check if starting from checkpoint
@@ -155,7 +155,7 @@ for dirpath, dirnames, files in os.walk(checkpointPath):
         checkpointLoad = False
 
 
-# In[7]:
+# In[15]:
 
 # setup summary output file (name above)
 if checkpointLoad:
@@ -185,7 +185,7 @@ else:
 
 # **Use pint to setup any unit conversions we'll need**
 
-# In[8]:
+# In[16]:
 
 u = pint.UnitRegistry()
 cmpery = 1.*u.cm/u.year
@@ -195,7 +195,7 @@ spery = year.to(u.sec)
 cmpery.to(mpermy)
 
 
-# In[9]:
+# In[17]:
 
 box_half_width =4000e3
 age_at_trench = 100e6
@@ -210,7 +210,7 @@ print(cmperyear, mpersec )
 # * If starting from checkpoint, parameters are loaded using pickle
 # * If params are passed in as flags to the script, they overwrite 
 
-# In[10]:
+# In[18]:
 
 ###########
 #Parameter / settings dictionaries get saved&loaded using pickle
@@ -223,7 +223,7 @@ md = edict({}) #model paramters, flags etc
 #od = edict({}) #output frequencies
 
 
-# In[11]:
+# In[19]:
 
 dict_list = [dp, sf, ndp, md]
 dict_names = ['dp.pkl', 'sf.pkl', 'ndp.pkl', 'md.pkl']
@@ -260,7 +260,7 @@ def load_pickles():
     return dp, ndp, sf, md
 
 
-# In[12]:
+# In[20]:
 
 ###########
 #Store the physical parameters, scale factors and dimensionless pramters in easyDicts
@@ -351,7 +351,7 @@ dp.deltaTa = (dp.TP + dp.dTa*dp.LS) - dp.TS  #Adiabatic Temp at base of mantle, 
 dp.rTemp= dp.TP + dp.rDepth*dp.dTa #reference temp, (potential temp + adiabat)
 
 
-# In[13]:
+# In[21]:
 
 #Modelling and Physics switches
 
@@ -376,7 +376,7 @@ md = edict({'refineMesh':False,
             })
 
 
-# In[14]:
+# In[22]:
 
 ###########
 #If starting from a checkpoint load params from file
@@ -386,7 +386,7 @@ if checkpointLoad:
     dp, ndp, sf, md = load_pickles()  #remember to add any extra dictionaries
 
 
-# In[15]:
+# In[23]:
 
 ###########
 #If command line args are given, overwrite
@@ -445,12 +445,12 @@ for farg in sys.argv[1:]:
 comm.barrier()
 
 
-# In[16]:
+# In[24]:
 
 dp.deltaTa
 
 
-# In[17]:
+# In[25]:
 
 if not checkpointLoad:
     
@@ -538,14 +538,14 @@ if not checkpointLoad:
     ndp.TaP = 1. - ndp.TPP,  #Dimensionles adiabtic component of deltaT
 
 
-# In[18]:
+# In[26]:
 
 ndp.Adf, ndp.Alm
 
 
 # ### Output Frequency
 
-# In[19]:
+# In[27]:
 
 #Metric output stuff
 figures =  'store' #glucifer Store won't work on all machines, if not, set to 'gldb' 
@@ -563,7 +563,7 @@ files_freq  = 1e6*(3600.*365.*24.)/sf.SR  #applies to files and gldbs
 
 # ### Model/ mesh  setup parameters
 
-# In[20]:
+# In[28]:
 
 ###########
 #Model setup parameters
@@ -602,7 +602,7 @@ MAXY = 1.
 
 
 
-# In[315]:
+# In[29]:
 
 mesh = uw.mesh.FeMesh_Cartesian( elementType = (md.elementType),
                                  elementRes  = (Xres, Yres), 
@@ -624,7 +624,7 @@ pressureField.data[:]       = 0.
 temperatureDotField.data[:] = 0.
 
 
-# In[316]:
+# In[30]:
 
 coordinate = fn.input()
 depthFn = 1. - coordinate[1] #a function providing the depth
@@ -632,7 +632,7 @@ xFn = coordinate[0]  #a function providing the x-coordinate
 yFn = coordinate[1]  #a function providing the y-coordinate
 
 
-# In[317]:
+# In[31]:
 
 mesh.reset()
 
@@ -674,7 +674,7 @@ with mesh.deform_mesh():
      mesh.data[:,1] = newYpos[:,0]
 
 
-# In[318]:
+# In[32]:
 
 #fig= glucifer.Figure(quality=3)
 
@@ -684,7 +684,7 @@ with mesh.deform_mesh():
 #fig.save_database('test.gldb')
 
 
-# In[319]:
+# In[33]:
 
 #THis is a hack for adding a sticky air domain, we refine MAXY and things like the temperature stencil work from Y = 1. 
 
@@ -2745,15 +2745,19 @@ while realtime < 1.:
     #xdmf output
     ################ 
     
+    fullpath = os.path.join(outputPath + "xdmf/")
     if files_this_step:
-        prefix = str(step)
-        if step == 0: #only save the mesh once
-            _mH = mesh.save(prefix+"mesh.h5") 
+        
+        fullpath = os.path.join(outputPath + "xdmf/")
+        if not os.path.exists(fullpath+"mesh.h5"):
+            print('Not')
+            _mH = mesh.save(fullpath+"mesh.h5") 
             mh = _mH
-        vH = velocityField.save(prefix+"velocity"+".h5")
-        tH = temperatureField.save(prefix+"temp"+".h5")
-        velocityField.xdmf("velocity_" + prefix, vH, 'velocity', mh, 'mesh')
-        temperatureField.xdmf("temperature_" + prefix, tH, 'temperature', mh, 'mesh')
+    
+        vH = velocityField.save(fullpath + "velocity_" + str(step) +".h5")
+        tH = temperatureField.save(fullpath + "temp_" + str(step) + ".h5")
+        velocityField.xdmf(fullpath + "temp_" + str(step), vH, 'velocity', mh, 'mesh')
+        temperatureField.xdmf(fullpath + "temp_" + str(step), tH, 'temperature', mh, 'mesh')
         
     ################
     #Particle update
@@ -2835,6 +2839,11 @@ while realtime < 1.:
     
 f_o.close()
 print 'step =',step
+
+
+# In[8]:
+
+
 
 
 # In[ ]:
@@ -2919,9 +2928,19 @@ fig.append( glucifer.objects.Surface(mesh, test))#
 #test.evaluate(mesh).max()
 
 
-# In[144]:
+# In[34]:
 
-#dt*abHeatFn.evaluate(mesh).max()
+step
+
+
+# In[41]:
+
+
+
+
+# In[40]:
+
+
 
 
 # In[ ]:
