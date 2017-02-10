@@ -538,14 +538,9 @@ if not checkpointLoad:
     ndp.TaP = 1. - ndp.TPP,  #Dimensionles adiabtic component of deltaT
 
 
-# In[26]:
-
-ndp.Adf, ndp.Alm
-
-
 # ### Output Frequency
 
-# In[27]:
+# In[46]:
 
 #Metric output stuff
 figures =  'store' #glucifer Store won't work on all machines, if not, set to 'gldb' 
@@ -558,7 +553,8 @@ sticky_air_temp = 1e6
 
 
 #The following are time-based actions
-files_freq  = 1e6*(3600.*365.*24.)/sf.SR  #applies to files and gldbs
+filesMy = 0.5e6 #dimensional time intervale to write files
+files_freq  = filesMy*(3600.*365.*24.)/sf.SR  #applies to files and gldbs
 
 
 # ### Model/ mesh  setup parameters
@@ -2750,13 +2746,12 @@ while realtime < 1.:
         
         fullpath = os.path.join(outputPath + "xdmf/")
         if not os.path.exists(fullpath+"mesh.h5"):
-            print('Not')
             _mH = mesh.save(fullpath+"mesh.h5") 
             mh = _mH
     
         vH = velocityField.save(fullpath + "velocity_" + str(step) +".h5")
         tH = temperatureField.save(fullpath + "temp_" + str(step) + ".h5")
-        velocityField.xdmf(fullpath + "temp_" + str(step), vH, 'velocity', mh, 'mesh')
+        velocityField.xdmf(fullpath + "velocity_" + str(step), vH, 'velocity', mh, 'mesh')
         temperatureField.xdmf(fullpath + "temp_" + str(step), tH, 'temperature', mh, 'mesh')
         
     ################
