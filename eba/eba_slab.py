@@ -2773,8 +2773,10 @@ while realtime < 1.:
     
         vH = velocityField.save(fullpath + "velocity_" + str(step) +".h5")
         tH = temperatureField.save(fullpath + "temp_" + str(step) + ".h5")
+        eH = eig1.save(fullpath + "eig_" + str(step) + ".h5")
         velocityField.xdmf(fullpath + "velocity_" + str(step), vH, 'velocity', mh, 'mesh')
         temperatureField.xdmf(fullpath + "temp_" + str(step), tH, 'temperature', mh, 'mesh')
+        eig1.xdmf(fullpath + "eig_" + str(step), eH, 'eig', mh, 'mesh')
         
     ################
     #Particle update
