@@ -2142,6 +2142,11 @@ _maxMinVxSurf = maxMin(vx)
 dummyFn = _maxMinVxSurf.evaluate(tWalls)
 
 
+# In[ ]:
+
+
+
+
 # In[83]:
 
 #Volume Ints
@@ -2299,6 +2304,8 @@ elif figures == 'store':
 
     figVisc= glucifer.Figure(store2, figsize=(300*np.round(md.aspectRatio,2),300))
     figVisc.append( glucifer.objects.Points(gSwarm,viscosityMapFn, logScale=True, valueRange =[1.,1e5], fn_mask=vizVariable))
+    figVisc.append( glucifer.objects.VectorArrows(mesh, eig1, arrowHead=0.0, scaling=0.05, glyphs=3, resolutionI=int(16*md.aspectRatio), resolutionJ=16*2))
+
 
     figMech= glucifer.Figure(store3, figsize=(300*np.round(md.aspectRatio,2),300))
     figMech.append( glucifer.objects.Points(gSwarm,fnViscMin, valueRange =[0.,5.], fn_mask=vizVariable))
@@ -2495,11 +2502,6 @@ def plate_infoFn(velocityField,xFn,  depthLimit, xsearchlim = 1.0, currentloc = 
         raise ValueError('plateType should be one of convergent/divergent')
 
 
-# In[ ]:
-
-
-
-
 # In[133]:
 
 ##############
@@ -2656,6 +2658,12 @@ while realtime < 1.:
         hinge180RestFn = fn.branching.conditional(hinge180Spatialconditions)
         hinge180RestFn*=lowerPlateRestFn #Add next level up in hierarchy
         
+        
+        #Reevaluate max min Functions
+        dummyFn = _maxMinVel.evaluate(mesh)
+        dummyFn = _maxMinSr.evaluate(mesh)
+        dummyFn = _maxMinVxSurf.evaluate(tWalls)
+        
         ###############
         #Metrics
         ###############
@@ -2701,6 +2709,8 @@ while realtime < 1.:
                                   areaintInterface, vdintInterface, vdintInterface,
                                   minVel,maxVel, minVxsurf, maxVxsurf, surfLength,            
                                   rmsSurf, nuTop, nuBottom, plateness, ndp.subzone,ndp.lRidge, ndp.rRidge, realtime))
+    
+    
     ################
     #Also repopulate entire swarm periodically
     ################
@@ -2713,6 +2723,18 @@ while realtime < 1.:
     #Gldb output
     ################ 
     if files_this_step: 
+        
+        #ReBuild the principal stress vector
+        
+        sRt = sym_strainRate.evaluate(mesh)
+
+        tau = np.sqrt(((sRt[:,0]+ 1e-14 - sRt[:,1])**2)/4. + sRt[:,2]**2) #shear stress max.
+        principalAngles = 0.5*np.arcsin(sRt[:,2]/tau)*(180./np.pi)
+        eig1.data[:,0] = np.cos(np.radians(principalAngles))
+        eig1.data[:,1] = np.sin(np.radians(principalAngles))
+        
+        
+        
         if figures == 'gldb':
             #Remember to rebuild any necessary swarm variables
             fnamedb = "dbFig" + "_" + str(step) + ".gldb"
