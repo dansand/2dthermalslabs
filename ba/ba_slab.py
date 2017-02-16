@@ -10,7 +10,7 @@
 # 
 # **References:**
 
-# In[3]:
+# In[1]:
 
 import numpy as np
 import underworld as uw
@@ -38,7 +38,7 @@ comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 
 
-# In[4]:
+# In[2]:
 
 #####
 #Stubborn version number conflicts - need to figure out my Docker container runs an old version. For now...
@@ -52,7 +52,7 @@ except:
 # Model name and directories
 # -----
 
-# In[5]:
+# In[3]:
 
 ############
 #Model letter and number
@@ -80,7 +80,7 @@ else:
                 Model  = farg
 
 
-# In[6]:
+# In[4]:
 
 ###########
 #Standard output directory setup
@@ -110,7 +110,7 @@ if uw.rank()==0:
 comm.Barrier() #Barrier here so no procs run the check in the next cell too early
 
 
-# In[7]:
+# In[5]:
 
 ###########
 #Check if starting from checkpoint
@@ -127,7 +127,7 @@ for dirpath, dirnames, files in os.walk(checkpointPath):
         checkpointLoad = False
 
 
-# In[8]:
+# In[6]:
 
 # setup summary output file (name above)
 if checkpointLoad:
@@ -157,7 +157,7 @@ else:
 
 # **Use pint to setup any unit conversions we'll need**
 
-# In[9]:
+# In[7]:
 
 u = pint.UnitRegistry()
 cmpery = 1.*u.cm/u.year
@@ -167,7 +167,7 @@ spery = year.to(u.sec)
 cmpery.to(mpermy)
 
 
-# In[10]:
+# In[8]:
 
 box_half_width =4000e3
 age_at_trench = 100e6
@@ -183,7 +183,7 @@ print(cmperyear, mpersec )
 # * If params are passed in as flags to the script, they overwrite 
 # 
 
-# In[11]:
+# In[9]:
 
 ###########
 #Parameter / settings dictionaries get saved&loaded using pickle
@@ -197,7 +197,7 @@ md = edict({}) #model paramters, flags etc
 
 
 
-# In[12]:
+# In[10]:
 
 dict_list = [dp, sf, ndp, md]
 dict_names = ['dp.pkl', 'sf.pkl', 'ndp.pkl', 'md.pkl']
@@ -234,7 +234,7 @@ def load_pickles():
     return dp, ndp, sf, md
 
 
-# In[13]:
+# In[11]:
 
 ###########
 #Store the physical parameters, scale factors and dimensionless pramters in easyDicts
@@ -302,7 +302,7 @@ dp.deltaT = dp.TP - dp.TS
 
 
 
-# In[14]:
+# In[12]:
 
 #Modelling and Physics switches
 
@@ -323,7 +323,7 @@ md = edict({'refineMesh':True,
 #"Q2/DPC1"
 
 
-# In[15]:
+# In[13]:
 
 ###########
 #If starting from a checkpoint load params from file
@@ -333,7 +333,7 @@ if checkpointLoad:
     dp, ndp, sf, md = load_pickles()  #remember to add any extra dictionaries
 
 
-# In[16]:
+# In[14]:
 
 ###########
 #If command line args are given, overwrite
@@ -392,7 +392,7 @@ for farg in sys.argv[1:]:
 comm.barrier()
 
 
-# In[17]:
+# In[15]:
 
 #this block mostly helps with consistency in resolutions test, 
 #allowing to test consistent particle density / node spacing 
@@ -407,12 +407,12 @@ comm.barrier()
 #md.ppc = int(md.ppc / (md.RES/128.))          #this keeps the total particles uniform, normalised by 50 ppc @ 128
 
 
-# In[18]:
+# In[16]:
 
 #print('refine Mesh is: ', md.refineMesh)
 
 
-# In[19]:
+# In[17]:
 
 #Only build these guys first time around, otherwise the read from checkpoints
 #Important because some of these params (like SZ location) may change during model evolution
@@ -481,12 +481,12 @@ if not checkpointLoad:
     ndp.CVR = dp.CVR*sf.vel #characteristic velocity
 
 
-# In[20]:
+# In[18]:
 
 #0.05*dp.LS
 
 
-# In[21]:
+# In[20]:
 
 ndp.Edf, ndp.RA, ndp.fcmd
 
@@ -498,7 +498,7 @@ ndp.Edf, ndp.RA, ndp.fcmd
 
 
 
-# In[22]:
+# In[78]:
 
 ###########
 #Model setup parameters
@@ -553,25 +553,20 @@ if md.periodicBcs:
     
 
 
-# ### Output freqency
+# ### Metric output
 
-# In[64]:
+# In[79]:
 
 #Metric output stuff
 figures =  'store' #glucifer Store won't work on all machines, if not, set to 'gldb' 
-
-#The following are step-based actions
 swarm_repop, swarm_update = 5, 10
-checkpoint_every = 100
+gldbs_output = 25
+checkpoint_every, files_output = 100, 25
 metric_output = 10
 sticky_air_temp = 1e6
 
 
-#The following are time-based actions
-files_freq  = 1e6*(3600.*365.*24.)/sf.SR  #applies to files and gldbs
-
-
-# In[24]:
+# In[80]:
 
 #dp.lRidge/dp.LS, np.round(0.5*(dp.depth/dp.LS)*md.aspectRatio, 1)
 #np.round(0.5*(dp.depth/dp.LS)*md.aspectRatio, 1), ndp.lRidge
@@ -584,7 +579,7 @@ files_freq  = 1e6*(3600.*365.*24.)/sf.SR  #applies to files and gldbs
 # Create mesh and finite element variables
 # ------
 
-# In[25]:
+# In[81]:
 
 mesh = uw.mesh.FeMesh_Cartesian( elementType = (md.elementType),
                                  elementRes  = (Xres, Yres), 
@@ -602,7 +597,7 @@ pressureField.data[:]       = 0.
 temperatureDotField.data[:] = 0.
 
 
-# In[26]:
+# In[82]:
 
 coordinate = fn.input()
 depthFn = MAXY - coordinate[1] #a function providing the depth
@@ -612,7 +607,7 @@ xFn = coordinate[0]  #a function providing the x-coordinate
 yFn = coordinate[1]
 
 
-# In[27]:
+# In[83]:
 
 mesh.reset()
 
@@ -654,7 +649,7 @@ with mesh.deform_mesh():
      mesh.data[:,1] = newYpos[:,0]
 
 
-# In[28]:
+# In[84]:
 
 #THis is a hack for adding a sticky air domain, we refine MAXY and things like the temperature stencil work from Y = 1. 
 
@@ -676,7 +671,7 @@ if md.stickyAir:
 
 
 
-# In[29]:
+# In[85]:
 
 
 def age_fn(xFn, sz = 0.0, lMOR=MINX, rMOR=MAXX, opFac=1., conjugate_plate = False):
@@ -710,7 +705,7 @@ def age_fn(xFn, sz = 0.0, lMOR=MINX, rMOR=MAXX, opFac=1., conjugate_plate = Fals
     return ageFn
 
 
-# In[30]:
+# In[86]:
 
 ###########
 #Thermal initial condition - half-space cooling
@@ -742,12 +737,12 @@ if not md.symmetricIcs:
 
 
 
-# In[31]:
+# In[87]:
 
 #testFn = min(fn.misc.constant(dp.platemaxAge*(3600*24*365)), dp.slabmaxAge*(3600*24*365)) #seconds to year
 
 
-# In[32]:
+# In[88]:
 
 #Now build the perturbation part
 def inCircleFnGenerator(centre, radius):
@@ -787,7 +782,7 @@ if not md.symmetricIcs:
                 temperatureField.data[index] = slabFn.evaluate(mesh)[index]
 
 
-# In[33]:
+# In[89]:
 
 #Make sure material in sticky air region is at the surface temperature.
 for index, coord in enumerate(mesh.data):
@@ -819,7 +814,7 @@ for index, coord in enumerate(mesh.data):
 # fig, ax = matplot_field(temperatureField, dp)
 # fig.savefig('test.png')       
 
-# In[34]:
+# In[90]:
 
 fig= glucifer.Figure(quality=3)
 fig.append( glucifer.objects.Surface(mesh,temperatureField))
@@ -837,7 +832,7 @@ fig.append( glucifer.objects.Surface(mesh,temperatureField))
 # Boundary conditions
 # -------
 
-# In[33]:
+# In[35]:
 
 for index in mesh.specialSets["MinJ_VertexSet"]:
     temperatureField.data[index] = ndp.TBP
@@ -918,7 +913,7 @@ neumannTempBC = uw.conditions.NeumannCondition( dT_dy, variable=temperatureField
 
 
 
-# In[34]:
+# In[36]:
 
 #check VelBCs are where we want them
 #test = np.zeros(len(tWalls.data))
@@ -939,7 +934,7 @@ neumannTempBC = uw.conditions.NeumannCondition( dT_dy, variable=temperatureField
 # -----
 # 
 
-# In[35]:
+# In[37]:
 
 ###########
 #Material Swarm and variables
@@ -959,7 +954,7 @@ varlist = [materialVariable,  ageVariable]
 varnames = ['materialVariable',  'ageVariable']
 
 
-# In[36]:
+# In[38]:
 
 mantleIndex = 0
 crustIndex = 1
@@ -997,7 +992,7 @@ else:
                  materialVariable.data[particleID] = crustIndex
 
 
-# In[37]:
+# In[39]:
 
 ###########
 #Little swarm to track subduction zone, ridge location
@@ -1040,7 +1035,7 @@ swarmPlateBoundary.add_particles_with_coordinates(swarmCoords)
 
 
 
-# In[38]:
+# In[40]:
 
 ##############
 #Set the initial particle age for particles above the critical depth; 
@@ -1062,7 +1057,7 @@ ageVariable.data[:] = fn.branching.conditional( ageConditions ).evaluate(gSwarm)
 ageDT = 0.#this is used in the main loop for short term time increments
 
 
-# In[39]:
+# In[41]:
 
 ##############
 #Here we set up a directed graph object that we we use to control the transformation from one material type to another
@@ -1119,17 +1114,17 @@ DG.add_transition((harzIndex,airIndex), depthFn, operator.lt, 0. )
 
 
 
-# In[40]:
+# In[42]:
 
 #CRUSTTOMANTLE, HARZBURGDEPTH, 0. + 7.*MANTLETOCRUST
 
 
-# In[41]:
+# In[43]:
 
 ndp.MANTLETOCRUST
 
 
-# In[42]:
+# In[44]:
 
 ##############
 #For the slab_IC, we'll also add a crustal weak zone following the dipping perturbation
@@ -1160,26 +1155,26 @@ if checkpointLoad != True:
                 materialVariable.data[particleID] = harzIndex
 
 
-# In[43]:
+# In[45]:
 
 #DG.remove_edges_from([(mantleIndex,crustIndex)])
 #DG.remove_edges_from([(harzIndex,crustIndex)])
 
 
-# In[44]:
+# In[46]:
 
 #DG.build_condition_list(materialVariable)
 #print(len(DG.condition_list))
 #DG.condition_list
 
 
-# In[45]:
+# In[47]:
 
 #DG.edges()
 #DG.build_condition_list(materialVariable)
 
 
-# In[46]:
+# In[48]:
 
 ##############
 #This is how we use the material graph object to test / apply material transformations
@@ -1193,7 +1188,7 @@ if not checkpointLoad:
         materialVariable.data[:] = fn.branching.conditional(DG.condition_list).evaluate(gSwarm)
 
 
-# In[47]:
+# In[49]:
 
 fig= glucifer.Figure(quality=3)
 
@@ -1208,13 +1203,13 @@ fig.append( glucifer.objects.Points(gSwarm ,materialVariable ))
 # 
 # 
 
-# In[48]:
+# In[50]:
 
 from unsupported_dan.interfaces.marker2D import markerLine2D
 from unsupported_dan.faults.faults2D import fault2D, fault_collection
 
 
-# In[49]:
+# In[51]:
 
 def copy_markerLine2D(ml, thickness=False, ID=False):
     
@@ -1238,7 +1233,7 @@ def copy_markerLine2D(ml, thickness=False, ID=False):
 
 
 
-# In[50]:
+# In[52]:
 
 ###########
 #Initial Coordinates for inerfaces and faults
@@ -1274,7 +1269,7 @@ surfaceCoords[:,0] = np.linspace(MINX, MAXX, nfault)
 
 
 
-# In[51]:
+# In[53]:
 
 #Initiaze the swarms in a 
 fault  = fault2D(mesh, velocityField, [], [], faultthickness, 0., 0., crustIndex)
@@ -1314,14 +1309,14 @@ fault.rebuild()
 surface.rebuild()
 
 
-# In[52]:
+# In[54]:
 
 #Add variables to the surface swarm
 surfaceVelx = surface.swarm.add_variable( dataType="float", count=1 )
 surfaceVelx.data[...] = velocityField[0].evaluate(surface.swarm)
 
 
-# In[53]:
+# In[55]:
 
 #Add the necessary swarm variables
 
@@ -1334,7 +1329,7 @@ proximityVariable.data[:] = 0
 signedDistanceVariable.data[:] = 0.0
 
 
-# In[54]:
+# In[56]:
 
 #inform the mesh of the fault
 
@@ -1352,7 +1347,7 @@ directorVector.data[nzv] = dv[nzv]
 edotn_SFn, edots_SFn = fault_coll.global_fault_strainrate_fns(velocityField, directorVector, proximityVariable)
 
 
-# In[55]:
+# In[57]:
 
 
 
@@ -1372,7 +1367,7 @@ edotn_SFn, edots_SFn = fault_coll.global_fault_strainrate_fns(velocityField, dir
 #edotn_SFn, edots_SFn = fault_strainrate_fns(interfaces, velocityField, directorVector, proximityVariable)
 
 
-# In[56]:
+# In[58]:
 
 ## Take a look at the locations of the materials
 
@@ -1419,7 +1414,7 @@ figMaterials.append( glucifer.objects.Points(gSwarm, proximityVariable,
 # 
 # 
 
-# In[57]:
+# In[59]:
 
 ##############
 #Set up any functions required by the rheology
@@ -1432,12 +1427,12 @@ def safe_visc(func, viscmin=ndp.eta_min, viscmax=ndp.eta_max):
     return fn.misc.max(viscmin, fn.misc.min(viscmax, func))
 
 
-# In[58]:
+# In[60]:
 
 #strainRate_2ndInvariant = fn.misc.constant(ndp.SR) #dummy fucntion to check which mechanisms are at active are reference strain rate
 
 
-# In[59]:
+# In[61]:
 
 ############
 #Rheology: create UW2 functions for all viscous mechanisms
@@ -1463,14 +1458,14 @@ crustvisc = crustys/(2.*(strainRate_2ndInvariant))
 
 
 
-# In[60]:
+# In[62]:
 
 #fig2= glucifer.Figure()
 #fig2.append( glucifer.objects.Surface(mesh, diffusion, logScale=True))
 #fig2.show()
 
 
-# In[61]:
+# In[63]:
 
 ############
 #Rheology: combine viscous mechanisms in various ways 
@@ -1500,12 +1495,12 @@ finalcrustviscosityFn  = fn.branching.conditional([(depthFn < ndp.CRUSTVISCUTOFF
 # -----
 # 
 
-# In[62]:
+# In[64]:
 
 buoyancyFn =  ndp.RA*temperatureField
 
 
-# In[63]:
+# In[65]:
 
 densityMapFn = fn.branching.map( fn_key = materialVariable,
                          mapping = {airIndex:ndp.StRA,
@@ -1514,7 +1509,7 @@ densityMapFn = fn.branching.map( fn_key = materialVariable,
                                     harzIndex:buoyancyFn} )
 
 
-# In[64]:
+# In[66]:
 
 
 # Define our vertical unit vector using a python tuple (this will be automatically converted to a function).
@@ -1524,7 +1519,7 @@ gravity = ( 0.0, 1.0 )
 buoyancyFn = densityMapFn * gravity
 
 
-# In[65]:
+# In[67]:
 
 if md.PIC_integration:
     stokesPIC = uw.systems.Stokes(velocityField=velocityField, 
@@ -1543,14 +1538,14 @@ else:
                               fn_bodyforce=buoyancyFn )
 
 
-# In[66]:
+# In[68]:
 
 solver = uw.systems.Solver(stokesPIC)
 if not checkpointLoad:
     solver.solve() #A solve on the linear visocisty is unhelpful unless we're starting from scratch
 
 
-# In[67]:
+# In[69]:
 
 viscosityMapFn1 = fn.branching.map( fn_key = materialVariable,
                          mapping = {crustIndex:finalcrustviscosityFn,
@@ -1573,7 +1568,7 @@ if md.subductionFault:
    
 
 
-# In[68]:
+# In[70]:
 
 # This one maps to my fault-proximity variable (which also picks only materialV)
 viscosityMapFn2    = { 0: 0.0, 
@@ -1586,18 +1581,18 @@ viscosityMapFn2  = fn.branching.map( fn_key = proximityVariable,
                                            mapping = viscosityMapFn2)
 
 
-# In[69]:
+# In[71]:
 
 #orientation = -1.*90. * math.pi / 180.0  #vertical
 #math.cos(orientation), math.sin(orientation)
 
 
-# In[70]:
+# In[72]:
 
 #md.subductionFault
 
 
-# In[71]:
+# In[73]:
 
 #Add the non-linear viscosity to the Stokes system
 stokesPIC.fn_viscosity = viscosityMapFn1
@@ -1607,7 +1602,7 @@ if md.stickyAir or md.subductionFault:
     stokesPIC._fn_director   = directorVector
 
 
-# In[72]:
+# In[74]:
 
 solver.set_inner_method("mumps")
 solver.options.scr.ksp_type="cg"
@@ -1617,17 +1612,7 @@ solver.solve(nonLinearIterate=True)
 solver.print_stats()
 
 
-# In[77]:
-
-
-
-
-# In[78]:
-
-
-
-
-# In[73]:
+# In[75]:
 
 #Check which particles are yielding
 
@@ -1638,16 +1623,14 @@ yieldconditions = [ ( diffusion > yielding , 1),
 yieldingCheck.data[:] = fn.branching.conditional( yieldconditions ).evaluate(gSwarm)
 
 
-# In[83]:
+# In[77]:
 
 #Set up a swarm Stress function
 
 swarmStressFn = 2.*stokesPIC.fn_viscosity*strainRate_2ndInvariant
 
 
-# ## Set up principal stress vectors
-
-# In[90]:
+# In[78]:
 
 sym_strainRate = fn.tensor.symmetric( 
                             velocityField.fn_gradient )
@@ -1655,33 +1638,212 @@ sym_strainRate = fn.tensor.symmetric(
 
 eig1       = uw.mesh.MeshVariable( mesh=mesh,         nodeDofCount=2 )
 
+eig2       = uw.mesh.MeshVariable( mesh=mesh,         nodeDofCount=2 )
 
 
-# In[ ]:
+meshVisc = uw.mesh.MeshVariable( mesh, 1)
+projectGuy = uw.utils.MeshVariable_Projection(meshVisc, viscosityMapFn1, type=0 )
+projectGuy.solve() 
 
 
+# In[79]:
+
+ssr = sym_strainRate.evaluate(mesh)
 
 
-# In[100]:
-
-sRt = sym_strainRate.evaluate(mesh)
-
-tau = np.sqrt(((sRt[:,0]+ 1e-14 - sRt[:,1])**2)/4. + sRt[:,2]**2) #shear stress max.
-principalAngles = 0.5*np.arcsin(sRt[:,2]/tau)*(180./np.pi)
-
-
-eig1.data[:,0] = np.cos(np.radians(principalAngles))
-eig1.data[:,1] = np.sin(np.radians(principalAngles))
+for ti, val in enumerate(eig1.data):
+    eigVals, eigVex= np.linalg.eigh(np.array([[ssr[ti][0],ssr[ti][2]],[ssr[ti][2],ssr[ti][1]]]), UPLO='U')
+    #eig1.data[ti] = meshVisc.data[ti]*eigVals[0]*eigVex[0]
+    #eig2.data[ti] = meshVisc.data[ti]*eigVals[1]*eigVex[1]
+    eig1.data[ti] = eigVex[0]
+    eig2.data[ti] = eigVex[1]
 
 
-# In[99]:
+# In[80]:
 
-#fig = glucifer.Figure()
-#fig.append( glucifer.objects.Points(gSwarm, strainRate_2ndInvariant, pointSize=4))
-#fig.append( glucifer.objects.Surface(mesh, strainRate_2ndInvariant))
-#fig.append( glucifer.objects.VectorArrows(mesh, eig1, arrowHead=0.0, scaling=0.05, glyphs=3, resolutionI=24, resolutionJ=8))
-#fig.show()
+#fig.save_database('test.gldb')
 
+
+# ## Polar stress tensor
+
+# In[81]:
+
+from scipy.spatial import cKDTree as kdTree
+
+
+def nn_evaluation(fromSwarm, _data, n=1, weighted=False):
+
+    """
+    This function provides nearest neighbour information for uw swarms,
+    given the "_data", whcih could be the .data handle of a mesh or a swarm, this function returns the indices of the n nearest neighbours in "fromSwarm"
+    it also returns the inverse-distance if weighted=True.
+
+    The function works in parallel.   
+
+    The arrays come out a bit differently when used in nearest neighbour form
+    (n = 1), or IDW: (n > 1). The examples belowe show how to fill out a swarm variable in each case.
+
+
+    Usage n = 1:
+    ------------
+    ix, weights = nn_evaluation(swarm, fault.swarm, n=n, weighted=False)
+    toSwarmVar.data[:][:,0] =  fromSwarmVar.evaluate(fromSwarm)[_ix][:,0]
+
+    Usage n > 1:
+    ------------
+    ix, weights = nn_evaluation(swarm, fault.swarm, n=n, weighted=False)
+    toSwarmVar.data[:][:,0] =  np.average(fromSwarmVar.evaluate(fromSwarm)[ix][:,:,0], weights=weights, axis=1)
+
+    """ 
+
+
+    #print("fromSwarm data shape", fromSwarm.particleCoordinates.data.shape)
+
+    if len(_data) > 0: #this is required for safety in parallel
+
+        #we rebuild the tree as we assume the fromSwarm is being advected
+        fromSwarm.tree = kdTree(fromSwarm.particleCoordinates.data)
+        tree = fromSwarm.tree
+        d, ix = tree.query(_data, n)
+        if n == 1:
+            weights = np.ones(_data.shape[0])
+        elif not weighted:
+            weights = np.ones((_data.shape[0], n))*(1./n)
+        else:
+            weights = (1./d[:])/(1./d[:]).sum(axis=1)[:,None]
+        return ix,  weights
+    else:
+        return  np.empty(0., dtype="int"),  np.empty(0., dtype="int")
+
+
+# #construct an atan2 function, for angle around origin 
+# 
+# origin = (ndp.subzone, 1. - ndp.roc)
+# 
+# xrel = coordinate[0] - origin[0]
+# yrel = coordinate[1] - origin[1]
+# 
+# yoverx = yrel/xrel
+# xeq0 = operator.and_(xrel + 1e-20 > 0., xrel - 1e-20 < 0. )
+# yeq0 = operator.and_(yrel + 1e-20 > 0., yrel - 1e-20 < 0. )
+# 
+# 
+# conditions = [ ( xrel > 0. ,                      fn.math.atan(yoverx) ),
+#                ( operator.and_(xrel < 0.,yrel >= 0. ) ,   fn.math.atan(yoverx) + np.pi),
+#                ( operator.and_(xrel < 0.,yrel < 0. ) ,     fn.math.atan(yoverx) - np.pi),
+#                ( operator.and_(xeq0, yrel > 0. ) ,     np.pi/2.),
+#                ( operator.and_(xeq0, yrel < 0. ) ,     -1.*np.pi/2.),
+#                ( operator.and_(xeq0, yrel == 0. ) ,     fn.math.atan(yoverx) - np.pi),
+#                ( True,                                    9999999.) ]
+# 
+# thetaField= fn.branching.conditional( conditions )
+# 
+
+# #make an Nx4 mesh variable to store a transformation matrix
+# 
+# #for notes on transformation, see
+# #http://www.brown.edu/Departments/Engineering/Courses/En221/Notes/Polar_Coords/Polar_Coords.htm
+# #2.7 Converting tensors between Cartesian and Spherical-Polar bases
+# 
+# #Note that this is NOT how uw2 stores the tensor components
+# poltoCart    = uw.mesh.MeshVariable( mesh=mesh, nodeDofCount=4 )
+# #######        ##############
+# # 0 1 #   ===> # cosX sinX #      ===> Q
+# # 2 3 #        # -sinX  cosX #
+# #######        ##############
+# 
+# #Set the elements of this guy
+# poltoCart.data[:,0] = np.cos(thetaField.evaluate(mesh)[:,0])
+# poltoCart.data[:,1] = np.sin(thetaField.evaluate(mesh)[:,0])
+# poltoCart.data[:,2] = -1.*np.sin(thetaField.evaluate(mesh)[:,0])
+# poltoCart.data[:,3] = np.cos(thetaField.evaluate(mesh)[:,0])
+
+# #Set up a nearest-neighbour interpolation for the velocity field
+# 
+# 
+# ix, weights = nn_evaluation(gSwarm, mesh.data, n=3, weighted=False)
+# meshVisc = np.average(stokesPIC.fn_viscosity.evaluate(gSwarm)[ix][:,:,0], weights=weights, axis=1)
+
+# #Construct and populate the cartesian and polar stress tensors
+# 
+# #take uw2 2-D tensor components:
+# 
+# ########        
+# # 0  2 #  
+# #[2] 1 #  
+# ######## 
+# 
+# #and put them in to the form above
+# 
+# #######        
+# # 0 1 #  
+# # 2 3 #  
+# ####### 
+# 
+# stressTensor = uw.mesh.MeshVariable( mesh, 4)
+# stressTensor.data[:,0] = 2.*meshVisc*fn.tensor.symmetric( velocityField.fn_gradient ).evaluate(mesh)[:,0] 
+# stressTensor.data[:,1] = 2.*meshVisc*fn.tensor.symmetric( velocityField.fn_gradient ).evaluate(mesh)[:,2] 
+# stressTensor.data[:,2] = 2.*meshVisc*fn.tensor.symmetric( velocityField.fn_gradient ).evaluate(mesh)[:,2] 
+# stressTensor.data[:,3] = 2.*meshVisc*fn.tensor.symmetric( velocityField.fn_gradient ).evaluate(mesh)[:,1] 
+# 
+# 
+# polarstressTensor = uw.mesh.MeshVariable( mesh, 4)
+# 
+# for i, val in enumerate(mesh.data):
+#     Q = poltoCart.data[i].reshape((2, 2))
+#     S = stressTensor.data[i].reshape((2, 2))
+#     RH = np.dot(S,Q.T)
+#     LH = np.dot(Q,RH)
+#     polarstressTensor.data[i] = np.ravel(LH)
+#     
+
+# #check that the tensor contaractions are the same
+# print(np.dot(polarstressTensor.data[1], polarstressTensor.data[1]))
+# print(np.dot(stressTensor.data[1], stressTensor.data[1]))
+
+# #Function to restrict the mesh eigenvector arrows to the lithosphere
+# tempMM = fn.view.min_max(temperatureField)
+# tempMM.evaluate(mesh)
+# TMAX = tempMM.max_global()
+# 
+# mantleconditions = [ (                                  operator.and_(temperatureField < 0.9*TMAX, operator.and_(xFn> ndp.lRidge,xFn< ndp.rRidge )), 1.),
+#                    (                                                   True , 0.) ]
+# restFn = fn.branching.conditional(mantleconditions)
+
+# fig1= glucifer.Figure(quality=3)
+# 
+# 
+# fig1.append( glucifer.objects.VectorArrows(mesh,eig1*restFn,arrowHead=0., scaling=1e-2, resolutionI=16*10, resolutionJ=16*2 ))
+# fig1.append( glucifer.objects.VectorArrows(mesh,eig2*restFn,arrowHead=0., scaling=1e-2, resolutionI=16*10, resolutionJ=16*2 ))
+# 
+# fig1.append( glucifer.objects.Surface(mesh,polarstressTensor[0], valueRange=[0.001, 1e6]))
+# fig1.append( glucifer.objects.Surface(mesh,polarstressTensor[1], valueRange=[0.001, 1e6]))
+# fig1.append( glucifer.objects.Surface(mesh,polarstressTensor[2], valueRange=[0.001, 1e6]))
+# 
+# #fig1.show()
+# fig1.save_database('test1.gldb')
+# 
+
+# fig2= glucifer.Figure(quality=3)
+# 
+# 
+# 
+# fig2.append( glucifer.objects.Surface(mesh,stressTensor[0],  valueRange=[0.001, 1e6]))
+# fig2.append( glucifer.objects.Surface(mesh,stressTensor[1], valueRange=[0.001, 1e6]))
+# fig2.append( glucifer.objects.Surface(mesh,stressTensor[2], valueRange=[0.001, 1e6]))
+# 
+# fig2.save_database('test2.gldb')
+# 
+
+# fig3= glucifer.Figure(quality=3)
+# 
+# 
+# fig3.append( glucifer.objects.Points(gSwarm,sym_strainRate[0]*stokesPIC.fn_viscosity,valueRange=[0.001, 1e6]  ))
+# fig3.append( glucifer.objects.Points(gSwarm,sym_strainRate[1]*stokesPIC.fn_viscosity,valueRange=[0.001, 1e6]  ))
+# fig3.append( glucifer.objects.Points(gSwarm,sym_strainRate[2]*stokesPIC.fn_viscosity,valueRange=[0.001, 1e6]  ))
+# 
+# fig3.save_database('test3.gldb')
+# 
 
 # Advection-diffusion System setup
 # -----
@@ -2040,7 +2202,7 @@ minVxsurf = _maxMinVxSurf.min_global()
 # Viz.
 # -----
 
-# In[77]:
+# In[100]:
 
 #Build a depth dependent mask for the vizualisation
 
@@ -2058,7 +2220,7 @@ for index, value in enumerate(depthVariable.data[:]):
 del index, value    #get rid of any variables that might be pointing at the .data handles (these are!)
 
 
-# In[78]:
+# In[101]:
 
 if figures == 'gldb':
     #Pack some stuff into a database as well
@@ -2101,7 +2263,6 @@ elif figures == 'store':
 
     figVisc= glucifer.Figure(store2, figsize=(300*np.round(md.aspectRatio,2),300))
     figVisc.append( glucifer.objects.Points(gSwarm,viscosityMapFn1, logScale=True, valueRange =[1.,1e5], fn_mask=vizVariable))
-    figVisc.append( glucifer.objects.VectorArrows(mesh, eig1, arrowHead=0.0, scaling=0.05, glyphs=3, resolutionI=int(16*md.aspectRatio), resolutionJ=16*2))
 
 
     figMat= glucifer.Figure(store3, figsize=(300*np.round(md.aspectRatio,2),300))
@@ -2116,7 +2277,7 @@ elif figures == 'store':
     #figRest.append( glucifer.objects.Points(gSwarm,respltFn))
 
 
-# In[80]:
+# In[102]:
 
 #figTemp.show()
 
@@ -2128,57 +2289,7 @@ elif figures == 'store':
 #figMat.append(matPoints )
 
 
-# ## Miscellania
-
-# In[65]:
-
-from scipy.spatial import cKDTree as kdTree
-
-
-def nn_evaluation(fromSwarm, _data, n=1, weighted=False):
-
-    """
-    This function provides nearest neighbour information for uw swarms,
-    given the "_data", whcih could be the .data handle of a mesh or a swarm, this function returns the indices of the n nearest neighbours in "fromSwarm"
-    it also returns the inverse-distance if weighted=True.
-
-    The function works in parallel.   
-
-    The arrays come out a bit differently when used in nearest neighbour form
-    (n = 1), or IDW: (n > 1). The examples belowe show how to fill out a swarm variable in each case.
-
-
-    Usage n = 1:
-    ------------
-    ix, weights = nn_evaluation(swarm, fault.swarm, n=n, weighted=False)
-    toSwarmVar.data[:][:,0] =  fromSwarmVar.evaluate(fromSwarm)[_ix][:,0]
-
-    Usage n > 1:
-    ------------
-    ix, weights = nn_evaluation(swarm, fault.swarm, n=n, weighted=False)
-    toSwarmVar.data[:][:,0] =  np.average(fromSwarmVar.evaluate(fromSwarm)[ix][:,:,0], weights=weights, axis=1)
-
-    """ 
-
-
-    #print("fromSwarm data shape", fromSwarm.particleCoordinates.data.shape)
-
-    if len(_data) > 0: #this is required for safety in parallel
-
-        #we rebuild the tree as we assume the fromSwarm is being advected
-        fromSwarm.tree = kdTree(fromSwarm.particleCoordinates.data)
-        tree = fromSwarm.tree
-        d, ix = tree.query(_data, n)
-        if n == 1:
-            weights = np.ones(_data.shape[0])
-        elif not weighted:
-            weights = np.ones((_data.shape[0], n))*(1./n)
-        else:
-            weights = (1./d[:])/(1./d[:]).sum(axis=1)[:,None]
-        return ix,  weights
-    else:
-        return  np.empty(0., dtype="int"),  np.empty(0., dtype="int")
-
+# **Miscellania**
 
 # In[104]:
 
@@ -2225,7 +2336,6 @@ def checkpoint1(step, checkpointPath,filename, filewrites):
     shutil.copyfile(os.path.join(outputPath, outputFile), os.path.join(path, outputFile))
 
 
-    
 def checkpoint2(step, checkpointPath, swarm, filename, varlist = [materialVariable], varnames = ['materialVariable']):
     path = checkpointPath + str(step) 
     velfile = "velocityField" + ".hdf5"
@@ -2241,9 +2351,7 @@ def checkpoint2(step, checkpointPath, swarm, filename, varlist = [materialVariab
     
     #Save the parameters
     dict_list = [dp, sf, ndp, md] #if any of the dictionaries have changed, this list needs to be rebuilt
-    save_pickles(dict_list, dict_names, path)    
-    
-
+    save_pickles(dict_list, dict_names, path)
     
 #Simple Checkpoint function for the faults / interfaces (markerLine2D)
 def checkpoint3(step,  checkpointPath, interfaces,interfacenames ):
@@ -2311,15 +2419,10 @@ def plate_infoFn(velocityField,xFn,  depthLimit, xsearchlim = 1.0, currentloc = 
 
 
 
-# In[63]:
+# In[108]:
 
 # initialise timer for computation
 start = time.clock()
-
-
-
-next_image_step = np.ceil((0./files_freq)+ 1/sf.SR) *files_freq #increment time for our next image / file dump
-#the 1/sf.SR kludge represents a dimensionless value of 1 second - avoids np.ceil(0.) = 0
 
 
 # Main simulation loop
@@ -2338,26 +2441,16 @@ while realtime < 0.0004:
     pressureField.data[:] -= pressureSurf/surfLength
     
     
-    files_this_step = False #don't write files / images unless conditions are triggered
     dt = advDiff.get_max_dt()
     if step == 0:
         dt = 0.
-        files_this_step = True #write files on the zeroth step
-    
-    #This relates to file writing at set period - override make sure we hit certain time values
-    
-    if realtime + dt >= next_image_step:
-        dt = next_image_step - realtime
-        files_this_step = True
-        next_image_step += files_freq #increment time for our next image / file dump
-    
-    
     advDiff.integrate(dt)
     materialadvector.integrate(dt)
     #advect any interfaces
     fault.advection(dt)
     
-
+    
+    
     # Increment
     realtime += dt
     step += 1
@@ -2374,7 +2467,7 @@ while realtime < 0.0004:
     ################
     #Files output
     ################ 
-    if files_this_step:
+    if (step % files_output == 0):
         
         gSwarm.update_particle_owners()
         
@@ -2448,11 +2541,6 @@ while realtime < 0.0004:
         fnametemp = "velxSurface" + "_" + str(step) + '.h5'
         fullpath = os.path.join(outputPath + "files/" + fnametemp)
         surfaceVelx.save(fullpath)
-        
-        #
-        # see if we have already saved the mesh. It only needs to be saved once
-        
-        
 
     ################
     #Fault / interface repair
@@ -2567,16 +2655,7 @@ while realtime < 0.0004:
     ################
     #Gldb output
     ################ 
-    if files_this_step: 
-          
-        #ReBuild the principal stress vector
-        
-        sRt = sym_strainRate.evaluate(mesh)
-
-        tau = np.sqrt(((sRt[:,0]+ 1e-14 - sRt[:,1])**2)/4. + sRt[:,2]**2) #shear stress max.
-        principalAngles = 0.5*np.arcsin(sRt[:,2]/tau)*(180./np.pi)
-        eig1.data[:,0] = np.cos(np.radians(principalAngles))
-        eig1.data[:,1] = np.sin(np.radians(principalAngles))
+    if (step % gldbs_output == 0): 
         
         #ReBuild the depth dependent mask for the vizualisation
         depthVariable      = gSwarm.add_variable( dataType="float", count=1 )
@@ -2591,7 +2670,6 @@ while realtime < 0.0004:
         
         #rebuild the yielding check
         yieldingCheck.data[:] = fn.branching.conditional( yieldconditions ).evaluate(gSwarm)
-    
         
         if figures == 'gldb':
             
@@ -2728,171 +2806,28 @@ print 'step =',step
 #plt.title('surface velocity residual - T. Iso minus Iso. weak zone')
 
 
-# test = fault.swarm.particleCoordinates.data.copy()
-# np.random.shuffle(test)
-# 
-# fxs = test[:,0]
-# fys = test[:,1]
-# 
-# plt.scatter(fxs,
-#            fys, s= 0.1)
+# In[249]:
 
-# from scipy.interpolate.rbf import Rbf
-# 
-# testXs = np.linspace(fxs.min(),fxs.max(), 20 )
-# 
-# rbf_adj = Rbf(fxs, fys, function='linear')
-# lin_bimes = rbf_adj(testXs)
-# plot3 = plt.plot(testXs, lin_bimes, '-', label='lin')
-# #plt.scatter(fxs,fys, s= 0.1)
+test = fault.swarm.particleCoordinates.data.copy()
+np.random.shuffle(test)
 
-# In[ ]:
+fxs = test[:,0]
+fys = test[:,1]
+
+plt.scatter(fxs,
+           fys, s= 0.1)
 
 
+# In[250]:
 
+from scipy.interpolate.rbf import Rbf
 
+testXs = np.linspace(fxs.min(),fxs.max(), 20 )
 
-
-# # see if we have already saved the mesh. It only needs to be saved once
-# 
-# prefix = 'dan_test'
-# _mH = mesh.save(prefix+"mesh.h5")
-# mh = _mH
-# vH = velocityField.save(prefix+"velocity"+".h5")
-# tH = temperatureField.save(prefix+"temp"+".h5")
-# velocityField.xdmf(prefix+"velocity", vH, 'velocity', mh, 'mesh')
-# temperatureField.xdmf(prefix+"temperature", tH, 'temperature', mh, 'mesh')
-
-# ## Polar Stress tensor
-
-# #construct an atan2 function, for angle around origin 
-# 
-# origin = (ndp.subzone, 1. - ndp.roc)
-# 
-# xrel = coordinate[0] - origin[0]
-# yrel = coordinate[1] - origin[1]
-# 
-# yoverx = yrel/xrel
-# xeq0 = operator.and_(xrel + 1e-20 > 0., xrel - 1e-20 < 0. )
-# yeq0 = operator.and_(yrel + 1e-20 > 0., yrel - 1e-20 < 0. )
-# 
-# 
-# conditions = [ ( xrel > 0. ,                      fn.math.atan(yoverx) ),
-#                ( operator.and_(xrel < 0.,yrel >= 0. ) ,   fn.math.atan(yoverx) + np.pi),
-#                ( operator.and_(xrel < 0.,yrel < 0. ) ,     fn.math.atan(yoverx) - np.pi),
-#                ( operator.and_(xeq0, yrel > 0. ) ,     np.pi/2.),
-#                ( operator.and_(xeq0, yrel < 0. ) ,     -1.*np.pi/2.),
-#                ( operator.and_(xeq0, yrel == 0. ) ,     fn.math.atan(yoverx) - np.pi),
-#                ( True,                                    9999999.) ]
-# 
-# thetaField= fn.branching.conditional( conditions )
-# 
-# 
-# #make an Nx4 mesh variable to store a transformation matrix
-# 
-# #for notes on transformation, see
-# #http://www.brown.edu/Departments/Engineering/Courses/En221/Notes/Polar_Coords/Polar_Coords.htm
-# #2.7 Converting tensors between Cartesian and Spherical-Polar bases
-# 
-# #Note that this is NOT how uw2 stores the tensor components
-# poltoCart    = uw.mesh.MeshVariable( mesh=mesh, nodeDofCount=4 )
-# #######        ##############
-# # 0 1 #   ===> # cosX sinX #      ===> Q
-# # 2 3 #        # -sinX  cosX #
-# #######        ##############
-# 
-# #Set the elements of this guy
-# poltoCart.data[:,0] = np.cos(thetaField.evaluate(mesh)[:,0])
-# poltoCart.data[:,1] = np.sin(thetaField.evaluate(mesh)[:,0])
-# poltoCart.data[:,2] = -1.*np.sin(thetaField.evaluate(mesh)[:,0])
-# poltoCart.data[:,3] = np.cos(thetaField.evaluate(mesh)[:,0])
-# 
-# #Set up a nearest-neighbour interpolation for the velocity field
-# 
-# 
-# ix, weights = nn_evaluation(gSwarm, mesh.data, n=3, weighted=False)
-# meshVisc = np.average(stokesPIC.fn_viscosity.evaluate(gSwarm)[ix][:,:,0], weights=weights, axis=1)
-# 
-# 
-# #Construct and populate the cartesian and polar stress tensors
-# 
-# #take uw2 2-D tensor components:
-# 
-# ########        
-# # 0  2 #  
-# #[2] 1 #  
-# ######## 
-# 
-# #and put them in to the form above
-# 
-# #######        
-# # 0 1 #  
-# # 2 3 #  
-# ####### 
-# 
-# stressTensor = uw.mesh.MeshVariable( mesh, 4)
-# stressTensor.data[:,0] = 2.*meshVisc*fn.tensor.symmetric( velocityField.fn_gradient ).evaluate(mesh)[:,0] 
-# stressTensor.data[:,1] = 2.*meshVisc*fn.tensor.symmetric( velocityField.fn_gradient ).evaluate(mesh)[:,2] 
-# stressTensor.data[:,2] = 2.*meshVisc*fn.tensor.symmetric( velocityField.fn_gradient ).evaluate(mesh)[:,2] 
-# stressTensor.data[:,3] = 2.*meshVisc*fn.tensor.symmetric( velocityField.fn_gradient ).evaluate(mesh)[:,1] 
-# 
-# 
-# polarstressTensor = uw.mesh.MeshVariable( mesh, 4)
-# 
-# for i, val in enumerate(mesh.data):
-#     Q = poltoCart.data[i].reshape((2, 2))
-#     S = stressTensor.data[i].reshape((2, 2))
-#     RH = np.dot(S,Q.T)
-#     LH = np.dot(Q,RH)
-#     polarstressTensor.data[i] = np.ravel(LH)
-#     
-# 
-# 
-# #check that the tensor contaractions are the same
-# print(np.dot(polarstressTensor.data[1], polarstressTensor.data[1]))
-# print(np.dot(stressTensor.data[1], stressTensor.data[1]))
-# 
-# #Function to restrict the mesh eigenvector arrows to the lithosphere
-# tempMM = fn.view.min_max(temperatureField)
-# tempMM.evaluate(mesh)
-# TMAX = tempMM.max_global()
-# 
-# mantleconditions = [ (                                  operator.and_(temperatureField < 0.9*TMAX, operator.and_(xFn> ndp.lRidge,xFn< ndp.rRidge )), 1.),
-#                    (                                                   True , 0.) ]
-# restFn = fn.branching.conditional(mantleconditions)
-# 
-# 
-# fig1= glucifer.Figure(quality=3)
-# 
-# 
-# fig1.append( glucifer.objects.VectorArrows(mesh,eig1*restFn,arrowHead=0., scaling=1e-2, resolutionI=16*10, resolutionJ=16*2 ))
-# fig1.append( glucifer.objects.VectorArrows(mesh,eig2*restFn,arrowHead=0., scaling=1e-2, resolutionI=16*10, resolutionJ=16*2 ))
-# 
-# fig1.append( glucifer.objects.Surface(mesh,polarstressTensor[0], valueRange=[0.001, 1e6]))
-# fig1.append( glucifer.objects.Surface(mesh,polarstressTensor[1], valueRange=[0.001, 1e6]))
-# fig1.append( glucifer.objects.Surface(mesh,polarstressTensor[2], valueRange=[0.001, 1e6]))
-# 
-# #fig1.show()
-# fig1.save_database('test1.gldb')
-# 
-# fig2= glucifer.Figure(quality=3)
-# 
-# 
-# 
-# fig2.append( glucifer.objects.Surface(mesh,stressTensor[0],  valueRange=[0.001, 1e6]))
-# fig2.append( glucifer.objects.Surface(mesh,stressTensor[1], valueRange=[0.001, 1e6]))
-# fig2.append( glucifer.objects.Surface(mesh,stressTensor[2], valueRange=[0.001, 1e6]))
-# 
-# fig2.save_database('test2.gldb')
-
-# In[46]:
-
-
-
-
-# In[47]:
-
-
+rbf_adj = Rbf(fxs, fys, function='linear')
+lin_bimes = rbf_adj(testXs)
+plot3 = plt.plot(testXs, lin_bimes, '-', label='lin')
+#plt.scatter(fxs,fys, s= 0.1)
 
 
 # In[ ]:
