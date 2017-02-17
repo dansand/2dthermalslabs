@@ -2783,7 +2783,15 @@ while realtime < 1.:
             figMech.save( fullpath + "Mech" + str(step).zfill(4))
             figTemp.save( fullpath + "Temp"    + str(step).zfill(4))
             figMat.save( fullpath + "Mat"    + str(step).zfill(4))
-            #figSr.save( fullpath + "Str_rte"    + str(step).zfill(4))     
+            #figSr.save( fullpath + "Str_rte"    + str(step).zfill(4))
+            
+            
+            #Also checkpoint so gLuc Stores stay in sync with checkpoint (a bit of a kludge)
+            if uw.rank() == 0:
+                checkpoint1(step, checkpointPath,f_o, metric_output)           
+            checkpoint2(step, checkpointPath, gSwarm, f_o, varlist = varlist, varnames = varnames)
+            checkpoint3(step,  checkpointPath, interfaces,interfacenames )
+            f_o = open(os.path.join(outputPath, outputFile), 'a') #is this line supposed to be here?
             
             
     ################
