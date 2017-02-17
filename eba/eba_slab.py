@@ -2441,11 +2441,12 @@ def checkpoint1(step, checkpointPath,filename, filewrites):
     os.mkdir(path)
     ##Write and save the file, if not already a writing step
     if not step % filewrites == 0:
-        f_o.write((30*'%-15s ' + '\n') % (areaintRock, tempintRock, rmsintRock, dwintRock, vdintRock,
+        f_o.write((35*'%-15s ' + '\n') % (areaintRock, tempintRock, rmsintRock, dwintRock, vdintRock,
                                   areaintLith, tempintLith,rmsintLith, dwintLith, vdintLith,
                                   areaintLower, tempintLower, rmsintLower, dwintLower, vdintLower, 
                                   areaintHinge180,vdintHinge180, areaintHinge60, vdintHinge60, 
                                   areaintInterface, vdintInterface, vdintInterface,
+                                  minVel,maxVel, minVxsurf, maxVxsurf, surfLength,            
                                   rmsSurf, nuTop, nuBottom, plateness, ndp.subzone,ndp.lRidge, ndp.rRidge, realtime))
     filename.close()
     shutil.copyfile(os.path.join(outputPath, outputFile), os.path.join(path, outputFile))
@@ -2787,11 +2788,12 @@ while realtime < 1.:
             
             
             #Also checkpoint so gLuc Stores stay in sync with checkpoint (a bit of a kludge)
-            if uw.rank() == 0:
-                checkpoint1(step, checkpointPath,f_o, metric_output)           
-            checkpoint2(step, checkpointPath, gSwarm, f_o, varlist = varlist, varnames = varnames)
-            checkpoint3(step,  checkpointPath, interfaces,interfacenames )
-            f_o = open(os.path.join(outputPath, outputFile), 'a') #is this line supposed to be here?
+            if step % checkpoint_every != 0:
+                if uw.rank() == 0:
+                    checkpoint1(step, checkpointPath,f_o, metric_output)           
+                checkpoint2(step, checkpointPath, gSwarm, f_o, varlist = varlist, varnames = varnames)
+                checkpoint3(step,  checkpointPath, interfaces,interfacenames )
+                f_o = open(os.path.join(outputPath, outputFile), 'a') #is this line supposed to be here?
             
             
     ################
