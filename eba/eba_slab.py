@@ -1455,6 +1455,7 @@ def safe_visc(func, viscmin=ndp.eta_min, viscmax=ndp.eta_max):
 ##############
 #Get dimensional viscosity values at reference values of temp, pressure, and strain rate
 ##############
+
 dp.rPressure  = dp.rho*dp.g*dp.rDepth
 rDf = (1./dp.Adf)*np.exp( ((dp.Edf + dp.Vdf*dp.rPressure))/((dp.R*dp.rTemp)))
 rLm = (1./dp.Alm)*np.exp( ((dp.Elm + dp.Vlm*dp.rPressure))/((dp.R*dp.rTemp)))
@@ -1546,7 +1547,9 @@ diffusion = (1./ndp.Adf ) *fn.math.exp( ((ndp.Edf + (corrDepthFn*ndp.Wdf))/((cor
 
 
 ##Diffusion Creep
-lmdiffusion = (1./ndp.Alm ) *fn.math.exp( ((ndp.Elm + (corrDepthFn*ndp.Wlm))/((corrTempFn+ ndp.TS)))) 
+#lmdiffusion = (1./ndp.Alm ) *fn.math.exp( ((ndp.Elm + (corrDepthFn*ndp.Wlm))/((corrTempFn+ ndp.TS)))) 
+lmdiffusion = diffusion*30.
+
 
 
 linearVisc = safe_visc(diffusion)
