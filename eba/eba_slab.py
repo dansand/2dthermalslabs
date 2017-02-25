@@ -297,7 +297,7 @@ dp = edict({#Main physical paramters
            'Vdf':4e-6,
            'Vds':12e-6,
            'Vpr':10e-6,
-           'Alm':2e-17,
+           'Alm':6e-17,
            'Elm':2.0e5,
            'Vlm':1.5e-6,
            'SR':1e-15, #reference strain rate
@@ -1547,8 +1547,7 @@ diffusion = (1./ndp.Adf ) *fn.math.exp( ((ndp.Edf + (corrDepthFn*ndp.Wdf))/((cor
 
 
 ##Diffusion Creep
-#lmdiffusion = (1./ndp.Alm ) *fn.math.exp( ((ndp.Elm + (corrDepthFn*ndp.Wlm))/((corrTempFn+ ndp.TS)))) 
-lmdiffusion = diffusion*30.
+lmdiffusion = (1./ndp.Alm ) *fn.math.exp( ((ndp.Elm + (corrDepthFn*ndp.Wlm))/((corrTempFn+ ndp.TS)))) 
 
 
 
@@ -2809,8 +2808,7 @@ while realtime < 1.:
         fullpath = os.path.join(outputPath + "xdmf/")
         if not os.path.exists(fullpath+"mesh.h5"):
             _mH = mesh.save(fullpath+"mesh.h5") 
-            mh = _mH
-    
+        mh = _mH
         vH = velocityField.save(fullpath + "velocity_" + str(step) +".h5")
         tH = temperatureField.save(fullpath + "temp_" + str(step) + ".h5")
         eH = eig1.save(fullpath + "eig_" + str(step) + ".h5")
