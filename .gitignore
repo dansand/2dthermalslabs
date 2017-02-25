@@ -6,3 +6,4 @@ results/
 **/*.png
 **/temp_results/
 **/temp/
+**/*.pyc
