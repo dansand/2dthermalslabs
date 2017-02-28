@@ -22,7 +22,7 @@
 # Arredondo, Katrina M., and Magali I. Billen. "The Effects of Phase Transitions and Compositional Layering in Two-dimensional Kinematic Models of Subduction." Journal of Geodynamics (2016).
 # 
 
-# In[1]:
+# In[49]:
 
 import numpy as np
 import underworld as uw
@@ -51,7 +51,7 @@ comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 
 
-# In[2]:
+# In[50]:
 
 #####
 #Stubborn version number conflicts - need to figure out my Docker container runs an old version. For now...
@@ -67,7 +67,7 @@ except:
 
 
 
-# In[3]:
+# In[51]:
 
 #store = glucifer.Store('subduction')
 #figParticle = glucifer.Figure( store, figsize=(960,300), name="Particles" )
@@ -78,7 +78,7 @@ except:
 # Model name and directories
 # -----
 
-# In[4]:
+# In[52]:
 
 ############
 #Model letter and number
@@ -106,7 +106,7 @@ else:
                 Model  = farg
 
 
-# In[5]:
+# In[53]:
 
 ###########
 #Standard output directory setup
@@ -138,7 +138,7 @@ if uw.rank()==0:
 comm.Barrier() #Barrier here so no procs run the check in the next cell too early
 
 
-# In[6]:
+# In[54]:
 
 ###########
 #Check if starting from checkpoint
@@ -155,7 +155,7 @@ for dirpath, dirnames, files in os.walk(checkpointPath):
         checkpointLoad = False
 
 
-# In[7]:
+# In[55]:
 
 # setup summary output file (name above)
 if checkpointLoad:
@@ -185,7 +185,7 @@ else:
 
 # **Use pint to setup any unit conversions we'll need**
 
-# In[8]:
+# In[56]:
 
 u = pint.UnitRegistry()
 cmpery = 1.*u.cm/u.year
@@ -195,7 +195,7 @@ spery = year.to(u.sec)
 cmpery.to(mpermy)
 
 
-# In[9]:
+# In[57]:
 
 box_half_width =4000e3
 age_at_trench = 100e6
@@ -210,7 +210,7 @@ print(cmperyear, mpersec )
 # * If starting from checkpoint, parameters are loaded using pickle
 # * If params are passed in as flags to the script, they overwrite 
 
-# In[10]:
+# In[58]:
 
 ###########
 #Parameter / settings dictionaries get saved&loaded using pickle
@@ -223,7 +223,7 @@ md = edict({}) #model paramters, flags etc
 #od = edict({}) #output frequencies
 
 
-# In[11]:
+# In[59]:
 
 dict_list = [dp, sf, ndp, md]
 dict_names = ['dp.pkl', 'sf.pkl', 'ndp.pkl', 'md.pkl']
@@ -260,7 +260,7 @@ def load_pickles():
     return dp, ndp, sf, md
 
 
-# In[12]:
+# In[67]:
 
 ###########
 #Store the physical parameters, scale factors and dimensionless pramters in easyDicts
@@ -351,7 +351,12 @@ dp.deltaTa = (dp.TP + dp.dTa*dp.LS) - dp.TS  #Adiabatic Temp at base of mantle, 
 dp.rTemp= dp.TP + dp.rDepth*dp.dTa #reference temp, (potential temp + adiabat)
 
 
-# In[13]:
+# In[76]:
+
+#(dp.TP + dp.dTa*dp.LS) - dp.TS 
+
+
+# In[61]:
 
 #Modelling and Physics switches
 
@@ -360,7 +365,7 @@ md = edict({'refineMesh':False,
             'subductionFault':False,
             'symmetricIcs':False,
             'velBcs':False,
-            'aspectRatio':5., # (aspect ratio of 6.897, i.e preserves width when half mantle depth is used
+            'aspectRatio':5., #
             'compBuoyancy':False, #use compositional & phase buoyancy, or simply thermal
             'periodicBcs':False,
             'RES':64,
@@ -376,7 +381,7 @@ md = edict({'refineMesh':False,
             })
 
 
-# In[14]:
+# In[62]:
 
 ###########
 #If starting from a checkpoint load params from file
@@ -386,7 +391,7 @@ if checkpointLoad:
     dp, ndp, sf, md = load_pickles()  #remember to add any extra dictionaries
 
 
-# In[15]:
+# In[63]:
 
 ###########
 #If command line args are given, overwrite
@@ -445,12 +450,12 @@ for farg in sys.argv[1:]:
 comm.barrier()
 
 
-# In[16]:
+# In[64]:
 
 dp.deltaTa
 
 
-# In[17]:
+# In[65]:
 
 if not checkpointLoad:
     
@@ -535,7 +540,12 @@ if not checkpointLoad:
     #Append any more derived paramters
     ndp.SR = dp.SR*sf.SR #characteristic strain rate
     ndp.StRA = (3300.*dp.g*(dp.LS)**3)/(dp.eta0 *dp.k) #Composisitional Rayleigh number for rock-air buoyancy force
-    ndp.TaP = 1. - ndp.TPP,  #Dimensionles adiabtic component of deltaT
+    ndp.TaP = 1. - ndp.TPP,  #Dimensionless adiabatic component of deltaT
+
+
+# In[73]:
+
+#ndp.TaP
 
 
 # ### Output Frequency
@@ -1813,45 +1823,71 @@ solver.print_stats()
 # ## Set up principal stress vectors
 # 
 
-# #there are some sign problems I need to figure out here. 
-# 
-# eig1       = uw.mesh.MeshVariable( mesh=mesh,         nodeDofCount=2 )
-# 
-# sRt = sym_strainRate.evaluate(mesh)
-# 
-# tau = np.sqrt(((sRt[:,0]+ 1e-14 - sRt[:,1])**2)/4. + sRt[:,2]**2) #shear stress max.
-# principalAngles = 0.5*np.arcsin(sRt[:,2]/tau)*(180./np.pi)
-# 
-# 
-# 
-# #
-# eig1.data[:,0] = np.cos(np.radians(principalAngles))
-# eig1.data[:,1] = np.sin(np.radians(principalAngles))
+# In[78]:
 
-# ## Get eigenvalues
+def eig2d(sigma):
 
-# In[77]:
+    """
+    Input: sigma, symmetric tensor, numpy array of length 3, with xx yy xy compenents
+    
+    Output:
+    
+    s1: first major stress fms will be the most extensive
+    s2: second major stress the least extensive, most compressive
+    deg: angle to the first major stress axis (most extensive in degrees anticlockwise from horizontal axis - x)
+    """
+ 
 
+    s11=sigma[0]
+    #s12=sigma[2]/2.  #(engineering strain/stress)
+    s12=sigma[2]
+    s22=sigma[1]
+
+    fac = 28.64788975654116; #90/pi - 2theta conversion
+
+    x1 = (s11 + s22)/2.0;
+    x2 = (s11 - s22)/2.0;
+    R = x2 * x2 + s12 * s12;
+    
+    #Get the stresses 
+    if(R > 0.0):         #if shear stress is not zero
+        R = np.sqrt(R);
+        s1 = x1 + R;
+        s2 = x1 - R;
+    else:
+        s1 = x1;        #if shear stress is zero
+        s2 = x1;
+
+    if(x2 != 0.0):   
+        deg = fac * math.atan2(s12,x2); #Return the arc tangent (measured in radians) of y/x.
+    elif s12 <= 0.0:
+        deg= -45.0;
+    else:
+        deg=  45.0;
+    return s1, s2, deg
+
+
+# In[79]:
 
 eig1       = uw.mesh.MeshVariable( mesh=mesh,         nodeDofCount=2 )
 eig2       = uw.mesh.MeshVariable( mesh=mesh,         nodeDofCount=2 )
 
 ssr = sym_strainRate.evaluate(mesh)
 
-for ti, val in enumerate(eig1.data):
-    eigVals, eigVex= np.linalg.eig(np.array([[ssr[ti][0],ssr[ti][2]],[ssr[ti][2],ssr[ti][1]]]))
-    pi = np.argmax(np.abs(eigVals)) #index of largest eigenvalue
-    eig1.data[ti] = eigVex[pi]
-    eig2.data[ti] = eigVex[abs(pi - 1)] #index of other eigenvalue - 2D assumption
+
+principalAngles  = np.apply_along_axis(eig2d, 1, ssr[:, :])[:,2]
 
 
-# In[1]:
+eig1.data[:,0] = np.cos(np.radians(principalAngles - 90.)) #most compressive 
+eig1.data[:,1] = np.sin(np.radians(principalAngles - 90.))
 
-#fig= glucifer.Figure()
-#fig.append( glucifer.objects.VectorArrows(mesh,eig1, scaling=0.1,arrowHead=0.1))
-#fig.append( glucifer.objects.VectorArrows(mesh,eig2, scaling=0.1,arrowHead=0.1))
+eig2.data[:,0] = np.cos(np.radians(principalAngles ))      #most extensive
+eig2.data[:,1] = np.sin(np.radians(principalAngles ))
 
-#fig.show()
+
+# In[ ]:
+
+
 
 
 # Advection-diffusion System setup
