@@ -22,7 +22,7 @@
 # Arredondo, Katrina M., and Magali I. Billen. "The Effects of Phase Transitions and Compositional Layering in Two-dimensional Kinematic Models of Subduction." Journal of Geodynamics (2016).
 # 
 
-# In[49]:
+# In[1]:
 
 import numpy as np
 import underworld as uw
@@ -51,7 +51,7 @@ comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 
 
-# In[50]:
+# In[2]:
 
 #####
 #Stubborn version number conflicts - need to figure out my Docker container runs an old version. For now...
@@ -67,7 +67,7 @@ except:
 
 
 
-# In[51]:
+# In[3]:
 
 #store = glucifer.Store('subduction')
 #figParticle = glucifer.Figure( store, figsize=(960,300), name="Particles" )
@@ -78,7 +78,7 @@ except:
 # Model name and directories
 # -----
 
-# In[52]:
+# In[4]:
 
 ############
 #Model letter and number
@@ -106,7 +106,7 @@ else:
                 Model  = farg
 
 
-# In[53]:
+# In[5]:
 
 ###########
 #Standard output directory setup
@@ -138,7 +138,7 @@ if uw.rank()==0:
 comm.Barrier() #Barrier here so no procs run the check in the next cell too early
 
 
-# In[54]:
+# In[6]:
 
 ###########
 #Check if starting from checkpoint
@@ -155,7 +155,7 @@ for dirpath, dirnames, files in os.walk(checkpointPath):
         checkpointLoad = False
 
 
-# In[55]:
+# In[7]:
 
 # setup summary output file (name above)
 if checkpointLoad:
@@ -185,7 +185,7 @@ else:
 
 # **Use pint to setup any unit conversions we'll need**
 
-# In[56]:
+# In[8]:
 
 u = pint.UnitRegistry()
 cmpery = 1.*u.cm/u.year
@@ -195,7 +195,7 @@ spery = year.to(u.sec)
 cmpery.to(mpermy)
 
 
-# In[57]:
+# In[9]:
 
 box_half_width =4000e3
 age_at_trench = 100e6
@@ -210,7 +210,7 @@ print(cmperyear, mpersec )
 # * If starting from checkpoint, parameters are loaded using pickle
 # * If params are passed in as flags to the script, they overwrite 
 
-# In[58]:
+# In[10]:
 
 ###########
 #Parameter / settings dictionaries get saved&loaded using pickle
@@ -223,7 +223,7 @@ md = edict({}) #model paramters, flags etc
 #od = edict({}) #output frequencies
 
 
-# In[59]:
+# In[11]:
 
 dict_list = [dp, sf, ndp, md]
 dict_names = ['dp.pkl', 'sf.pkl', 'ndp.pkl', 'md.pkl']
@@ -260,7 +260,7 @@ def load_pickles():
     return dp, ndp, sf, md
 
 
-# In[67]:
+# In[12]:
 
 ###########
 #Store the physical parameters, scale factors and dimensionless pramters in easyDicts
@@ -351,12 +351,12 @@ dp.deltaTa = (dp.TP + dp.dTa*dp.LS) - dp.TS  #Adiabatic Temp at base of mantle, 
 dp.rTemp= dp.TP + dp.rDepth*dp.dTa #reference temp, (potential temp + adiabat)
 
 
-# In[76]:
+# In[13]:
 
-#(dp.TP + dp.dTa*dp.LS) - dp.TS 
+#dp.dTa, (dp.a*dp.g*(dp.TP))/dp.Cp 
 
 
-# In[61]:
+# In[14]:
 
 #Modelling and Physics switches
 
@@ -381,7 +381,7 @@ md = edict({'refineMesh':False,
             })
 
 
-# In[62]:
+# In[15]:
 
 ###########
 #If starting from a checkpoint load params from file
@@ -391,7 +391,7 @@ if checkpointLoad:
     dp, ndp, sf, md = load_pickles()  #remember to add any extra dictionaries
 
 
-# In[63]:
+# In[16]:
 
 ###########
 #If command line args are given, overwrite
@@ -450,12 +450,12 @@ for farg in sys.argv[1:]:
 comm.barrier()
 
 
-# In[64]:
+# In[17]:
 
 dp.deltaTa
 
 
-# In[65]:
+# In[20]:
 
 if not checkpointLoad:
     
@@ -475,7 +475,9 @@ if not checkpointLoad:
            })
     
      #dimensionless parameters
-    ndp = edict({'RA':(dp.g*dp.rho*dp.a*dp.deltaTa*(dp.LS)**3)/(dp.k*dp.eta0),
+    ndp = edict({
+             #'RA':(dp.g*dp.rho*dp.a*dp.deltaTa*(dp.LS)**3)/(dp.k*dp.eta0),
+             'RA':(dp.g*dp.rho*dp.a*(dp.TP - dp.TS)*(dp.LS)**3)/(dp.k*dp.eta0),
              'depth':dp.depth/dp.LS,
              'Di': dp.a*dp.g*dp.LS/dp.Cp, #Dissipation number
              'H':0.,
@@ -543,9 +545,10 @@ if not checkpointLoad:
     ndp.TaP = 1. - ndp.TPP,  #Dimensionless adiabatic component of deltaT
 
 
-# In[73]:
+# In[23]:
 
-#ndp.TaP
+#dp.deltaTa/(dp.TP - dp.TS)
+#ndp.RA
 
 
 # ### Output Frequency
