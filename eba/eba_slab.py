@@ -476,8 +476,8 @@ if not checkpointLoad:
     
      #dimensionless parameters
     ndp = edict({
-             #'RA':(dp.g*dp.rho*dp.a*dp.deltaTa*(dp.LS)**3)/(dp.k*dp.eta0),
-             'RA':(dp.g*dp.rho*dp.a*(dp.TP - dp.TS)*(dp.LS)**3)/(dp.k*dp.eta0),
+             'RA':(dp.g*dp.rho*dp.a*dp.deltaTa*(dp.LS)**3)/(dp.k*dp.eta0),
+             #'RA':(dp.g*dp.rho*dp.a*(dp.TP - dp.TS)*(dp.LS)**3)/(dp.k*dp.eta0),
              'depth':dp.depth/dp.LS,
              'Di': dp.a*dp.g*dp.LS/dp.Cp, #Dissipation number
              'H':0.,
