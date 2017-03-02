@@ -2473,10 +2473,6 @@ dummy = tempMM.evaluate(mesh)
 #These functions handle checkpointing
 ##############
 
-
-#Subzone = ndp.subzone
-
-
 def checkpoint1(step, checkpointPath,filename, filewrites):
     path = checkpointPath + str(step) 
     os.mkdir(path)
@@ -2794,13 +2790,24 @@ while realtime < 1.:
     if files_this_step: 
         
         #ReBuild the principal stress vector
+        principalAngles  = np.apply_along_axis(eig2d, 1, ssr[:, :])[:,2]
+        eig1.data[:,0] = np.cos(np.radians(principalAngles - 90.)) #most compressive 
+        eig1.data[:,1] = np.sin(np.radians(principalAngles - 90.))
+        eig2.data[:,0] = np.cos(np.radians(principalAngles ))      #most extensive
+        eig2.data[:,1] = np.sin(np.radians(principalAngles ))
         
-        sRt = sym_strainRate.evaluate(mesh)
+        
+        
+        #Rebuild the viz. mask
+        
+        vizVariable.data[:] = 0
+        depthVariable.data[:] = depthFn.evaluate(gSwarm)
+        for index, value in enumerate(depthVariable.data[:]):
+            #print index, value
+            if np.random.rand(1)**5 > value/(MAXY - MINY):
+                vizVariable.data[index] = 1
 
-        tau = np.sqrt(((sRt[:,0]+ 1e-14 - sRt[:,1])**2)/4. + sRt[:,2]**2) #shear stress max.
-        principalAngles = 0.5*np.arcsin(sRt[:,2]/tau)*(180./np.pi)
-        eig1.data[:,0] = np.cos(np.radians(principalAngles))
-        eig1.data[:,1] = np.sin(np.radians(principalAngles))
+        del index, value    #get rid of any variables that might be pointing at the .data handles (these are!)
         
         
         
@@ -2845,8 +2852,14 @@ while realtime < 1.:
     if files_this_step:
         
         fullpath = os.path.join(outputPath + "xdmf/")
-        if not os.path.exists(fullpath+"mesh.h5"):
-            _mH = mesh.save(fullpath+"mesh.h5") 
+        #if not os.path.exists(fullpath+"mesh.h5"):
+        #    _mH = mesh.save(fullpath+"mesh.h5")
+        
+        try:
+            _mH
+        except:
+            _mH = mesh.save(fullpath+"mesh.h5")
+        
         mh = _mH
         vH = velocityField.save(fullpath + "velocity_" + str(step) +".h5")
         tH = temperatureField.save(fullpath + "temp_" + str(step) + ".h5")
@@ -3035,6 +3048,11 @@ step
 
 
 # In[40]:
+
+
+
+
+# In[1]:
 
 
 
