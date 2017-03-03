@@ -22,7 +22,7 @@
 # Arredondo, Katrina M., and Magali I. Billen. "The Effects of Phase Transitions and Compositional Layering in Two-dimensional Kinematic Models of Subduction." Journal of Geodynamics (2016).
 # 
 
-# In[1]:
+# In[2]:
 
 import numpy as np
 import underworld as uw
@@ -51,7 +51,7 @@ comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 
 
-# In[2]:
+# In[3]:
 
 #####
 #Stubborn version number conflicts - need to figure out my Docker container runs an old version. For now...
@@ -67,7 +67,7 @@ except:
 
 
 
-# In[3]:
+# In[4]:
 
 #store = glucifer.Store('subduction')
 #figParticle = glucifer.Figure( store, figsize=(960,300), name="Particles" )
@@ -78,7 +78,7 @@ except:
 # Model name and directories
 # -----
 
-# In[4]:
+# In[5]:
 
 ############
 #Model letter and number
@@ -106,7 +106,7 @@ else:
                 Model  = farg
 
 
-# In[5]:
+# In[6]:
 
 ###########
 #Standard output directory setup
@@ -138,7 +138,7 @@ if uw.rank()==0:
 comm.Barrier() #Barrier here so no procs run the check in the next cell too early
 
 
-# In[6]:
+# In[7]:
 
 ###########
 #Check if starting from checkpoint
@@ -155,7 +155,7 @@ for dirpath, dirnames, files in os.walk(checkpointPath):
         checkpointLoad = False
 
 
-# In[7]:
+# In[8]:
 
 # setup summary output file (name above)
 if checkpointLoad:
@@ -185,7 +185,7 @@ else:
 
 # **Use pint to setup any unit conversions we'll need**
 
-# In[8]:
+# In[9]:
 
 u = pint.UnitRegistry()
 cmpery = 1.*u.cm/u.year
@@ -195,7 +195,7 @@ spery = year.to(u.sec)
 cmpery.to(mpermy)
 
 
-# In[9]:
+# In[10]:
 
 box_half_width =4000e3
 age_at_trench = 100e6
@@ -210,7 +210,7 @@ print(cmperyear, mpersec )
 # * If starting from checkpoint, parameters are loaded using pickle
 # * If params are passed in as flags to the script, they overwrite 
 
-# In[10]:
+# In[11]:
 
 ###########
 #Parameter / settings dictionaries get saved&loaded using pickle
@@ -223,7 +223,7 @@ md = edict({}) #model paramters, flags etc
 #od = edict({}) #output frequencies
 
 
-# In[11]:
+# In[12]:
 
 dict_list = [dp, sf, ndp, md]
 dict_names = ['dp.pkl', 'sf.pkl', 'ndp.pkl', 'md.pkl']
@@ -260,7 +260,7 @@ def load_pickles():
     return dp, ndp, sf, md
 
 
-# In[12]:
+# In[13]:
 
 ###########
 #Store the physical parameters, scale factors and dimensionless pramters in easyDicts
@@ -351,12 +351,12 @@ dp.deltaTa = (dp.TP + dp.dTa*dp.LS) - dp.TS  #Adiabatic Temp at base of mantle, 
 dp.rTemp= dp.TP + dp.rDepth*dp.dTa #reference temp, (potential temp + adiabat)
 
 
-# In[13]:
+# In[14]:
 
 #dp.dTa, (dp.a*dp.g*(dp.TP))/dp.Cp 
 
 
-# In[14]:
+# In[15]:
 
 #Modelling and Physics switches
 
@@ -381,7 +381,7 @@ md = edict({'refineMesh':False,
             })
 
 
-# In[15]:
+# In[16]:
 
 ###########
 #If starting from a checkpoint load params from file
@@ -391,7 +391,7 @@ if checkpointLoad:
     dp, ndp, sf, md = load_pickles()  #remember to add any extra dictionaries
 
 
-# In[16]:
+# In[17]:
 
 ###########
 #If command line args are given, overwrite
@@ -450,12 +450,12 @@ for farg in sys.argv[1:]:
 comm.barrier()
 
 
-# In[17]:
+# In[18]:
 
 dp.deltaTa
 
 
-# In[20]:
+# In[19]:
 
 if not checkpointLoad:
     
@@ -476,7 +476,8 @@ if not checkpointLoad:
     
      #dimensionless parameters
     ndp = edict({
-             'RA':(dp.g*dp.rho*dp.a*dp.deltaTa*(dp.LS)**3)/(dp.k*dp.eta0),
+             #Rayliegh number includes full adiabtic temp change, as this is what we scale temp with. 
+             'RA':(dp.g*dp.rho*dp.a*dp.deltaTa*(dp.LS)**3)/(dp.k*dp.eta0),       
              #'RA':(dp.g*dp.rho*dp.a*(dp.TP - dp.TS)*(dp.LS)**3)/(dp.k*dp.eta0),
              'depth':dp.depth/dp.LS,
              'Di': dp.a*dp.g*dp.LS/dp.Cp, #Dissipation number
@@ -545,7 +546,7 @@ if not checkpointLoad:
     ndp.TaP = 1. - ndp.TPP,  #Dimensionless adiabatic component of deltaT
 
 
-# In[23]:
+# In[20]:
 
 #dp.deltaTa/(dp.TP - dp.TS)
 #ndp.RA
@@ -553,7 +554,7 @@ if not checkpointLoad:
 
 # ### Output Frequency
 
-# In[18]:
+# In[21]:
 
 #Metric output stuff
 figures =  'store' #glucifer Store won't work on all machines, if not, set to 'gldb' 
@@ -2579,19 +2580,14 @@ viscDisProj = uw.utils.MeshVariable_Projection( viscDisFnmesh, viscDisMapFn)
 viscDisProj.solve()
 
 
-# In[93]:
+# In[41]:
 
 # initialise timer for computation
 start = time.clock()
 
 
-next_image_step = np.ceil((0./files_freq)+ 1/sf.SR) *files_freq #increment time for our next image / file dump
-#the 1/sf.SR kludge represents a dimensionless value of 1 second - avoids np.ceil(0.) = 0
-
-
-# In[94]:
-
-#ndp.lRidge, mesh.minCoord
+#increment time for our next image / file dump, should work for checkpoint restarts
+next_image_step = (np.floor(realtime/files_freq)+ 1.) *files_freq 
 
 
 # Main simulation loop
@@ -2835,7 +2831,7 @@ while realtime < 1.:
             #figSr.save( fullpath + "Str_rte"    + str(step).zfill(4))
             
             
-            #Also checkpoint so gLuc Stores stay in sync with checkpoint (a bit of a kludge)
+            #Also checkpoint so gLuc Stores stay in sync with checkpoint
             if step % checkpoint_every != 0:
                 if uw.rank() == 0:
                     checkpoint1(step, checkpointPath,f_o, metric_output)           
