@@ -2786,6 +2786,8 @@ while realtime < 1.:
     if files_this_step: 
         
         #ReBuild the principal stress vector
+        ssr = sym_strainRate.evaluate(mesh) #this does need to be here, 
+        
         principalAngles  = np.apply_along_axis(eig2d, 1, ssr[:, :])[:,2]
         eig1.data[:,0] = np.cos(np.radians(principalAngles - 90.)) #most compressive 
         eig1.data[:,1] = np.sin(np.radians(principalAngles - 90.))
