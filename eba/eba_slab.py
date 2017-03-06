@@ -1863,8 +1863,9 @@ def eig2d(sigma):
         s2 = x1;
 
     if(x2 != 0.0):   
-        deg = fac * math.atan2(s12,x2); #Return the arc tangent (measured in radians) of y/x.
-    elif s12 <= 0.0:
+        deg = fac * math.atan2(s12,x2); #Return the arc tangent (measured in radians) of y/x. The fac contains the 2-theta    
+    #else, the normal componets are equa - we are at the angle of maximum shear stress
+    elif s12 <= 0.0: 
         deg= -45.0;
     else:
         deg=  45.0;
@@ -2862,9 +2863,11 @@ while realtime < 1.:
         vH = velocityField.save(fullpath + "velocity_" + str(step) +".h5")
         tH = temperatureField.save(fullpath + "temp_" + str(step) + ".h5")
         eH = eig1.save(fullpath + "eig_" + str(step) + ".h5")
+        eH2 = eig2.save(fullpath + "eig2_" + str(step) + ".h5")
         velocityField.xdmf(fullpath + "velocity_" + str(step), vH, 'velocity', mh, 'mesh', modeltime=realtime)
         temperatureField.xdmf(fullpath + "temp_" + str(step), tH, 'temperature', mh, 'mesh', modeltime=realtime)
         eig1.xdmf(fullpath + "eig_" + str(step), eH, 'eig', mh, 'mesh', modeltime=realtime)
+        eig2.xdmf(fullpath + "eig2_" + str(step), eH2, 'eig2', mh, 'mesh', modeltime=realtime)
         
     ################
     #Particle update
