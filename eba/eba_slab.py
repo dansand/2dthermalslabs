@@ -2556,6 +2556,7 @@ def plate_infoFn(velocityField,xFn,  depthLimit, xsearchlim = 1.0, currentloc = 
             return currentloc
         else:
             return extremFn2.max_global()
+        
     elif plateType == 'divergent':
         testFn = fn.branching.conditional([(extremFn > extremFn.max_global() - 1e-3, coordinate[0]),                                       
                                              (True, (-9999999.))])
@@ -2675,9 +2676,9 @@ while realtime < 1.:
     if (step % metric_output == 0):
         
 
-        ndp.subzone = plate_infoFn(velocityField,xFn,  20e3/dp.LS, xsearchlim = 200e3/dp.LS, currentloc = ndp.subzone, plateType='convergent')
-        ndp.lRidge = plate_infoFn(velocityField,xFn,  20e3/dp.LS, xsearchlim = 200e3/dp.LS, currentloc = ndp.lRidge, plateType='divergent')
-        ndp.rRidge = plate_infoFn(velocityField,xFn,  20e3/dp.LS, xsearchlim = 200e3/dp.LS, currentloc = ndp.rRidge, plateType='divergent')
+        ndp.subzone = plate_infoFn(velocityField,xFn,  30e3/dp.LS, xsearchlim = 300e3/dp.LS, currentloc = ndp.subzone, plateType='convergent')
+        ndp.lRidge = plate_infoFn(velocityField,xFn,  30e3/dp.LS, xsearchlim = 300e3/dp.LS, currentloc = ndp.lRidge, plateType='divergent')
+        ndp.rRidge = plate_infoFn(velocityField,xFn,  30e3/dp.LS, xsearchlim = 300e3/dp.LS, currentloc = ndp.rRidge, plateType='divergent')
 
     
          
@@ -2930,7 +2931,8 @@ while realtime < 1.:
         
         #And add extra particles to interfaces as necessary
         #subduction fault
-        introPoint = ndp.subzone - abs(ndp.subzone - ndp.lRidge)/2. #half way between ridge and Sz
+        #introPoint = ndp.subzone - abs(ndp.subzone - ndp.lRidge)/2. #half way between ridge and Sz
+        introPoint = ndp.subzone - abs(ndp.subzone - mesh.minCoord[0])/2. #half way between ridge and domain edge
         fault.add_points([introPoint],[MAXY - faultthickness])
 
 
