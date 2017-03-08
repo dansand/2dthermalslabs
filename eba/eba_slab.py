@@ -2853,11 +2853,13 @@ while realtime < 1.:
             store2.step = step
             store3.step = step
             store4.step = step
+            store5.step = step
             #Save figures to store
             figVisc.save( fullpath + "Visc" + str(step).zfill(4))
             figMech.save( fullpath + "Mech" + str(step).zfill(4))
             figTemp.save( fullpath + "Temp"    + str(step).zfill(4))
             figMat.save( fullpath + "Mat"    + str(step).zfill(4))
+            figStress.save( fullpath + "Stress"    + str(step).zfill(4))
             #figSr.save( fullpath + "Str_rte"    + str(step).zfill(4))
             
             
