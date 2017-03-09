@@ -260,7 +260,7 @@ def load_pickles():
     return dp, ndp, sf, md
 
 
-# In[12]:
+# In[79]:
 
 ###########
 #Store the physical parameters, scale factors and dimensionless pramters in easyDicts
@@ -279,7 +279,8 @@ dp = edict({#Main physical paramters
            'k':1e-6, #thermal diffusivity
            'a':3e-5, #surface thermal expansivity
            'R':8.314, #gas constant
-           'Cp':1250., #Specific heat (Jkg-1K-1)
+           #'Cp':1250., #Specific heat (Jkg-1K-1)
+           'Cp':924.924, #Specific heat (Jkg-1K-1)    This was changed so the adiabtic gradient is 0.0005    
            'TP':1573., #mantle potential temp (K)
            'TS':273., #surface temp (K)
             #Rheology - flow law paramters
@@ -351,11 +352,6 @@ dp.deltaTa = (dp.TP + dp.dTa*dp.LS) - dp.TS  #Adiabatic Temp at base of mantle, 
 dp.rTemp= dp.TP + dp.rDepth*dp.dTa #reference temp, (potential temp + adiabat)
 
 
-# In[13]:
-
-#dp.dTa, (dp.a*dp.g*(dp.TP))/dp.Cp 
-
-
 # In[14]:
 
 #Modelling and Physics switches
@@ -368,9 +364,9 @@ md = edict({'refineMesh':False,
             'aspectRatio':5., #
             'compBuoyancy':False, #use compositional & phase buoyancy, or simply thermal
             'periodicBcs':False,
-            'RES':64,
+            'RES':32,
             'PIC_integration':True,
-            'ppc':50,
+            'ppc':25,
             'elementType':"Q1/dQ0",
             #'elementType':"Q2/DPC1",
             'compBuoyancy':False, #use compositional & phase buoyancy, or simply thermal
@@ -455,7 +451,7 @@ comm.barrier()
 dp.deltaTa
 
 
-# In[18]:
+# In[72]:
 
 if not checkpointLoad:
     
@@ -711,6 +707,11 @@ if md.stickyAir:
 
 potTempFn = ndp.TPP + (depthFn)*ndp.TaP #a function providing the adiabatic temp at any depth
 abHeatFn = -1.*velocityField[1]*temperatureField*ndp.Di #a function providing the adiabatic heating rate
+
+
+# In[71]:
+
+#ndp.Di
 
 
 # In[28]:
@@ -1445,7 +1446,7 @@ edotn_SFn, edots_SFn = fault_coll.global_fault_strainrate_fns(velocityField, dir
 # 
 # 
 
-# In[56]:
+# In[50]:
 
 ##############
 #Set up any functions required by the rheology
@@ -1461,12 +1462,12 @@ def safe_visc(func, viscmin=ndp.eta_min, viscmax=ndp.eta_max):
     return fn.misc.max(viscmin, fn.misc.min(viscmax, func))
 
 
-# In[57]:
+# In[51]:
 
 #strainRate_2ndInvariant = fn.misc.constant(ndp.SR) #dummy fucntion to check which mechanisms are at active are reference strain rate
 
 
-# In[58]:
+# In[52]:
 
 ##############
 #Get dimensional viscosity values at reference values of temp, pressure, and strain rate
@@ -1485,7 +1486,7 @@ prfac = rPr/dp.eta0
 lmfac = rLm/dp.eta0
 
 
-# In[59]:
+# In[53]:
 
 #These guys are legacy - to be fixed
 
@@ -1549,7 +1550,7 @@ corrTempFn = temperatureField
 # #Condition for weak crust rheology to be active
 # interfaceCond = operator.and_((depthFn < ndp.CRUSTVISCUTOFF), (depthFn > ndp.MANTLETOCRUST))
 
-# In[60]:
+# In[54]:
 
 ############
 #Rheology: create UW2 functions for all viscous mechanisms
@@ -1592,7 +1593,7 @@ crustysf = fn.misc.min(crustys, ndp.ysMax)
 crustyielding = crustysf/(2.*(strainRate_2ndInvariant)) 
 
 
-# In[61]:
+# In[55]:
 
 #crustyielding.evaluate(mesh).min(), crustyielding.evaluate(mesh).mean(),crustyielding.evaluate(mesh).max()
 #finalcrustviscosityFn.evaluate(mesh).min(),finalcrustviscosityFn.evaluate(mesh).max(), finalcrustviscosityFn.evaluate(mesh).mean()
@@ -1604,7 +1605,7 @@ crustyielding = crustysf/(2.*(strainRate_2ndInvariant))
 #finalviscosityFn.evaluate(mesh).min(),finalviscosityFn.evaluate(mesh).max(), finalviscosityFn.evaluate(mesh).mean()
 
 
-# In[62]:
+# In[56]:
 
 ############
 #Rheology: combine viscous mechanisms in various ways 
@@ -1673,7 +1674,7 @@ if md.viscCombine == 'mixed':
                                                      (True, finalviscosityFn)])
 
 
-# In[63]:
+# In[57]:
 
 #Check the implementation above, using a simpler formulation
 
@@ -1689,7 +1690,7 @@ if md.viscCombine == 'mixed':
 #                                                     (True, finalviscosityFn1)])
 
 
-# In[64]:
+# In[58]:
 
 #viscMinConditions = fn.misc.min(diffusion, dislocation, peierls, yielding)
 
@@ -1770,7 +1771,7 @@ if not checkpointLoad:
     solver.solve() #A solve on the linear visocisty is unhelpful unless we're starting from scratch
 
 
-# In[69]:
+# In[60]:
 
 viscosityMapFn = fn.branching.map( fn_key = materialVariable,
                          mapping = {crustIndex:finalcrustviscosityFn,
@@ -1894,10 +1895,74 @@ eig2.data[:,1] = np.sin(np.radians(principalAngles ))
 
 # ## Stress variable
 
-# In[78]:
+# In[46]:
+
+from scipy.spatial import cKDTree as kdTree
+
+
+def nn_evaluation(fromSwarm, _data, n=1, weighted=False):
+
+    """
+    This function provides nearest neighbour information for uw swarms,
+    given the "_data", whcih could be the .data handle of a mesh or a swarm, this function returns the indices of the n nearest neighbours in "fromSwarm"
+    it also returns the inverse-distance if weighted=True.
+
+    The function works in parallel.   
+
+    The arrays come out a bit differently when used in nearest neighbour form
+    (n = 1), or IDW: (n > 1). The examples belowe show how to fill out a swarm variable in each case.
+
+
+    Usage n = 1:
+    ------------
+    ix, weights = nn_evaluation(swarm, fault.swarm, n=n, weighted=False)
+    toSwarmVar.data[:][:,0] =  fromSwarmVar.evaluate(fromSwarm)[_ix][:,0]
+
+    Usage n > 1:
+    ------------
+    ix, weights = nn_evaluation(swarm, fault.swarm, n=n, weighted=False)
+    toSwarmVar.data[:][:,0] =  np.average(fromSwarmVar.evaluate(fromSwarm)[ix][:,:,0], weights=weights, axis=1)
+
+    """ 
+
+
+    #print("fromSwarm data shape", fromSwarm.particleCoordinates.data.shape)
+
+    if len(_data) > 0: #this is required for safety in parallel
+
+        #we rebuild the tree as we assume the fromSwarm is being advected
+        fromSwarm.tree = kdTree(fromSwarm.particleCoordinates.data)
+        tree = fromSwarm.tree
+        d, ix = tree.query(_data, n)
+        if n == 1:
+            weights = np.ones(_data.shape[0])
+        elif not weighted:
+            weights = np.ones((_data.shape[0], n))*(1./n)
+        else:
+            weights = (1./d[:])/(1./d[:]).sum(axis=1)[:,None]
+        return ix,  weights
+    else:
+        return  np.empty(0., dtype="int"),  np.empty(0., dtype="int")
+
+
+# In[ ]:
+
+
+
+
+# In[61]:
+
+_ix, _weights = nn_evaluation(gSwarm, mesh.data, n=5, weighted=True)
 
 # create a variable to hold sigma_xx
-stressVariable = gSwarm.add_variable( dataType="int", count=1 )
+stressField    = uw.mesh.MeshVariable( mesh=mesh,         nodeDofCount=1 )
+stressVariableFn =  2.*sym_strainRate[0]*viscosityMapFn
+#stressField.data[:,0] = np.average(stressVariableFn.evaluate(gSwarm)[_ix][:,:,0],weights=_weights, axis=1)
+
+
+# In[67]:
+
+
 
 
 # In[ ]:
@@ -1905,7 +1970,7 @@ stressVariable = gSwarm.add_variable( dataType="int", count=1 )
 #stressVariable.data[...] = 2.*sym_strainRate.evaluate(gSwarm)[:,1]*viscosityMapFn.evaluate(gSwarm)
 
 #just create the function. Let the viz. do the evaluation
-stressVariableFn =  2.*sym_strainRate[1]*viscosityMapFn
+#stressVariableFn =  2.*sym_strainRate[0]*viscosityMapFn
 
 
 # Advection-diffusion System setup
@@ -2401,10 +2466,10 @@ elif figures == 'store':
     figMat.append( glucifer.objects.VectorArrows(mesh,velocityField,resolutionI=int(16*md.aspectRatio), resolutionJ=16*2,  scaling=0.0001))
     
     
-    figStress= glucifer.Figure(store5, figsize=(300*np.round(md.aspectRatio,2),300))
-    figStress.append( glucifer.objects.Points(gSwarm,stressVariableFn, fn_mask=vizVariable))
-    figStress.append( glucifer.objects.VectorArrows(mesh, eig1, arrowHead=0.0, scaling=0.05, glyphs=3, resolutionI=int(16*md.aspectRatio), resolutionJ=16*2))
-    figStress.append( glucifer.objects.VectorArrows(mesh, eig2, arrowHead=0.0, scaling=0.05, glyphs=3, resolutionI=int(16*md.aspectRatio), resolutionJ=16*2))
+    #figStress= glucifer.Figure(store5, figsize=(300*np.round(md.aspectRatio,2),300))
+    #figStress.append( glucifer.objects.Points(gSwarm,stressVariableFn, fn_mask=vizVariable))
+    #figStress.append( glucifer.objects.VectorArrows(mesh, eig1, arrowHead=0.0, scaling=0.05, glyphs=3, resolutionI=int(16*md.aspectRatio), resolutionJ=16*2))
+    #figStress.append( glucifer.objects.VectorArrows(mesh, eig2, arrowHead=0.0, scaling=0.05, glyphs=3, resolutionI=int(16*md.aspectRatio), resolutionJ=16*2))
 
     
     
@@ -2691,6 +2756,13 @@ while realtime < 1.:
         #any fields / swarms to be saved go here
         
         
+        #Now the surface x vels.
+        surfaceVelx.data[...] = velocityField[0].evaluate(surface.swarm)
+        fnametemp = "velxSurface" + "_" + str(step) + '.h5'
+        fullpath = os.path.join(outputPath + "files/" + fnametemp)
+        surfaceVelx.save(fullpath)
+        
+        
 
                           
 
@@ -2859,7 +2931,7 @@ while realtime < 1.:
             figMech.save( fullpath + "Mech" + str(step).zfill(4))
             figTemp.save( fullpath + "Temp"    + str(step).zfill(4))
             figMat.save( fullpath + "Mat"    + str(step).zfill(4))
-            figStress.save( fullpath + "Stress"    + str(step).zfill(4))
+            #figStress.save( fullpath + "Stress"    + str(step).zfill(4))
             #figSr.save( fullpath + "Str_rte"    + str(step).zfill(4))
             
             
@@ -2879,6 +2951,12 @@ while realtime < 1.:
     fullpath = os.path.join(outputPath + "xdmf/")
     if files_this_step:
         
+        # revuild the sigma_xx variable
+        _ix, _weights = nn_evaluation(gSwarm, mesh.data, n=5, weighted=True)
+        stressField.data[:,0] = np.average(stressVariableFn.evaluate(gSwarm)[_ix][:,:,0],weights=_weights, axis=1)
+
+        
+        
         fullpath = os.path.join(outputPath + "xdmf/")
         #if not os.path.exists(fullpath+"mesh.h5"):
         #    _mH = mesh.save(fullpath+"mesh.h5")
@@ -2893,10 +2971,12 @@ while realtime < 1.:
         tH = temperatureField.save(fullpath + "temp_" + str(step) + ".h5")
         eH = eig1.save(fullpath + "eig_" + str(step) + ".h5")
         eH2 = eig2.save(fullpath + "eig2_" + str(step) + ".h5")
+        sigXX = stressField.save(fullpath + "sigXX_" + str(step) + ".h5")
         velocityField.xdmf(fullpath + "velocity_" + str(step), vH, 'velocity', mh, 'mesh', modeltime=realtime)
         temperatureField.xdmf(fullpath + "temp_" + str(step), tH, 'temperature', mh, 'mesh', modeltime=realtime)
         eig1.xdmf(fullpath + "eig_" + str(step), eH, 'eig', mh, 'mesh', modeltime=realtime)
         eig2.xdmf(fullpath + "eig2_" + str(step), eH2, 'eig2', mh, 'mesh', modeltime=realtime)
+        stressField.xdmf(fullpath + "sigXX_" + str(step), sigXX, 'sigXX', mh, 'mesh', modeltime=realtime)
         
     ################
     #Particle update
@@ -3053,12 +3133,12 @@ dt = advDiff.get_max_dt()*md.courantFac
 test = (ndp.Di/ndp.RA)*dt*viscDisFnmesh
 
 
-# In[142]:
+# In[69]:
 
-fig= glucifer.Figure()
+#fig= glucifer.Figure()
 #fig.append( glucifer.objects.Points(gSwarm,lowerPlateRestFn))
 #fig.append( glucifer.objects.Points(gSwarm, viscosityMapFn, logScale=True, valueRange =[1e-3,1e5]))
-fig.append( glucifer.objects.Surface(mesh, test))#
+#fig.append( glucifer.objects.Surface(mesh, stressField))#
 
 #fig.show()
 
