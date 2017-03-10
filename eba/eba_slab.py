@@ -2781,13 +2781,13 @@ while realtime < 1.:
         fullpath = os.path.join(outputPath + "files/" + fnametemp)
         surfaceVelx.save(fullpath)
         
-        #Now the vertical stress at the surface
-        _ix1, _weights1 = nn_evaluation(gSwarm, surface.swarm.particleCoordinates.data, n=5, weighted=True)
+        #Now the vertical stress at the surface, parallel bug though. 
+        #_ix1, _weights1 = nn_evaluation(gSwarm, surface.swarm.particleCoordinates.data, n=5, weighted=True)
         #stressYFn =  2.*sym_strainRate[1]*viscosityMapFn    #- shouldn't need to rebuild this Fn, but check
-        surfaceStressY.data[:,0] = np.average(stressYFn.evaluate(gSwarm)[_ix1][:,:,0],weights=_weights1, axis=1)
-        fnametemp = "surfaceStressY" + "_" + str(step) + '.h5'
-        fullpath = os.path.join(outputPath + "files/" + fnametemp)
-        surfaceStressY.save(fullpath)
+        #surfaceStressY.data[:,0] = np.average(stressYFn.evaluate(gSwarm)[_ix1][:,:,0],weights=_weights1, axis=1)
+        #fnametemp = "surfaceStressY" + "_" + str(step) + '.h5'
+        #fullpath = os.path.join(outputPath + "files/" + fnametemp)
+        #surfaceStressY.save(fullpath)
         
         
 
