@@ -22,7 +22,7 @@
 # Arredondo, Katrina M., and Magali I. Billen. "The Effects of Phase Transitions and Compositional Layering in Two-dimensional Kinematic Models of Subduction." Journal of Geodynamics (2016).
 # 
 
-# In[1]:
+# In[2]:
 
 import numpy as np
 import underworld as uw
@@ -51,7 +51,7 @@ comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 
 
-# In[2]:
+# In[3]:
 
 #####
 #Stubborn version number conflicts - need to figure out my Docker container runs an old version. For now...
@@ -67,7 +67,7 @@ except:
 
 
 
-# In[3]:
+# In[4]:
 
 #store = glucifer.Store('subduction')
 #figParticle = glucifer.Figure( store, figsize=(960,300), name="Particles" )
@@ -78,7 +78,7 @@ except:
 # Model name and directories
 # -----
 
-# In[4]:
+# In[5]:
 
 ############
 #Model letter and number
@@ -106,7 +106,7 @@ else:
                 Model  = farg
 
 
-# In[5]:
+# In[6]:
 
 ###########
 #Standard output directory setup
@@ -138,7 +138,7 @@ if uw.rank()==0:
 comm.Barrier() #Barrier here so no procs run the check in the next cell too early
 
 
-# In[6]:
+# In[7]:
 
 ###########
 #Check if starting from checkpoint
@@ -155,7 +155,7 @@ for dirpath, dirnames, files in os.walk(checkpointPath):
         checkpointLoad = False
 
 
-# In[7]:
+# In[8]:
 
 # setup summary output file (name above)
 if checkpointLoad:
@@ -185,7 +185,7 @@ else:
 
 # **Use pint to setup any unit conversions we'll need**
 
-# In[8]:
+# In[9]:
 
 u = pint.UnitRegistry()
 cmpery = 1.*u.cm/u.year
@@ -195,7 +195,7 @@ spery = year.to(u.sec)
 cmpery.to(mpermy)
 
 
-# In[9]:
+# In[10]:
 
 box_half_width =4000e3
 age_at_trench = 100e6
@@ -210,7 +210,7 @@ print(cmperyear, mpersec )
 # * If starting from checkpoint, parameters are loaded using pickle
 # * If params are passed in as flags to the script, they overwrite 
 
-# In[10]:
+# In[11]:
 
 ###########
 #Parameter / settings dictionaries get saved&loaded using pickle
@@ -223,7 +223,7 @@ md = edict({}) #model paramters, flags etc
 #od = edict({}) #output frequencies
 
 
-# In[11]:
+# In[12]:
 
 dict_list = [dp, sf, ndp, md]
 dict_names = ['dp.pkl', 'sf.pkl', 'ndp.pkl', 'md.pkl']
@@ -260,7 +260,7 @@ def load_pickles():
     return dp, ndp, sf, md
 
 
-# In[79]:
+# In[22]:
 
 ###########
 #Store the physical parameters, scale factors and dimensionless pramters in easyDicts
@@ -275,12 +275,13 @@ dp = edict({#Main physical paramters
            'LS':2900.*1e3, #Length scale
            'rho':3300.,  #reference density
            'g':9.8, #surface gravity
-           'eta0':1e20, #Dislocation creep at 250 km, 1573 K, 1e-15 s-1 
+           #'eta0':1e20, #Dislocation creep at 250 km, 1573 K, 1e-15 s-1
+           'eta0':1.35e20, #Dislocation creep at 250 km, 1573 K, 1e-15 s-1
            'k':1e-6, #thermal diffusivity
-           'a':3e-5, #surface thermal expansivity
+           #'a':3e-5, #surface thermal expansivity
+           'a':4.05e-5, #surface thermal expansivity
            'R':8.314, #gas constant
-           #'Cp':1250., #Specific heat (Jkg-1K-1)
-           'Cp':924.924, #Specific heat (Jkg-1K-1)    This was changed so the adiabtic gradient is 0.0005    
+           'Cp':1250., #Specific heat (Jkg-1K-1)
            'TP':1573., #mantle potential temp (K)
            'TS':273., #surface temp (K)
             #Rheology - flow law paramters
@@ -352,7 +353,14 @@ dp.deltaTa = (dp.TP + dp.dTa*dp.LS) - dp.TS  #Adiabatic Temp at base of mantle, 
 dp.rTemp= dp.TP + dp.rDepth*dp.dTa #reference temp, (potential temp + adiabat)
 
 
-# In[14]:
+# In[26]:
+
+#((dp.a*dp.g*(dp.TP))/dp.Cp)
+
+#4.05e-5/3e-5
+
+
+# In[13]:
 
 #Modelling and Physics switches
 
@@ -377,7 +385,7 @@ md = edict({'refineMesh':False,
             })
 
 
-# In[15]:
+# In[14]:
 
 ###########
 #If starting from a checkpoint load params from file
@@ -387,7 +395,7 @@ if checkpointLoad:
     dp, ndp, sf, md = load_pickles()  #remember to add any extra dictionaries
 
 
-# In[16]:
+# In[15]:
 
 ###########
 #If command line args are given, overwrite
@@ -446,12 +454,12 @@ for farg in sys.argv[1:]:
 comm.barrier()
 
 
-# In[17]:
+# In[16]:
 
 dp.deltaTa
 
 
-# In[72]:
+# In[17]:
 
 if not checkpointLoad:
     
@@ -542,7 +550,7 @@ if not checkpointLoad:
     ndp.TaP = 1. - ndp.TPP,  #Dimensionless adiabatic component of deltaT
 
 
-# In[19]:
+# In[18]:
 
 #dp.deltaTa/(dp.TP - dp.TS)
 #ndp.RA
@@ -550,7 +558,7 @@ if not checkpointLoad:
 
 # ### Output Frequency
 
-# In[20]:
+# In[19]:
 
 #Metric output stuff
 figures =  'store' #glucifer Store won't work on all machines, if not, set to 'gldb' 
@@ -569,7 +577,7 @@ files_freq  = filesMy*(3600.*365.*24.)/sf.SR  #applies to files and gldbs
 
 # ### Model/ mesh  setup parameters
 
-# In[21]:
+# In[20]:
 
 ###########
 #Model setup parameters
@@ -608,7 +616,7 @@ MAXY = 1.
 
 
 
-# In[22]:
+# In[21]:
 
 mesh = uw.mesh.FeMesh_Cartesian( elementType = (md.elementType),
                                  elementRes  = (Xres, Yres), 
@@ -630,7 +638,7 @@ pressureField.data[:]       = 0.
 temperatureDotField.data[:] = 0.
 
 
-# In[23]:
+# In[22]:
 
 coordinate = fn.input()
 depthFn = 1. - coordinate[1] #a function providing the depth
@@ -638,7 +646,7 @@ xFn = coordinate[0]  #a function providing the x-coordinate
 yFn = coordinate[1]  #a function providing the y-coordinate
 
 
-# In[24]:
+# In[23]:
 
 mesh.reset()
 
@@ -680,7 +688,7 @@ with mesh.deform_mesh():
      mesh.data[:,1] = newYpos[:,0]
 
 
-# In[25]:
+# In[24]:
 
 #fig= glucifer.Figure(quality=3)
 
@@ -690,7 +698,7 @@ with mesh.deform_mesh():
 #fig.save_database('test.gldb')
 
 
-# In[26]:
+# In[25]:
 
 #THis is a hack for adding a sticky air domain, we refine MAXY and things like the temperature stencil work from Y = 1. 
 
@@ -702,14 +710,14 @@ if md.stickyAir:
 # -------
 # 
 
-# In[27]:
+# In[26]:
 
 
 potTempFn = ndp.TPP + (depthFn)*ndp.TaP #a function providing the adiabatic temp at any depth
 abHeatFn = -1.*velocityField[1]*temperatureField*ndp.Di #a function providing the adiabatic heating rate
 
 
-# In[71]:
+# In[27]:
 
 #ndp.Di
 
@@ -795,6 +803,12 @@ if not md.symmetricIcs:
 
 
 
+
+
+# In[35]:
+
+#ageAtTrenchSeconds, 
+#dp.k
 
 
 # In[31]:
