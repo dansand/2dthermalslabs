@@ -741,11 +741,6 @@ for delta_z in dz:
 _temps -=  ndp.TS
 
 
-# In[40]:
-
-meshDepths
-
-
 # In[41]:
 
 meshDepths = mesh.maxCoord[1] - mesh.data[:,1]
@@ -762,11 +757,6 @@ temperatureField.data[:,0] = tempInterp
 
 #the adiabatic heating relies on the dimensionless absolute temperature, not T'
 abHeatFn = -1.*velocityField[1]*(temperatureField + ndp.TS)*ndp.Di #a function providing the adiabatic heating rate
-
-
-# In[43]:
-
-temperatureField.evaluate(mesh).max(), potTempFn.evaluate(mesh).max()
 
 
 # In[44]:
