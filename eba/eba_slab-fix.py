@@ -1540,92 +1540,6 @@ def safe_visc(func, viscmin=ndp.eta_min, viscmax=ndp.eta_max):
     return fn.misc.max(viscmin, fn.misc.min(viscmax, func))
 
 
-# In[85]:
-
-#strainRate_2ndInvariant = fn.misc.constant(ndp.SR) #dummy fucntion to check which mechanisms are at active are reference strain rate
-
-
-# In[86]:
-
-##############
-#Get dimensional viscosity values at reference values of temp, pressure, and strain rate
-##############
-
-dp.rPressure  = dp.rho*dp.g*dp.rDepth
-rDf = (1./dp.Adf)*np.exp( ((dp.Edf + dp.Vdf*dp.rPressure))/((dp.R*dp.rTemp)))
-rLm = (1./dp.Alm)*np.exp( ((dp.Elm + dp.Vlm*dp.rPressure))/((dp.R*dp.rTemp)))
-
-rDs = (1./dp.Ads**(1./ndp.n))*(dp.SR**((1.-ndp.n)/ndp.n))*np.exp( ((dp.Eds + dp.Vds*dp.rPressure))/((ndp.n*dp.R*dp.rTemp)))
-rPr = (1./dp.Apr**(1./ndp.np))*(dp.SR**((1.-ndp.np)/ndp.np))*np.exp( ((dp.Epr + dp.Vpr*dp.rPressure))/((ndp.np*dp.R*dp.rTemp)))
-
-dsfac = rDs/dp.eta0
-dffac = rDf/dp.eta0
-prfac = rPr/dp.eta0
-lmfac = rLm/dp.eta0
-
-
-# In[87]:
-
-#These guys are legacy - to be fixed
-
-corrDepthFn = depthFn
-correctrDepth = ndp.rDepth
-corrTempFn = temperatureField
-
-
-# ############
-# #Rheology: create UW2 functions for all viscous mechanisms
-# #############
-# 
-# omega = fn.misc.constant(1.) #this function can hold any arbitary viscosity modifications 
-# 
-# 
-# ##Diffusion Creep
-# diffusion = dffac*fn.math.exp( ((ndp.Edf + (corrDepthFn*ndp.Wdf))/((corrTempFn+ ndp.TS))) - 
-#               ((ndp.Edf + (correctrDepth*ndp.Wdf))/((ndp.rTemp + ndp.TS)))  ) 
-# 
-# 
-# ##Diffusion Creep
-# lmdiffusion = lmfac*fn.math.exp( ((ndp.Elm + (corrDepthFn*ndp.Wlm))/((corrTempFn+ ndp.TS))) - 
-#               ((ndp.Elm + (correctrDepth*ndp.Wlm))/((ndp.rTemp + ndp.TS)))  ) 
-# 
-# 
-# linearVisc = safe_visc(diffusion)
-# 
-# ##Dislocation Creep
-# nl_correction = (strainRate_2ndInvariant/ndp.SR)**((1.-ndp.n)/(ndp.n))
-# dislocation = dsfac*(nl_correction)*fn.math.exp( ((ndp.Eds + (corrDepthFn*ndp.Wds))/(ndp.n*(corrTempFn + ndp.TS))) -
-#                                      ((ndp.Eds + (correctrDepth*ndp.Wds))/(ndp.n*(ndp.rTemp + ndp.TS))))
-# 
-# 
-# 
-# ##Peirls Creep
-# nl_correction = (strainRate_2ndInvariant/ndp.SR)**((1.-ndp.np)/(ndp.np))
-# 
-# peierls = prfac*(nl_correction)*fn.math.exp( ((ndp.Eps + (corrDepthFn*ndp.Wps))/(ndp.np*(corrTempFn+ ndp.TS))) -
-#                                      ((ndp.Eps + (correctrDepth*ndp.Wps))/(ndp.np*(ndp.rTemp + ndp.TS))))
-# 
-# 
-# ##Define the mantle Plasticity
-# ys =  ndp.cm + (depthFn*ndp.fcmd)
-# ysf = fn.misc.min(ys, ndp.ysMax)
-# yielding = ysf/(2.*(strainRate_2ndInvariant)) 
-# 
-# ##Crust rheology
-# crustys =  ndp.cc + (depthFn*ndp.fccd)
-# crustysf = fn.misc.min(crustys, ndp.ysMax)
-# crustyielding = crustysf/(2.*(strainRate_2ndInvariant)) 
-# 
-# 
-# ##Interface rheology
-# interfaceys =  ndp.ci + (depthFn*ndp.fcid) #only weakened cohesion is discussed, not fc
-# interfaceysf = fn.misc.min(interfaceys, ndp.ysMax)
-# interfaceyielding = interfaceysf/(2.*(strainRate_2ndInvariant))
-# 
-# 
-# #Condition for weak crust rheology to be active
-# interfaceCond = operator.and_((depthFn < ndp.CRUSTVISCUTOFF), (depthFn > ndp.MANTLETOCRUST))
-
 # In[88]:
 
 ############
@@ -1636,11 +1550,11 @@ omega = fn.misc.constant(1.) #this function can hold any arbitary viscosity modi
 
 
 ##Diffusion Creep
-diffusion = (1./ndp.Adf ) *fn.math.exp( ((ndp.Edf + (corrDepthFn*ndp.Wdf))/((corrTempFn+ ndp.TS)))) 
+diffusion = (1./ndp.Adf ) *fn.math.exp( ((ndp.Edf + (depthFn*ndp.Wdf))/((temperatureField+ ndp.TS)))) 
 
 
 ##Diffusion Creep
-lmdiffusion = (1./ndp.Alm ) *fn.math.exp( ((ndp.Elm + (corrDepthFn*ndp.Wlm))/((corrTempFn+ ndp.TS)))) 
+lmdiffusion = (1./ndp.Alm ) *fn.math.exp( ((ndp.Elm + (depthFn*ndp.Wlm))/((temperatureField+ ndp.TS)))) 
 
 
 
@@ -1649,13 +1563,13 @@ linearVisc = safe_visc(diffusion)
 ##Dislocation Creep
 pefac = (ndp.Ads**((-1./ndp.n)))
 srfac = strainRate_2ndInvariant**((1.-ndp.n)/ndp.n)
-dislocation = pefac*srfac*fn.math.exp( ((ndp.Eds + (corrDepthFn*ndp.Wds))/(ndp.n*(corrTempFn + ndp.TS))))
+dislocation = pefac*srfac*fn.math.exp( ((ndp.Eds + (depthFn*ndp.Wds))/(ndp.n*(temperatureField + ndp.TS))))
 
 
 ##Peirls Creep
 pefac = (ndp.Apr**((-1./ndp.np)))
 srfac = strainRate_2ndInvariant**((1.-ndp.np)/ndp.np)
-peierls = pefac*srfac*fn.math.exp( ((ndp.Eps + (corrDepthFn*ndp.Wps))/(ndp.np*(corrTempFn+ ndp.TS))))
+peierls = pefac*srfac*fn.math.exp( ((ndp.Eps + (depthFn*ndp.Wps))/(ndp.np*(temperatureField+ ndp.TS))))
 
 
 ##Define the mantle Plasticity
