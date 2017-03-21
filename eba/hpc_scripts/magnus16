@@ -1,27 +1,17 @@
-#!/bin/bash -l
+#!/bin/bash --login
 
 #SBATCH --nodes=1
-#SBATCH --time=1:00:00
+#SBATCH --time=12:00:00
 #SBATCH --account=m18
 
+
 module swap PrgEnv-cray PrgEnv-gnu
-module load cray-hdf5-parallel
-module load python/2.7.10
-module load swig
-module load numpy
-module load scipy
-module load cython
-module load mpi4py
-#module load cmake
-module load pkgconfig
+module load cray-hdf5-parallel/1.8.13 python/2.7.10 swig numpy scipy cython mpi4py cmake pkgconfig
 
 # python things
 export PYTHONPATH=$PYTHONPATH:/ivec/cle52/magnus/python/2.7.6/six/1.9.0/lib/python2.7/site-packages/
 
-# Petsc installed in shared space /group/m18/Apps
-export MPI_DIR=$CRAY_MPICH2_DIR
-export PETSC_DIR=/group/m18/Apps/petsc-3.6.3
-export PETSC_ARCH=arch-linux2-c-opt
+module load mpi4py
 
 export PYTHONPATH=$PYTHONPATH:/group/m18/dsandiford/underworld2
 
