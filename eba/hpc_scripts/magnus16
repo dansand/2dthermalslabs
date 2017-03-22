@@ -17,4 +17,4 @@ export PYTHONPATH=$PYTHONPATH:/group/m18/dsandiford/underworld2
 
 cd ..
 
-aprun -n 16 python eba_slab.py D 1 dp.np=21.0 md.ppc=75 md.RES=128 dp.opmaxAge*=0.2 dp.MANTLETOCRUST*=1.5 dp.eta_max_crust*=3. dp.ysMax*=0.08 dp.Adf*=1.25 dp.Vdf*=0.9 dp.Vds*=0.9 dp.Alm*=0.003 dp.Wlm*=1.1 dp.Elm*=0.5
+aprun -n 16 python eba_slab.py D 1 dp.np=21.0 md.ppc=75 md.RES=128 dp.opmaxAge*=0.2 dp.MANTLETOCRUST*=1.5 dp.eta_max_crust*=3. dp.ysMax*=0.03 dp.Adf*=1.25 dp.Vdf*=0.9 dp.Vds*=0.9 dp.Alm*=0.003 dp.Vlm*=1.1 dp.Elm*=0.5
