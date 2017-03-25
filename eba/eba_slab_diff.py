@@ -275,7 +275,7 @@ dp = edict({#Main physical paramters
            'LS':2900.*1e3, #Length scale
            'rho':3300.,  #reference density
            'g':9.8, #surface gravity
-           'eta0':1e20, #Dislocation creep at 250 km, 1573 K, 1e-15 s-1
+           'eta0':1.8e19, #Dislocation creep at 250 km, 1573 K, 1e-15 s-1
            'k':1e-6, #thermal diffusivity
            'a':3e-5, #surface thermal expansivity
            'R':8.314, #gas constant
@@ -283,18 +283,18 @@ dp = edict({#Main physical paramters
            'TP':1573., #mantle potential temp (K)
            'TS':273., #surface temp (K)
             #Rheology - flow law paramters
-           'cm':2e6, #mantle cohesion in Byerlee law
+           'cm':20e6, #mantle cohesion in Byerlee law
            'cc':2e6, #crust cohesion in Byerlee law
            'fcm':0.2,   #mantle friction coefficient in Byerlee law (tan(phi))
            'fcc':0.02,   #crust friction coefficient 
-           'Adf':3e-11, #pre-exp factor for diffusion creep
+           'Adf':1.87e-9, #pre-exp factor for diffusion creep
            'Ads':5e-16, #pre-exp factor for dislocation creep
            'Apr':1e-150,#pre-exp factor for Peierls creep
            #'Apr':1e-145,#pre-exp factor for Peierls creep
            'Edf':3e5,
            'Eds':5.4e5,
            'Epr':5.4e5,
-           'Vdf':4e-6,
+           'Vdf':5e-6,
            'Vds':12e-6,
            'Vpr':10e-6,
            'Alm':6e-17,
@@ -308,7 +308,7 @@ dp = edict({#Main physical paramters
            'eta_max':1e25, #viscosity max in the mantle material
            'eta_min_crust':1e18, #viscosity min in the weak-crust material
            'eta_max_crust':1e20, #viscosity max in the weak-crust material
-           'ysMax':10000*1e6, #10 GPa
+           'ysMax':300*1e6, #10 GPa
            #Length scales
            'MANTLETOCRUST':8.*1e3, #Crust depth
            'HARZBURGDEPTH':40e3,
@@ -381,8 +381,8 @@ md = edict({'refineMesh':False,
             'elementType':"Q1/dQ0",
             #'elementType':"Q2/DPC1",
             'compBuoyancy':False, #use compositional & phase buoyancy, or simply thermal
-            'viscMechs':['diffusion', 'dislocation', 'peierls', 'yielding'],
-            'viscCombine':'harmonic', #'harmonic', 'min', 'mixed'....
+            'viscMechs':['diffusion', 'yielding'],
+            'viscCombine':'min', #'harmonic', 'min', 'mixed'....
             'secInvFac':math.sqrt(1.),
             'courantFac':0.5 #extra limitation on timestepping
             })
