@@ -297,7 +297,7 @@ dp = edict({#Main physical paramters
            'Vdf':5e-6,
            'Vds':12e-6,
            'Vpr':10e-6,
-           'Alm':6e-17,
+           'Alm':2.36e-14,
            'Elm':2.0e5,
            'Vlm':1.5e-6,
            'SR':1e-15, #reference strain rate
