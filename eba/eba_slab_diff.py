@@ -260,6 +260,11 @@ def load_pickles():
     return dp, ndp, sf, md
 
 
+# In[5]:
+
+#1./1.87e9, 1./2.36e14
+
+
 # In[12]:
 
 ###########
@@ -287,7 +292,7 @@ dp = edict({#Main physical paramters
            'cc':2e6, #crust cohesion in Byerlee law
            'fcm':0.2,   #mantle friction coefficient in Byerlee law (tan(phi))
            'fcc':0.02,   #crust friction coefficient 
-           'Adf':1.87e-9, #pre-exp factor for diffusion creep
+           'Adf':5.34e-10, #1./1.87e9
            'Ads':5e-16, #pre-exp factor for dislocation creep
            'Apr':1e-150,#pre-exp factor for Peierls creep
            #'Apr':1e-145,#pre-exp factor for Peierls creep
@@ -297,7 +302,7 @@ dp = edict({#Main physical paramters
            'Vdf':5e-6,
            'Vds':12e-6,
            'Vpr':10e-6,
-           'Alm':2.36e-14,
+           'Alm':4.24e-15,  #1./2.36e14
            'Elm':2.0e5,
            'Vlm':1.5e-6,
            'SR':1e-15, #reference strain rate
