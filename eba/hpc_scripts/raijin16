@@ -26,4 +26,4 @@ module list
 export MPIRUN=mpiexec
 export PYTHONPATH=/short/m18/dds563/underworld2/:$PYTHONPATH
 
-$MPIRUN -np $PBS_NCPUS --mca mpi_warn_on_fork 0 python eba_slab.py D 1 dp.np=21.0 md.ppc=75 md.RES=128 dp.opmaxAge*=0.2 dp.MANTLETOCRUST*=1.5 dp.eta_max_crust*=3. dp.ysMax*=0.03 dp.Adf*=1.25 dp.Vdf*=0.9 dp.Vds*=0.9 dp.Alm*=0.003 dp.Vlm*=1.1 dp.Elm*=0.5
+$MPIRUN -np $PBS_NCPUS --mca mpi_warn_on_fork 0 python eba_slab.py D 1 dp.np=20.875 md.ppc=55 md.RES=192 dp.slabmaxAge*=1.0 dp.opmaxAge*=0.2 dp.MANTLETOCRUST*=1.0 dp.eta_max_crust*=1. dp.eta0*=0.825 dp.ysMax*=0.09 dp.Adf*=1.25 dp.Vdf*=0.9 dp.Vds*=0.9 dp.Alm*=0.003 dp.Vlm*=1.1 dp.Elm*=0.5

@@ -1,0 +1,20 @@
+#!/bin/bash --login
+
+#SBATCH --nodes=2
+#SBATCH --time=24:00:00
+#SBATCH --account=m18
+
+
+module swap PrgEnv-cray PrgEnv-gnu
+module load cray-hdf5-parallel/1.8.13 python/2.7.10 swig numpy scipy cython mpi4py cmake pkgconfig
+
+# python things
+export PYTHONPATH=$PYTHONPATH:/ivec/cle52/magnus/python/2.7.6/six/1.9.0/lib/python2.7/site-packages/
+
+module load mpi4py
+
+export PYTHONPATH=$PYTHONPATH:/group/m18/dsandiford/underworld2
+
+cd ..
+
+aprun -n 48 python eba_slab.py D 1 % dp.np=20.875 md.ppc=55 md.RES=192 dp.slabmaxAge*=1.0 dp.opmaxAge*=0.2 dp.MANTLETOCRUST*=1.0 dp.eta_max_crust*=1. dp.eta0*=0.825 dp.ysMax*=0.09 dp.Adf*=1.25 dp.Vdf*=0.9 dp.Vds*=0.9 dp.Alm*=0.003 dp.Vlm*=1.1 dp.Elm*=0.5
