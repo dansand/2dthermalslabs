@@ -22,7 +22,7 @@
 # Arredondo, Katrina M., and Magali I. Billen. "The Effects of Phase Transitions and Compositional Layering in Two-dimensional Kinematic Models of Subduction." Journal of Geodynamics (2016).
 # 
 
-# In[1]:
+# In[160]:
 
 import numpy as np
 import underworld as uw
@@ -51,7 +51,7 @@ comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 
 
-# In[2]:
+# In[161]:
 
 #####
 #Stubborn version number conflicts - need to figure out my Docker container runs an old version. For now...
@@ -67,7 +67,7 @@ except:
 
 
 
-# In[3]:
+# In[162]:
 
 #store = glucifer.Store('subduction')
 #figParticle = glucifer.Figure( store, figsize=(960,300), name="Particles" )
@@ -78,7 +78,7 @@ except:
 # Model name and directories
 # -----
 
-# In[4]:
+# In[163]:
 
 ############
 #Model letter and number
@@ -106,7 +106,7 @@ else:
                 Model  = farg
 
 
-# In[5]:
+# In[164]:
 
 ###########
 #Standard output directory setup
@@ -138,7 +138,7 @@ if uw.rank()==0:
 comm.Barrier() #Barrier here so no procs run the check in the next cell too early
 
 
-# In[6]:
+# In[165]:
 
 ###########
 #Check if starting from checkpoint
@@ -155,7 +155,7 @@ for dirpath, dirnames, files in os.walk(checkpointPath):
         checkpointLoad = False
 
 
-# In[7]:
+# In[166]:
 
 # setup summary output file (name above)
 if checkpointLoad:
@@ -185,7 +185,7 @@ else:
 
 # **Use pint to setup any unit conversions we'll need**
 
-# In[8]:
+# In[167]:
 
 u = pint.UnitRegistry()
 cmpery = 1.*u.cm/u.year
@@ -195,7 +195,7 @@ spery = year.to(u.sec)
 cmpery.to(mpermy)
 
 
-# In[9]:
+# In[168]:
 
 box_half_width =4000e3
 age_at_trench = 100e6
@@ -210,7 +210,7 @@ print(cmperyear, mpersec )
 # * If starting from checkpoint, parameters are loaded using pickle
 # * If params are passed in as flags to the script, they overwrite 
 
-# In[10]:
+# In[169]:
 
 ###########
 #Parameter / settings dictionaries get saved&loaded using pickle
@@ -223,7 +223,7 @@ md = edict({}) #model paramters, flags etc
 #od = edict({}) #output frequencies
 
 
-# In[11]:
+# In[170]:
 
 dict_list = [dp, sf, ndp, md]
 dict_names = ['dp.pkl', 'sf.pkl', 'ndp.pkl', 'md.pkl']
@@ -260,7 +260,7 @@ def load_pickles():
     return dp, ndp, sf, md
 
 
-# In[125]:
+# In[171]:
 
 ###########
 #Store the physical parameters, scale factors and dimensionless pramters in easyDicts
@@ -358,7 +358,12 @@ dp.deltaTa = (3110.65) - dp.TS  #Adiabatic Temp at base of mantle, minus Ts,
                                 #this is tied to specific choices of expansivity, Specific heat. 
 
 
-# In[126]:
+# In[172]:
+
+#dp.deltaTa
+
+
+# In[173]:
 
 
 
@@ -367,7 +372,7 @@ dp.deltaTa = (3110.65) - dp.TS  #Adiabatic Temp at base of mantle, minus Ts,
 #dp.a/3e-5
 
 
-# In[127]:
+# In[174]:
 
 #Modelling and Physics switches
 
@@ -392,13 +397,13 @@ md = edict({'refineMesh':False,
             })
 
 
-# In[128]:
+# In[175]:
 
 t = 1./dp.Adf
 print(t/3.333e10)
 
 
-# In[129]:
+# In[176]:
 
 ###########
 #If starting from a checkpoint load params from file
@@ -408,7 +413,7 @@ if checkpointLoad:
     dp, ndp, sf, md = load_pickles()  #remember to add any extra dictionaries
 
 
-# In[130]:
+# In[177]:
 
 ###########
 #If command line args are given, overwrite
@@ -467,12 +472,12 @@ for farg in sys.argv[1:]:
 comm.barrier()
 
 
-# In[131]:
+# In[178]:
 
 dp.deltaTa - 2750.0
 
 
-# In[132]:
+# In[179]:
 
 if not checkpointLoad:
     
@@ -567,7 +572,7 @@ if not checkpointLoad:
     ndp.TaP = 1. - ndp.TPP,  #Dimensionless adiabatic component of deltaT
 
 
-# In[133]:
+# In[180]:
 
 #dp.deltaTa/(dp.TP - dp.TS)
 #650710714.5
@@ -578,7 +583,7 @@ if not checkpointLoad:
 
 # ### Output Frequency
 
-# In[21]:
+# In[181]:
 
 #Metric output stuff
 figures =  'store' #glucifer Store won't work on all machines, if not, set to 'gldb' 
@@ -597,7 +602,7 @@ files_freq  = filesMy*(3600.*365.*24.)/sf.SR  #applies to files and gldbs
 
 # ### Model/ mesh  setup parameters
 
-# In[22]:
+# In[182]:
 
 ###########
 #Model setup parameters
@@ -636,7 +641,7 @@ MAXY = 1.
 
 
 
-# In[23]:
+# In[183]:
 
 mesh = uw.mesh.FeMesh_Cartesian( elementType = (md.elementType),
                                  elementRes  = (Xres, Yres), 
@@ -658,7 +663,7 @@ pressureField.data[:]       = 0.
 temperatureDotField.data[:] = 0.
 
 
-# In[24]:
+# In[184]:
 
 coordinate = fn.input()
 depthFn = 1. - coordinate[1] #a function providing the depth
@@ -666,7 +671,7 @@ xFn = coordinate[0]  #a function providing the x-coordinate
 yFn = coordinate[1]  #a function providing the y-coordinate
 
 
-# In[25]:
+# In[185]:
 
 mesh.reset()
 
@@ -708,12 +713,12 @@ with mesh.deform_mesh():
      mesh.data[:,1] = newYpos[:,0]
 
 
-# In[26]:
+# In[186]:
 
 #mesh.save('mesh.h5')
 
 
-# In[27]:
+# In[187]:
 
 #fig= glucifer.Figure(quality=3)
 
@@ -723,7 +728,7 @@ with mesh.deform_mesh():
 #fig.save_database('test.gldb')
 
 
-# In[28]:
+# In[188]:
 
 #THis is a hack for adding a sticky air domain, we redefine MAXY and things like the temperature stencil work from Y = 1. 
 
@@ -735,7 +740,7 @@ if md.stickyAir:
 # -------
 # 
 
-# In[29]:
+# In[189]:
 
 #Explicit Euler to get the adiabatic temp
 
@@ -759,7 +764,12 @@ for delta_z in dz:
 _temps -=  ndp.TS
 
 
-# In[30]:
+# In[190]:
+
+#ndp.TP
+
+
+# In[191]:
 
 meshDepths = mesh.maxCoord[1] - mesh.data[:,1]
 
@@ -768,7 +778,7 @@ tempInterp = np.interp(meshDepths, depths, np.array(_temps) )
 temperatureField.data[:,0] = tempInterp
 
 
-# In[31]:
+# In[192]:
 
 
 #potTempFn = ndp.TPP + (depthFn)*ndp.Di*(ndp.TP) #a function providing the (linearised) at potential temp
@@ -777,7 +787,7 @@ temperatureField.data[:,0] = tempInterp
 abHeatFn = -1.*velocityField[1]*(temperatureField + ndp.TS)*ndp.Di #a function providing the adiabatic heating rate
 
 
-# In[32]:
+# In[193]:
 
 #Fix the ridge locations of greater than boundaries... 
 
@@ -787,7 +797,7 @@ if ndp.rRidge > mesh.maxCoord[0]:
     ndp.rRidge = mesh.maxCoord[0] - (10e3/dp.LS)
 
 
-# In[33]:
+# In[194]:
 
 def age_fn(xFn, sz = 0.0, lMOR=MINX, rMOR=MAXX, opFac=1., conjugate_plate = False):
     """
@@ -820,19 +830,22 @@ def age_fn(xFn, sz = 0.0, lMOR=MINX, rMOR=MAXX, opFac=1., conjugate_plate = Fals
     return ageFn
 
 
-# In[34]:
+# In[195]:
 
-#dp.slabmaxAge
+#dp.opmaxAge = 100e6
+#dp.slabmaxAge = 32e6
+
+#%pylab inline
+#ageFn = age_fn(xFn, sz =ndp.subzone, lMOR=ndp.lRidge,rMOR=ndp.rRidge, conjugate_plate=True, opFac = dp.opmaxAge/dp.slabmaxAge)
+#plt.plot(ageFn.evaluate(tWalls))
 
 
-# In[35]:
+# In[196]:
 
 ###########
 #Thermal initial condition 2: 
 #if symmetricIC == False, we build an asymmetric subduction-zone
 ###########
-
-
 
 
 #  a few conversions
@@ -851,7 +864,8 @@ w0 = (2.*math.sqrt(dp.k*ageAtTrenchSeconds))/dp.LS #diffusion depth of plate at 
 
 tempBL = (temperatureField) *fn.math.erf((depthFn*dp.LS)/(2.*fn.math.sqrt(dp.k*ageFn))) + ndp.TSP #boundary layer function
 
-tempTBL =  fn.branching.conditional([(depthFn < w0, tempBL),
+#if depth is less than 2.*w0, use the thermal stencil, otherwise the adiabatic temp field
+tempTBL =  fn.branching.conditional([(depthFn < 2.*w0, tempBL),
                           (True, temperatureField)])
 
 if not md.symmetricIcs:
@@ -862,14 +876,14 @@ if not md.symmetricIcs:
 
 
 
-# In[36]:
+# In[199]:
 
 #ageAtTrenchSeconds, 
 dp.k, w0
 ndp.roc, ndp.MANTLETOCRUST
 
 
-# In[37]:
+# In[200]:
 
 #Now build the perturbation part
 def inCircleFnGenerator(centre, radius):
@@ -884,7 +898,7 @@ def inCircleFnGenerator(centre, radius):
 #We use three circles to define our slab and crust perturbation,  
 Oc = inCircleFnGenerator(Org , ndp.roc)
 Oc2 = inCircleFnGenerator(Org , ndp.roc + (0.5*ndp.MANTLETOCRUST)) #increases the amount of crust in the interface
-Ic = inCircleFnGenerator(Org , ndp.roc - w0)
+Ic = inCircleFnGenerator(Org , ndp.roc - 2.*w0)
 Cc = inCircleFnGenerator(Org , ndp.roc - (1.*ndp.MANTLETOCRUST)) #... weak zone on 'inside' of slab
 Hc = inCircleFnGenerator(Org , ndp.roc - ndp.HARZBURGDEPTH) #... Harzburgite layer 
 dx = (ndp.roc)*(np.math.tan((np.math.pi/180.)*dp.theta))
@@ -915,7 +929,7 @@ if not md.symmetricIcs:
                 temperatureField.data[index] = slabFn.evaluate(mesh)[index]
 
 
-# In[38]:
+# In[201]:
 
 #tempBL.evaluate((-1.7 + 1e-6, 0.028315867670597919))
 #temperatureField.evaluate((-1.7 , 1. - 0.028315867670597919))[0][0]
@@ -923,14 +937,14 @@ if not md.symmetricIcs:
 #mesh.minCoord[0], mesh.maxCoord[1] -distFromSlabTop[index][0]
 
 
-# In[39]:
+# In[202]:
 
 #ndp.TPP, ndp.TP, 
 #tempBL = (temperatureField) *fn.math.erf((depthFn*dp.LS)/(2.*fn.math.sqrt(dp.k*ageFn))) + ndp.TSP #boundary layer function
 #fn.input?
 
 
-# In[40]:
+# In[203]:
 
 ## Make sure material in sticky air region is at the surface temperature.
 for index, coord in enumerate(mesh.data):
@@ -938,16 +952,16 @@ for index, coord in enumerate(mesh.data):
                 temperatureField.data[index] = ndp.TSP
 
 
-# In[41]:
+# In[204]:
 
 #temperatureField.data.max(), temperatureField.data.mean(), temperatureField.data.std(), temperatureField.data.min()
 
 
-# In[42]:
+# In[206]:
 
-fig= glucifer.Figure(quality=3)
+#fig= glucifer.Figure(quality=3)
 
-fig.append( glucifer.objects.Surface(mesh,temperatureField, discrete=True))
+#fig.append( glucifer.objects.Surface(mesh,temperatureField, discrete=True))
 #fig.append( glucifer.objects.Mesh(mesh))
 
 
@@ -955,7 +969,7 @@ fig.append( glucifer.objects.Surface(mesh,temperatureField, discrete=True))
 #fig.save_database('test.gldb')
 
 
-# In[43]:
+# In[47]:
 
 #ageFn = age_fn(xFn, sz =ndp.subzone, lMOR=ndp.lRidge,rMOR=ndp.rRidge, conjugate_plate=True, opFac = dp.opmaxAge/dp.slabmaxAge)
 #ageFn.evaluate(mesh).min()
@@ -964,7 +978,7 @@ fig.append( glucifer.objects.Surface(mesh,temperatureField, discrete=True))
 # Boundary conditions
 # -------
 
-# In[44]:
+# In[38]:
 
 iWalls = mesh.specialSets["MinI_VertexSet"] + mesh.specialSets["MaxI_VertexSet"]
 jWalls = mesh.specialSets["MinJ_VertexSet"] + mesh.specialSets["MaxJ_VertexSet"]
@@ -1565,9 +1579,6 @@ edotn_SFn, edots_SFn = fault_coll.global_fault_strainrate_fns(velocityField, dir
 #dp.viscIncreaseWeights = [0.5,0.5]
 #dp.viscIncreaseWidths = [30e3,30e3]
 
-#dp.viscIncreaseDepths = [660e3]
-#dp.viscIncreaseWeights = [1.]
-#dp.viscIncreaseWidths = [10e3]
 
 
 viscDepthWeightFn = fn.misc.constant(0.)
@@ -1576,11 +1587,6 @@ for i in range(len(ndp.viscIncreaseDepths)):
     viscDepthWeightFn += (ndp.viscIncreaseWeights[i])*0.5*(fn.math.tanh((depthFn - ndp.viscIncreaseDepths[i])/(ndp.viscIncreaseWidths[i])) + 1.)
     
 viscDepthWeightFn = 1. - viscDepthWeightFn
-
-
-# In[113]:
-
-#
 
 
 # In[114]:
