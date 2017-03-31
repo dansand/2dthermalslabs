@@ -22,7 +22,7 @@
 # Arredondo, Katrina M., and Magali I. Billen. "The Effects of Phase Transitions and Compositional Layering in Two-dimensional Kinematic Models of Subduction." Journal of Geodynamics (2016).
 # 
 
-# In[135]:
+# In[1]:
 
 import numpy as np
 import underworld as uw
@@ -51,7 +51,7 @@ comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 
 
-# In[136]:
+# In[2]:
 
 #####
 #Stubborn version number conflicts - need to figure out my Docker container runs an old version. For now...
@@ -67,7 +67,7 @@ except:
 
 
 
-# In[137]:
+# In[3]:
 
 #store = glucifer.Store('subduction')
 #figParticle = glucifer.Figure( store, figsize=(960,300), name="Particles" )
@@ -78,7 +78,7 @@ except:
 # Model name and directories
 # -----
 
-# In[138]:
+# In[4]:
 
 ############
 #Model letter and number
@@ -106,7 +106,7 @@ else:
                 Model  = farg
 
 
-# In[139]:
+# In[5]:
 
 ###########
 #Standard output directory setup
@@ -138,7 +138,7 @@ if uw.rank()==0:
 comm.Barrier() #Barrier here so no procs run the check in the next cell too early
 
 
-# In[140]:
+# In[6]:
 
 ###########
 #Check if starting from checkpoint
@@ -155,7 +155,7 @@ for dirpath, dirnames, files in os.walk(checkpointPath):
         checkpointLoad = False
 
 
-# In[141]:
+# In[7]:
 
 # setup summary output file (name above)
 if checkpointLoad:
@@ -185,7 +185,7 @@ else:
 
 # **Use pint to setup any unit conversions we'll need**
 
-# In[142]:
+# In[8]:
 
 u = pint.UnitRegistry()
 cmpery = 1.*u.cm/u.year
@@ -195,7 +195,7 @@ spery = year.to(u.sec)
 cmpery.to(mpermy)
 
 
-# In[143]:
+# In[9]:
 
 box_half_width =4000e3
 age_at_trench = 100e6
@@ -210,7 +210,7 @@ print(cmperyear, mpersec )
 # * If starting from checkpoint, parameters are loaded using pickle
 # * If params are passed in as flags to the script, they overwrite 
 
-# In[144]:
+# In[10]:
 
 ###########
 #Parameter / settings dictionaries get saved&loaded using pickle
@@ -223,7 +223,7 @@ md = edict({}) #model paramters, flags etc
 #od = edict({}) #output frequencies
 
 
-# In[145]:
+# In[11]:
 
 dict_list = [dp, sf, ndp, md]
 dict_names = ['dp.pkl', 'sf.pkl', 'ndp.pkl', 'md.pkl']
@@ -260,7 +260,7 @@ def load_pickles():
     return dp, ndp, sf, md
 
 
-# In[146]:
+# In[12]:
 
 ###########
 #Store the physical parameters, scale factors and dimensionless pramters in easyDicts
@@ -358,12 +358,12 @@ dp.deltaTa = (3110.65) - dp.TS  #Adiabatic Temp at base of mantle, minus Ts,
                                 #this is tied to specific choices of expansivity, Specific heat. 
 
 
-# In[147]:
+# In[13]:
 
 #dp.deltaTa
 
 
-# In[148]:
+# In[14]:
 
 
 
@@ -372,7 +372,7 @@ dp.deltaTa = (3110.65) - dp.TS  #Adiabatic Temp at base of mantle, minus Ts,
 #dp.a/3e-5
 
 
-# In[149]:
+# In[15]:
 
 #Modelling and Physics switches
 
@@ -398,13 +398,13 @@ md = edict({'refineMesh':False,
             })
 
 
-# In[150]:
+# In[16]:
 
 t = 1./dp.Adf
 print(t/3.333e10)
 
 
-# In[151]:
+# In[17]:
 
 ###########
 #If starting from a checkpoint load params from file
@@ -414,7 +414,7 @@ if checkpointLoad:
     dp, ndp, sf, md = load_pickles()  #remember to add any extra dictionaries
 
 
-# In[152]:
+# In[18]:
 
 ###########
 #If command line args are given, overwrite
@@ -473,12 +473,12 @@ for farg in sys.argv[1:]:
 comm.barrier()
 
 
-# In[153]:
+# In[19]:
 
 dp.deltaTa - 2750.0
 
 
-# In[154]:
+# In[20]:
 
 if not checkpointLoad:
     
@@ -573,7 +573,7 @@ if not checkpointLoad:
     ndp.TaP = 1. - ndp.TPP,  #Dimensionless adiabatic component of deltaT
 
 
-# In[155]:
+# In[21]:
 
 #dp.deltaTa/(dp.TP - dp.TS)
 #650710714.5
@@ -584,7 +584,7 @@ if not checkpointLoad:
 
 # ### Output Frequency
 
-# In[156]:
+# In[22]:
 
 #Metric output stuff
 figures =  'store' #glucifer Store won't work on all machines, if not, set to 'gldb' 
@@ -603,7 +603,7 @@ files_freq  = filesMy*(3600.*365.*24.)/sf.SR  #applies to files and gldbs
 
 # ### Model/ mesh  setup parameters
 
-# In[157]:
+# In[23]:
 
 ###########
 #Model setup parameters
@@ -642,7 +642,7 @@ MAXY = 1.
 
 
 
-# In[158]:
+# In[24]:
 
 mesh = uw.mesh.FeMesh_Cartesian( elementType = (md.elementType),
                                  elementRes  = (Xres, Yres), 
@@ -664,7 +664,7 @@ pressureField.data[:]       = 0.
 temperatureDotField.data[:] = 0.
 
 
-# In[159]:
+# In[25]:
 
 coordinate = fn.input()
 depthFn = 1. - coordinate[1] #a function providing the depth
@@ -672,7 +672,12 @@ xFn = coordinate[0]  #a function providing the x-coordinate
 yFn = coordinate[1]  #a function providing the y-coordinate
 
 
-# In[160]:
+# In[26]:
+
+#
+
+
+# In[27]:
 
 mesh.reset()
 
@@ -714,12 +719,12 @@ with mesh.deform_mesh():
      mesh.data[:,1] = newYpos[:,0]
 
 
-# In[161]:
+# In[28]:
 
 #mesh.save('mesh.h5')
 
 
-# In[162]:
+# In[29]:
 
 #fig= glucifer.Figure(quality=3)
 
@@ -729,7 +734,7 @@ with mesh.deform_mesh():
 #fig.save_database('test.gldb')
 
 
-# In[163]:
+# In[30]:
 
 #THis is a hack for adding a sticky air domain, we redefine MAXY and things like the temperature stencil work from Y = 1. 
 
@@ -741,7 +746,7 @@ if md.stickyAir:
 # -------
 # 
 
-# In[164]:
+# In[31]:
 
 #Explicit Euler to get the adiabatic temp
 
@@ -765,12 +770,12 @@ for delta_z in dz:
 _temps -=  ndp.TS
 
 
-# In[165]:
+# In[32]:
 
 #ndp.TP
 
 
-# In[166]:
+# In[33]:
 
 meshDepths = mesh.maxCoord[1] - mesh.data[:,1]
 
@@ -779,7 +784,7 @@ tempInterp = np.interp(meshDepths, depths, np.array(_temps) )
 temperatureField.data[:,0] = tempInterp
 
 
-# In[167]:
+# In[34]:
 
 
 #potTempFn = ndp.TPP + (depthFn)*ndp.Di*(ndp.TP) #a function providing the (linearised) at potential temp
@@ -788,7 +793,7 @@ temperatureField.data[:,0] = tempInterp
 abHeatFn = -1.*velocityField[1]*(temperatureField + ndp.TS)*ndp.Di #a function providing the adiabatic heating rate
 
 
-# In[168]:
+# In[35]:
 
 #Fix the ridge locations of greater than boundaries... 
 
@@ -1293,57 +1298,62 @@ fig.append( glucifer.objects.Points(gSwarm,temperatureField))
 
 # ## phase and compositional buoyancy
 
-# In[190]:
+# In[31]:
+
+from unsupported_dan.phase import phase_utils
+
+
+# In[38]:
 
 ##############
 #Set up phase buoyancy contributions
 #the phase function approach of Yuen and Christenson is implemented in the Slippy2 phase_function class 
 ##############
 
+buoyancyFactor = (dp.g*dp.LS**3)/(dp.eta0*dp.k)
+slopeFactor = (dp.deltaTa/(dp.rho*dp.g*dp.LS))
+
+
+olDepths= np.array([410e3,660e3, 2740e3])/dp.LS                   #depths of phase transitions along adiabat
+olTemps = (np.array([1600., 1900., 2300]) - dp.TS)/dp.deltaTa   #temperatures of phase transitions along adiabat
+olWidths = np.array([10e3, 20e3, 20e3])/dp.LS                   #width if transition
+olClaps= np.array([2.e6, -2.5e6, 10e6])*slopeFactor             #Clapeyron slope of transition
+olBuoyancies= np.array([180., 400., 61.6])*buoyancyFactor       #Scaled buoyancy contributions
+
+
 
 #olivine
-olivinePhase = phase_function.component_phases(name = 'ol', 
-                        depths=[410e3,660e3], #depths of phase transitions along adiabat
-                        temps = [1600., 1900.], #temperatures of phase transitions along adiabat
-                        widths = [20e3, 20e3], #width if transition
-                        claps=[2.e6, -2.5e6],  #Clapeyron slope of trnasition
-                        densities = [180., 400.]) #density change of phase transition
-
-olivinePhase.build_nd_dict(dp.LS, dp.rho, dp.g, dp.deltaTa)
+olivinePhase = phase_utils.Phases(name = 'ol', 
+                        depths=olDepths,                  #depths of phase transitions along adiabat
+                        temps = olTemps,                  #temperatures of phase transitions along adiabat
+                        widths = olWidths,                #width if transition
+                        claps=olClaps,                    #Clapeyron slope of trnasition
+                        buoyancies = olBuoyancies)        #density change of phase transition
 
 
-rp = olivinePhase.nd_reduced_pressure(depthFn, 
-                                   temperatureField,
-                                   olivinePhase.ndp['depths'][0],
-                                   olivinePhase.ndp['claps'][0],
-                                   olivinePhase.ndp['temps'][0])
-
-#ph_410 = olivinePhase.nd_phase(rp, test.ndp['widths'][0])
-#pf_sum = test.phase_function_sum(temperatureField, depthFn)
-
-olivine_phase_buoyancy = olivinePhase.buoyancy_sum(temperatureField, depthFn, dp.g, dp.LS, dp.k, dp.eta0)
-
-#garnet
-garnetPhase = phase_function.component_phases(name = 'grt', 
-                        depths=[60e3,400e3, 720e3],
-                        temps = [1000., 1600., 1900.], 
-                        widths = [2e3, 2e3, 2e3], 
-                        claps=[0.e6, 1.e6, 1.e6], 
-                        densities = [350., 150., 400.])
-
-garnetPhase.build_nd_dict(dp.LS, dp.rho, dp.g, dp.deltaTa)
+olivine_phase_buoyancy = olivinePhase.buoyancy_sum(temperatureField, depthFn)
 
 
-rp = garnetPhase.nd_reduced_pressure(depthFn, 
-                                   temperatureField,
-                                   garnetPhase.ndp['depths'][0],
-                                   garnetPhase.ndp['claps'][0],
-                                   garnetPhase.ndp['temps'][0])
+#Pyroxene/garnet
 
-#ph_410 = olivinePhase.nd_phase(rp, test.ndp['widths'][0])
-#pf_sum = test.phase_function_sum(temperatureField, depthFn)
+grtDepths = np.array([60e3,400e3, 720e3, 2740e3])/dp.LS            #depths of phase transitions along adiabat
+grtTemps = (np.array([1000., 1600., 1900., 2300]) - dp.TS)/dp.deltaTa   #temperatures of phase transitions along adiabat
+grtWidths = np.array([2e3, 20e3, 20e3, 20e3])/dp.LS                   #width of transition
+grtClaps= np.array([0.e6, 1.e6, 1.e6,  10e6])*slopeFactor             #Clapeyron slope of transition
+grtBuoyancies= np.array([350., 150., 400., 61.6])*buoyancyFactor       #Scaled buoyancy contributions
+            
 
-garnet_phase_buoyancy = garnetPhase.buoyancy_sum(temperatureField, depthFn, dp.g, dp.LS, dp.k, dp.eta0)
+
+garnetPhase = phase_utils.Phases(name = 'grt', 
+                        depths=grtDepths,                  #depths of phase transitions along adiabat
+                        temps = grtTemps,                  #temperatures of phase transitions along adiabat
+                        widths = grtWidths,                #width if transition
+                        claps=grtClaps,                    #Clapeyron slope of trnasition
+                        buoyancies = grtBuoyancies)        #density change of phase transition
+
+
+
+garnet_phase_buoyancy = garnetPhase.buoyancy_sum(temperatureField, depthFn)
 
 
 # In[ ]:
@@ -1351,14 +1361,12 @@ garnet_phase_buoyancy = garnetPhase.buoyancy_sum(temperatureField, depthFn, dp.g
 
 
 
-# In[191]:
+# In[40]:
 
 #fig= glucifer.Figure(quality=3)
-
 #fig.append( glucifer.objects.Points(gSwarm,olivine_phase_buoyancy/ndp.RA , discrete=True, fn_mask=lithRestFn))
-#fig.append( glucifer.objects.Surface(mesh,olivine_phase_buoyancy/ndp.RA , discrete=True))
+#fig.append( glucifer.objects.Surface(mesh,garnet_phase_buoyancy/ndp.RA , discrete=True))
 #fig.append( glucifer.objects.Points(gSwarm,temperatureField , discrete=True, fn_mask=lithRestFn))
-
 #fig.append( glucifer.objects.Mesh(mesh))
 #fig.show()
 #fig.save_database('test.gldb')
@@ -1366,31 +1374,34 @@ garnet_phase_buoyancy = garnetPhase.buoyancy_sum(temperatureField, depthFn, dp.g
 #fig.save_image('active_phase.png')
 
 
-# In[206]:
+# In[53]:
+
+#md.compBuoyancy, md.phaseBuoyancy
+
+
+# In[60]:
 
 ##############
 #Set up compositional buoyancy contributions
 ##############
 
-buoyancy_factor = (dp.g*dp.LS**3)/(dp.eta0*dp.k)
 
-basalt_comp_buoyancy  = (dp.rho - 2940.)*buoyancy_factor
-harz_comp_buoyancy = (dp.rho - 3235.)*buoyancy_factor
-pyrolite_comp_buoyancy = (dp.rho - 3300.)*buoyancy_factor
+#if we are usign crust greater then 6 km, we correct the density contribution, 
+#by using a weighted contrubution of pure pyroxene / garnet (i.e basalt) and Harzburgite
+crustCorrectionFac = 6e3/dp.MANTLETOCRUST
+
+harzDensity = (0.75*3240.  + 0.25*3080.)
+
+basalt_comp_buoyancy  = (dp.rho - (crustCorrectionFac*3080. + (1. - crustCorrectionFac)*(harzDensity)))*buoyancyFactor
+harz_comp_buoyancy = (dp.rho - harzDensity)*buoyancyFactor
+pyrolite_comp_buoyancy = (dp.rho - 3300.)*buoyancyFactor
 
 #print(basalt_comp_buoyancy, harz_comp_buoyancy, pyrolite_comp_buoyancy)
 
 
-#this function accounts for the decrease in expansivity, and acts to reduce the rayleigh number with depth
-#alphaRatio = 1.2/3
-alphaRatio = 1.     #currently switched off
-#taFn = 1. - (depthFn)*(1. - alphaRatio) 
-taFn = 1.
-
-
-pyrolitebuoyancyFn =  (ndp.RA*temperatureField*taFn)
-harzbuoyancyFn =      (ndp.RA*temperatureField*taFn) 
-basaltbuoyancyFn =    (ndp.RA*temperatureField*taFn)
+pyrolitebuoyancyFn =  (ndp.RA*temperatureField)
+harzbuoyancyFn =      (ndp.RA*temperatureField) 
+basaltbuoyancyFn =    (ndp.RA*temperatureField)
     
     
 if md.compBuoyancy: 
@@ -1401,16 +1412,16 @@ if md.compBuoyancy:
 
 if md.phaseBuoyancy:
     pyrolitebuoyancyFn -= (0.6*olivine_phase_buoyancy + 0.4*garnet_phase_buoyancy) 
-    harzbuoyancyFn -= (0.8*olivine_phase_buoyancy + 0.2*garnet_phase_buoyancy)  
-    basaltbuoyancyFn -=  (1.*garnet_phase_buoyancy)   
+    harzbuoyancyFn -= (0.75*olivine_phase_buoyancy + 0.25*garnet_phase_buoyancy)  
+    basaltbuoyancyFn -=  ((1. - crustCorrectionFac)*olivine_phase_buoyancy + crustCorrectionFac*garnet_phase_buoyancy)   
                           
 
 
-# In[208]:
+# In[58]:
 
 fig= glucifer.Figure(quality=3)
 
-fig.append( glucifer.objects.Points(gSwarm,densityMapFn , discrete=True, fn_mask=vizVariable))
+#fig.append( glucifer.objects.Points(gSwarm,densityMapFn , discrete=True, fn_mask=vizVariable))
 #fig.append( glucifer.objects.Surface(mesh, harzbuoyancyFn/ndp.RA , discrete=True))
 #fig.append( glucifer.objects.Points(gSwarm,densityMapFn, fn_mask=vizVariable))
 
@@ -1449,7 +1460,7 @@ def copy_markerLine2D(ml, thickness=False, ID=False):
 # In[61]:
 
 ###########
-#Initial Coordinates for inerfaces and faults
+#Initial Coordinates for interfaces and faults
 ###########
 
 #subduction fault
