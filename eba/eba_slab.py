@@ -1447,11 +1447,11 @@ if md.phaseBuoyancy:
 
 # In[77]:
 
-fig= glucifer.Figure(quality=3)
+#fig= glucifer.Figure(quality=3)
 
 #fig.append( glucifer.objects.Points(gSwarm,densityMapFn , discrete=True, fn_mask=vizVariable))
 #fig.append( glucifer.objects.Surface(mesh, pyrolitebuoyancyFn/ndp.RA , discrete=True))
-fig.append( glucifer.objects.Points(gSwarm,densityMapFn))
+#fig.append( glucifer.objects.Points(gSwarm,densityMapFn))
 
 #fig.append( glucifer.objects.Surface(mesh,basaltbuoyancyFn/ndp.RA , discrete=True))
 
@@ -2041,10 +2041,10 @@ stressVariableFn =  2.*sym_strainRate[0]*viscosityMapFn
 
 # In[107]:
 
-_ix1, _weights1 = nn_evaluation(gSwarm, surface.swarm.particleCoordinates.data, n=5, weighted=True)
+#_ix1, _weights1 = nn_evaluation(gSwarm, surface.swarm.particleCoordinates.data, n=5, weighted=True)
 
 
-stressYFn =  2.*sym_strainRate[1]*viscosityMapFn
+#stressYFn =  2.*sym_strainRate[1]*viscosityMapFn
 #surfaceStressY.data[:,0] = np.average(stressYFn.evaluate(gSwarm)[_ix1][:,:,0],weights=_weights1, axis=1)
 
 
@@ -2837,13 +2837,14 @@ while realtime < 1.:
         fullpath = os.path.join(outputPath + "files/" + fnametemp)
         surfaceVelx.save(fullpath)
         
-        #Now the vertical stress at the surface, parallel bug though. 
-        #_ix1, _weights1 = nn_evaluation(gSwarm, surface.swarm.particleCoordinates.data, n=5, weighted=True)
-        #stressYFn =  2.*sym_strainRate[1]*viscosityMapFn    #- shouldn't need to rebuild this Fn, but check
-        #surfaceStressY.data[:,0] = np.average(stressYFn.evaluate(gSwarm)[_ix1][:,:,0],weights=_weights1, axis=1)
-        #fnametemp = "surfaceStressY" + "_" + str(step) + '.h5'
-        #fullpath = os.path.join(outputPath + "files/" + fnametemp)
-        #surfaceStressY.save(fullpath)
+        #Now the vertical stress at the surface, 
+        ix1, weights1, d1 = nn_evaluation(swarm.particleCoordinates.data, surface.swarm.particleCoordinates.data, n=5, weighted=True)
+        
+        surfaceStressY.data[:] = 2.*symStrainrate[1].evaluate(surface.swarm)#* \
+        surfaceStressY.data[:,0] *=    np.average(viscosityMapFn.evaluate(swarm)[ix2][:,:,0], weights=weights2, axis=1)
+        
+        fullpath = os.path.join(outputPath + "files/" + fnametemp)
+        surfaceStressY.save(fullpath)
         
         
 
