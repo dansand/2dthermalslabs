@@ -1308,7 +1308,7 @@ from unsupported_dan.phase import phase_utils
 
 
 
-# In[58]:
+# In[57]:
 
 ##############
 #Set up phase buoyancy contributions
@@ -1386,7 +1386,7 @@ eclogite_phase_buoyancy = eclogitePhase.buoyancy_sum(temperatureField, depthFn)
 
 
 
-# In[59]:
+# In[58]:
 
 fig= glucifer.Figure(quality=3)
 #fig.append( glucifer.objects.Points(gSwarm,olivine_phase_buoyancy/ndp.RA , discrete=True, fn_mask=lithRestFn))
@@ -1399,13 +1399,13 @@ fig.append( glucifer.objects.Surface(mesh,olivine_phase_buoyancy/ndp.RA , discre
 #fig.save_image('active_phase.png')
 
 
-# In[68]:
+# In[59]:
 
 #md.compBuoyancy = True
 #md.phaseBuoyancy = True
 
 
-# In[75]:
+# In[60]:
 
 ##############
 #Set up compositional buoyancy contributions
@@ -1445,7 +1445,7 @@ if md.phaseBuoyancy:
                           
 
 
-# In[77]:
+# In[61]:
 
 #fig= glucifer.Figure(quality=3)
 
@@ -1460,7 +1460,7 @@ if md.phaseBuoyancy:
 #fig.save_database('test.gldb')
 
 
-# In[99]:
+# In[62]:
 
 #%pylab inline
 #rWalls = mesh.specialSets["MaxI_VertexSet"]
@@ -1472,13 +1472,13 @@ if md.phaseBuoyancy:
 
 # ## Faults / interfaces
 
-# In[81]:
+# In[63]:
 
 from unsupported_dan.interfaces.marker2D import markerLine2D
 from unsupported_dan.faults.faults2D import fault2D, fault_collection
 
 
-# In[82]:
+# In[64]:
 
 def copy_markerLine2D(ml, thickness=False, ID=False):
     
@@ -1497,7 +1497,7 @@ def copy_markerLine2D(ml, thickness=False, ID=False):
     return new_line
 
 
-# In[83]:
+# In[65]:
 
 ###########
 #Initial Coordinates for interfaces and faults
@@ -1536,7 +1536,7 @@ surfaceCoords[:,0] = np.linspace(MINX, MAXX, nfault)
 
 
 
-# In[84]:
+# In[66]:
 
 #Initiaze the swarms in a 
 fault  = fault2D(mesh, velocityField, [], [], faultthickness, 0., 0., crustIndex)
@@ -1576,7 +1576,7 @@ fault.rebuild()
 surface.rebuild()
 
 
-# In[85]:
+# In[67]:
 
 #Add variables to the surface swarm
 surfaceVelx = surface.swarm.add_variable( dataType="float", count=1 )
@@ -1587,7 +1587,7 @@ surfaceStressY = surface.swarm.add_variable( dataType="float", count=1 )
 #this one needs interpolation ... do in main loop
 
 
-# In[86]:
+# In[68]:
 
 #Add the necessary swarm variables
 #note that these swarm vars. don't get checkpointed, they should rebuild from model state
@@ -1601,7 +1601,7 @@ proximityVariable.data[:] = 0
 signedDistanceVariable.data[:] = 0.0
 
 
-# In[87]:
+# In[69]:
 
 #inform the mesh of the fault
 
@@ -1624,7 +1624,7 @@ edotn_SFn, edots_SFn = fault_coll.global_fault_strainrate_fns(velocityField, dir
 # 
 # 
 
-# In[88]:
+# In[70]:
 
 ##############
 #Set up viscosity increase functions (i.e upper - lower mantle)
@@ -1644,7 +1644,7 @@ for i in range(len(ndp.viscIncreaseDepths)):
 viscDepthWeightFn = 1. - viscDepthWeightFn
 
 
-# In[89]:
+# In[71]:
 
 ##############
 #Set up any functions required by the rheology
@@ -1660,7 +1660,7 @@ def safe_visc(func, viscmin=ndp.eta_min, viscmax=ndp.eta_max):
     return fn.misc.max(viscmin, fn.misc.min(viscmax, func))
 
 
-# In[90]:
+# In[72]:
 
 ############
 #Rheology: create UW2 functions for all viscous mechanisms
@@ -1703,7 +1703,7 @@ crustysf = fn.misc.min(crustys, ndp.ysMax)
 crustyielding = crustysf/(2.*(strainRate_2ndInvariant)) 
 
 
-# In[91]:
+# In[73]:
 
 #crustyielding.evaluate(mesh).min(), crustyielding.evaluate(mesh).mean(),crustyielding.evaluate(mesh).max()
 #finalcrustviscosityFn.evaluate(mesh).min(),finalcrustviscosityFn.evaluate(mesh).max(), finalcrustviscosityFn.evaluate(mesh).mean()
@@ -1715,7 +1715,7 @@ crustyielding = crustysf/(2.*(strainRate_2ndInvariant))
 #finalviscosityFn.evaluate(mesh).min(),finalviscosityFn.evaluate(mesh).max(), finalviscosityFn.evaluate(mesh).mean()
 
 
-# In[92]:
+# In[74]:
 
 ############
 #Rheology: combine viscous mechanisms in various ways 
@@ -1764,7 +1764,7 @@ if md.viscCombine == 'min':
                                                      (True, finalviscosityFn)])
 
 
-# In[92]:
+# In[75]:
 
 #viscMinConditions = fn.misc.min(diffusion, dislocation, peierls, yielding)
 
@@ -1809,7 +1809,7 @@ densityMapFn = fn.branching.map( fn_key = materialVariable,
                                     harzIndex:harzbuoyancyFn} )
 
 
-# In[91]:
+# In[77]:
 
 
 # Define our vertical unit vector using a python tuple (this will be automatically converted to a function).
@@ -1819,7 +1819,8 @@ gravity = ( 0.0, 1.0 )
 buoyancyFn = densityMapFn * gravity
 
 
-# In[67]:
+# In[79]:
+
 
 if md.PIC_integration:
     stokesPIC = uw.systems.Stokes(velocityField=velocityField, 
@@ -1838,14 +1839,14 @@ else:
                               fn_bodyforce=buoyancyFn )
 
 
-# In[68]:
+# In[80]:
 
 solver = uw.systems.Solver(stokesPIC)
 if not checkpointLoad:
     solver.solve() #A solve on the linear visocisty is unhelpful unless we're starting from scratch
 
 
-# In[95]:
+# In[81]:
 
 viscosityMapFn = fn.branching.map( fn_key = materialVariable,
                          mapping = {crustIndex:finalcrustviscosityFn,
@@ -1854,13 +1855,13 @@ viscosityMapFn = fn.branching.map( fn_key = materialVariable,
 
 
 
-# In[70]:
+# In[82]:
 
 #Add the non-linear viscosity to the Stokes system
 stokesPIC.fn_viscosity = viscosityMapFn
 
 
-# In[71]:
+# In[83]:
 
 solver.set_inner_method("mumps")
 solver.options.scr.ksp_type="cg"
@@ -1875,7 +1876,7 @@ solver.print_stats()
 
 
 
-# In[72]:
+# In[84]:
 
 #Check which particles are yielding
 #yieldingCheck.data[:] = 0
@@ -1887,7 +1888,7 @@ solver.print_stats()
 #yieldingCheck.data[:] = fn.branching.conditional( yieldconditions ).evaluate(gSwarm)
 
 
-# In[73]:
+# In[85]:
 
 #fig= glucifer.Figure()
 #fig.append( glucifer.objects.Points(gSwarm,lowerPlateRestFn))
@@ -1904,7 +1905,7 @@ solver.print_stats()
 # ## Set up principal stress vectors
 # 
 
-# In[76]:
+# In[86]:
 
 def eig2d(sigma):
 
@@ -1949,7 +1950,7 @@ def eig2d(sigma):
     return s1, s2, deg
 
 
-# In[77]:
+# In[87]:
 
 eig1       = uw.mesh.MeshVariable( mesh=mesh,         nodeDofCount=2 )
 eig2       = uw.mesh.MeshVariable( mesh=mesh,         nodeDofCount=2 )
@@ -1969,7 +1970,7 @@ eig2.data[:,1] = np.sin(np.radians(principalAngles ))
 
 # ## Stress variable
 
-# In[96]:
+# In[88]:
 
 from scipy.spatial import cKDTree as kdTree
 
@@ -2024,7 +2025,7 @@ def nn_evaluation(fromSwarm, _data, n=1, weighted=False):
 
 
 
-# In[106]:
+# In[89]:
 
 _ix, _weights = nn_evaluation(gSwarm, mesh.data, n=5, weighted=True)
 
@@ -2039,7 +2040,7 @@ stressVariableFn =  2.*sym_strainRate[0]*viscosityMapFn
 
 
 
-# In[107]:
+# In[90]:
 
 #_ix1, _weights1 = nn_evaluation(gSwarm, surface.swarm.particleCoordinates.data, n=5, weighted=True)
 
@@ -2051,7 +2052,7 @@ stressVariableFn =  2.*sym_strainRate[0]*viscosityMapFn
 # Advection-diffusion System setup
 # -----
 
-# In[127]:
+# In[91]:
 
 advDiff = uw.systems.AdvectionDiffusion( phiField       = temperatureField, 
                                          phiDotField    = temperatureDotField, 
@@ -2069,7 +2070,7 @@ materialadvector = uw.systems.SwarmAdvector( swarm         = gSwarm,
                                      order         = order)
 
 
-# In[128]:
+# In[92]:
 
 #population_control = uw.swarm.PopulationControl(gSwarm,deleteThreshold=0.2,splitThreshold=1.,maxDeletions=3,maxSplits=0, aggressive=True, particlesPerCell=int(md.ppc))
 
@@ -2138,7 +2139,7 @@ population_control = uw.swarm.PopulationControl(gSwarm,deleteThreshold=0.006,spl
 # 
 # In general, averages are found afterwards by combining the integral and the area of the relavent subregion
 
-# In[69]:
+# In[93]:
 
 ###################
 #Volume Restriction functions
@@ -2205,7 +2206,7 @@ interfaceRestFn.data[np.where(materialVariable.data[:] == crustIndex)] = 1.
 interfaceRestFn *= hinge60RestFn #Add next level up in heirarchy
 
 
-# In[75]:
+# In[94]:
 
 
 #fig= glucifer.Figure()
@@ -2219,7 +2220,7 @@ interfaceRestFn *= hinge60RestFn #Add next level up in heirarchy
 #fig.save_database('test.gldb')
 
 
-# In[76]:
+# In[95]:
 
 respltconditions = [ 
                     (                                  hinge60RestFn*2. > rockRestFn*1., 1.),
@@ -2230,7 +2231,7 @@ respltconditions = [
 respltFn = fn.branching.conditional(respltconditions )
 
 
-# In[77]:
+# In[96]:
 
 ###################
 #Surface Restriction functions
@@ -2250,7 +2251,7 @@ def platenessFn(val = 0.1):
 srRestFn = platenessFn(val = 0.1)
 
 
-# In[132]:
+# In[97]:
 
 ###################
 #Setup any Functions to be integrated
@@ -2266,7 +2267,7 @@ vd = 4.*viscosityMapFn*sinner #there's an extra factor of 2, which is necessary 
 dTdZ = temperatureField.fn_gradient[1]
 
 
-# In[79]:
+# In[98]:
 
 ###################
 #Create integral, max/min templates 
@@ -2286,7 +2287,7 @@ def maxMin(Fn = 1.):
     
 
 
-# In[80]:
+# In[99]:
 
 #Setup volume integrals on different sub regions
 
@@ -2329,7 +2330,7 @@ _areaintInterface  = volumeint(interfaceRestFn)
 _vdintInterface = volumeint(vd,interfaceRestFn)
 
 
-# In[81]:
+# In[100]:
 
 #Setup surface integrals
 
@@ -2341,7 +2342,7 @@ _plateness = surfint(srRestFn)
 _pressure = surfint(pressureField)
 
 
-# In[82]:
+# In[101]:
 
 #Setup max min fns (at the moment, we can't pass restriction function to view.min_max, so we're limited to whole volume or surface extrema)
 
@@ -2372,7 +2373,7 @@ dummyFn = _maxMinVxSurf.evaluate(tWalls)
 
 
 
-# In[83]:
+# In[102]:
 
 #Volume Ints
 areaintRock = _areaintRock.evaluate()[0]
@@ -2456,7 +2457,7 @@ minVxsurf = _maxMinVxSurf.min_global()
 
 
 
-# In[93]:
+# In[103]:
 
 #Build a depth dependent mask for the vizualisation
 
@@ -2479,7 +2480,7 @@ del index, value    #get rid of any variables that might be pointing at the .dat
 
 
 
-# In[86]:
+# In[104]:
 
 fig= glucifer.Figure()
 fig.append( glucifer.objects.Points(gSwarm,temperatureField, fn_mask=vizVariable))
@@ -2488,7 +2489,7 @@ fig.append( glucifer.objects.Mesh(mesh))
 fig.save_database('test.gldb')
 
 
-# In[87]:
+# In[105]:
 
 if figures == 'gldb':
     #Pack some stuff into a database as well
@@ -2606,14 +2607,14 @@ elif figures == 'store':
 
 # **Miscellania**
 
-# In[88]:
+# In[122]:
 
 ##############
 #Create a numpy array at the surface to get surface information on (using parallel-friendly evaluate_global)
 ##############
 
 surface_xs = np.linspace(mesh.minCoord[0], mesh.maxCoord[0], mesh.elementRes[0] + 1)
-surface_nodes = np.array(zip(surface_xs, np.ones(len(surface_xs)*mesh.maxCoord[1]))) #For evaluation surface velocity
+surface_nodes = np.array(zip(surface_xs, np.ones(int(len(surface_xs)*mesh.maxCoord[1])))) #For evaluation surface velocity
 normgradV = velocityField.fn_gradient[0]/fn.math.sqrt(velocityField[0]*velocityField[0])
 
 tempMM = fn.view.min_max(temperatureField)
@@ -2621,7 +2622,7 @@ dummy = tempMM.evaluate(mesh)
 
 
 
-# In[89]:
+# In[123]:
 
 #Not parallel friendly yet
 #tipXvels = np.sum(velocityField[0].evaluate(tipSwarm)) /\
@@ -2635,7 +2636,7 @@ dummy = tempMM.evaluate(mesh)
 #    tipSwarm.particleGlobalCount
 
 
-# In[90]:
+# In[124]:
 
 ##############
 #These functions handle checkpointing
@@ -2684,7 +2685,7 @@ def checkpoint3(step,  checkpointPath, interfaces,interfacenames ):
     
 
 
-# In[91]:
+# In[125]:
 
 def plate_infoFn(velocityField,xFn,  depthLimit, xsearchlim = 1.0, currentloc = 0.0, plateType='convergent'):
     """
@@ -2736,7 +2737,7 @@ def plate_infoFn(velocityField,xFn,  depthLimit, xsearchlim = 1.0, currentloc = 
         raise ValueError('plateType should be one of convergent/divergent')
 
 
-# In[133]:
+# In[126]:
 
 ##############
 #This will allow us to evaluate viscous shear heating, and add the result directly to the temperature field
@@ -2748,7 +2749,7 @@ viscDisProj = uw.utils.MeshVariable_Projection( viscDisFnmesh, viscDisMapFn)
 viscDisProj.solve()
 
 
-# In[41]:
+# In[127]:
 
 # initialise timer for computation
 start = time.clock()
@@ -2762,7 +2763,7 @@ next_image_step = (np.floor(realtime/files_freq)+ 1.) *files_freq
 # -----
 # 
 
-# In[95]:
+# In[ ]:
 
 #while step < 21:
 while realtime < 1.:
@@ -2838,13 +2839,17 @@ while realtime < 1.:
         surfaceVelx.save(fullpath)
         
         #Now the vertical stress at the surface, 
-        ix1, weights1, d1 = nn_evaluation(swarm.particleCoordinates.data, surface.swarm.particleCoordinates.data, n=5, weighted=True)
+        ix1, weights1 = nn_evaluation(gSwarm, surface.swarm.particleCoordinates.data, n=5, weighted=True)
         
-        surfaceStressY.data[:] = 2.*symStrainrate[1].evaluate(surface.swarm)#* \
-        surfaceStressY.data[:,0] *=    np.average(viscosityMapFn.evaluate(swarm)[ix2][:,:,0], weights=weights2, axis=1)
-        
+        surfaceStressY.data[:] = 2.*sym_strainRate[1].evaluate(surface.swarm)#* \
+        surfaceStressY.data[:,0] *=    np.average(viscosityMapFn.evaluate(gSwarm)[ix1][:,:,0], weights=weights1, axis=1)
+        fnametemp = "surfaceStressY" + "_" + str(step) + '.h5'
         fullpath = os.path.join(outputPath + "files/" + fnametemp)
         surfaceStressY.save(fullpath)
+        
+        fnametemp = "temperatureField" + "_" + str(step) + ".h5"
+        fullpath = os.path.join(outputPath + "files/" + fnametemp)
+        temperatureField.save(fullpath)
         
         
 
@@ -3145,7 +3150,7 @@ f_o.close()
 print 'step =',step
 
 
-# In[8]:
+# In[ ]:
 
 
 
