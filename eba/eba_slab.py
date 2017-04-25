@@ -2836,7 +2836,10 @@ while realtime < 1.:
              
         
         #Now the surface x vels.
-        surfaceVelx.data[...] = velocityField[0].evaluate(surface.swarm)
+        try:
+            surfaceVelx.data[...] = velocityField[0].evaluate(surface.swarm)
+        except:
+            pass
         fnametemp = "velxSurface" + "_" + str(step) + '.h5'
         fullpath = os.path.join(outputPath + "files/" + fnametemp)
         surfaceVelx.save(fullpath)
@@ -2844,14 +2847,20 @@ while realtime < 1.:
         #Now the vertical stress at the surface, 
         ix1, weights1 = nn_evaluation(gSwarm, surface.swarm.particleCoordinates.data, n=10, weighted=True)
         
-        surfaceStrainY.data[:] = sym_strainRate[1].evaluate(surface.swarm)#* \
+        try:
+            surfaceStrainY.data[:] = sym_strainRate[1].evaluate(surface.swarm)#* \
+        except:
+            pass
         fnametemp = "surfaceStrainY" + "_" + str(step) + '.h5'
         fullpath = os.path.join(outputPath + "files/" + fnametemp)
         surfaceStrainY.save(fullpath)
         
         fnametemp = "surfaceVisc" + "_" + str(step) + '.h5'
         fullpath = os.path.join(outputPath + "files/" + fnametemp)
-        surfaceVisc.data[:,0] *=    np.average(viscosityMapFn.evaluate(gSwarm)[ix1][:,:,0], weights=weights1, axis=1)
+        try:
+            surfaceVisc.data[:,0] =    np.average(viscosityMapFn.evaluate(gSwarm)[ix1][:,:,0], weights=weights1, axis=1)
+        except:
+            pass
         surfaceVisc.save(fullpath)
 
         
@@ -2859,7 +2868,10 @@ while realtime < 1.:
         fullpath = os.path.join(outputPath + "files/" + fnametemp)
         temperatureField.save(fullpath)
         
-        surfacePressure.data[:] = pressureField.evaluate(surface.swarm)
+        try:
+            surfacePressure.data[:] = pressureField.evaluate(surface.swarm)
+        except:
+            pass
         fnametemp = "surfacePressure" + "_" + str(step) + ".h5"
         fullpath = os.path.join(outputPath + "files/" + fnametemp)
         surfacePressure.save(fullpath)
