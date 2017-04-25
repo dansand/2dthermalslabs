@@ -1583,7 +1583,10 @@ surfaceVelx = surface.swarm.add_variable( dataType="float", count=1 )
 surfaceVelx.data[...] = velocityField[0].evaluate(surface.swarm)
 
 
-surfaceStressY = surface.swarm.add_variable( dataType="float", count=1 )
+surfaceStrainY = surface.swarm.add_variable( dataType="float", count=1 )
+surfaceVisc = surface.swarm.add_variable( dataType="float", count=1 )
+surfacePressure = surface.swarm.add_variable( dataType="float", count=1 )
+
 #this one needs interpolation ... do in main loop
 
 
@@ -2839,17 +2842,27 @@ while realtime < 1.:
         surfaceVelx.save(fullpath)
         
         #Now the vertical stress at the surface, 
-        ix1, weights1 = nn_evaluation(gSwarm, surface.swarm.particleCoordinates.data, n=5, weighted=True)
+        ix1, weights1 = nn_evaluation(gSwarm, surface.swarm.particleCoordinates.data, n=10, weighted=True)
         
-        surfaceStressY.data[:] = 2.*sym_strainRate[1].evaluate(surface.swarm)#* \
-        surfaceStressY.data[:,0] *=    np.average(viscosityMapFn.evaluate(gSwarm)[ix1][:,:,0], weights=weights1, axis=1)
-        fnametemp = "surfaceStressY" + "_" + str(step) + '.h5'
+        surfaceStrainY.data[:] = sym_strainRate[1].evaluate(surface.swarm)#* \
+        fnametemp = "surfaceStrainY" + "_" + str(step) + '.h5'
         fullpath = os.path.join(outputPath + "files/" + fnametemp)
-        surfaceStressY.save(fullpath)
+        surfaceStrainY.save(fullpath)
+        
+        fnametemp = "surfaceVisc" + "_" + str(step) + '.h5'
+        fullpath = os.path.join(outputPath + "files/" + fnametemp)
+        surfaceVisc.data[:,0] *=    np.average(viscosityMapFn.evaluate(gSwarm)[ix1][:,:,0], weights=weights1, axis=1)
+        surfaceVisc.save(fullpath)
+
         
         fnametemp = "temperatureField" + "_" + str(step) + ".h5"
         fullpath = os.path.join(outputPath + "files/" + fnametemp)
         temperatureField.save(fullpath)
+        
+        surfacePressure.data[:] = pressureField.evaluate(surface.swarm)
+        fnametemp = "surfacePressure" + "_" + str(step) + ".h5"
+        fullpath = os.path.join(outputPath + "files/" + fnametemp)
+        surfacePressure.save(fullpath)
         
         
 
