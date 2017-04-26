@@ -1767,7 +1767,7 @@ if md.viscCombine == 'min':
                                                      (True, finalviscosityFn)])
 
 
-# In[75]:
+# In[110]:
 
 #viscMinConditions = fn.misc.min(diffusion, dislocation, peierls, yielding)
 
@@ -1778,19 +1778,55 @@ for mech in [safe_visc(diffusion), safe_visc(dislocation), safe_visc(peierls), s
     
 dm = 1e-5
    
-    
-viscMinConditions = [ ( operator.and_((viscMin > (ndp.eta_max - dm) ),
-                           (viscMin < (ndp.eta_max + dm) ))  , 0),  #visc = ndp.eta_max
-                      ( operator.and_((viscMin > (diffusion - dm) ),
-                           (viscMin < (diffusion + dm) ))  , 1),  #visc = diffusion
-                      ( operator.and_((viscMin > (dislocation - dm) ),
-                           (viscMin < (dislocation + dm) ))  , 2),#visc = dislocation
-                      ( operator.and_((viscMin > (peierls - dm) ),
-                           (viscMin < (peierls + dm) ))  , 3),    #visc = peierls
-                      ( operator.and_((viscMin > (yielding - dm) ),
-                           (viscMin < (yielding + dm) ))  , 4),   #visc = yielding
-                      ( True                                           , 5) ] #visc = eta_min (should be)
 
+#Working but static
+#viscMinConditions = [ ( operator.and_((viscMin > (ndp.eta_max - dm) ),
+#                          (viscMin < (ndp.eta_max + dm) ))  , 0),  #visc = ndp.eta_max
+#                      ( operator.and_((viscMin > (diffusion - dm) ),
+#                           (viscMin < (diffusion + dm) ))  , 1),  #visc = diffusion
+#                      ( operator.and_((viscMin > (dislocation - dm) ),
+#                           (viscMin < (dislocation + dm) ))  , 2),#visc = dislocation
+#                      ( operator.and_((viscMin > (peierls - dm) ),
+#                           (viscMin < (peierls + dm) ))  , 3),    #visc = peierls
+#                      ( operator.and_((viscMin > (yielding - dm) ),
+#                           (viscMin < (yielding + dm) ))  , 4),   #visc = yielding
+#                      ( True                                           , 5) ] #visc = eta_min (should be)
+
+
+
+
+
+mechCount = 0
+viscMinConditions = []
+viscMinConditions.append(( operator.and_((viscMin > (ndp.eta_max - dm) ),
+                           (viscMin < (ndp.eta_max + dm) ))  , mechCount))
+
+mechCount +=1
+
+if 'diffusion' in md.viscMechs:
+    viscMinConditions.append(( operator.and_((viscMin > (diffusion - dm) ),
+                           (viscMin < (diffusion + dm) ))  , mechCount))
+    mechCount +=1
+    
+
+if 'dislocation' in md.viscMechs:
+    viscMinConditions.append(( operator.and_((viscMin > (dislocation - dm) ),
+                           (viscMin < (dislocation + dm) ))  , mechCount))
+    mechCount +=1
+    
+if 'peierls' in md.viscMechs:
+    viscMinConditions.append(( operator.and_((viscMin > (peierls - dm) ),
+                           (viscMin < (peierls + dm) ))  , mechCount))
+    mechCount +=1
+   
+
+if 'yielding' in md.viscMechs:
+    viscMinConditions.append(( operator.and_((viscMin > (yielding - dm) ),
+                           (viscMin < (yielding + dm) ))  , mechCount))
+    mechCount +=1
+ 
+
+viscMinConditions.append( (True                                           , mechCount))
 
 
 
@@ -1799,11 +1835,21 @@ fnViscMin = fn.branching.conditional( viscMinConditions )
 
 
 
+# In[111]:
+
+#viscMinConditions
+
+
+# In[76]:
+
+
+
+
 # Stokes system setup
 # -----
 # 
 
-# In[76]:
+# In[77]:
 
 densityMapFn = fn.branching.map( fn_key = materialVariable,
                          mapping = {airIndex:ndp.StRA,
@@ -1812,7 +1858,7 @@ densityMapFn = fn.branching.map( fn_key = materialVariable,
                                     harzIndex:harzbuoyancyFn} )
 
 
-# In[77]:
+# In[78]:
 
 
 # Define our vertical unit vector using a python tuple (this will be automatically converted to a function).
