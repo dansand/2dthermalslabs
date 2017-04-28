@@ -385,7 +385,7 @@ md = edict({'refineMesh':False,
             'compBuoyancy':False, #use compositional buoyancy, as well as thermal
             'phaseBuoyancy':False,
             'periodicBcs':False,
-            'RES':32,
+            'RES':64,
             'PIC_integration':True,
             'ppc':25,
             'elementType':"Q1/dQ0",
@@ -1767,14 +1767,24 @@ if md.viscCombine == 'min':
                                                      (True, finalviscosityFn)])
 
 
-# In[110]:
+# In[75]:
 
 #viscMinConditions = fn.misc.min(diffusion, dislocation, peierls, yielding)
+#for mech in [safe_visc(diffusion), safe_visc(dislocation), safe_visc(peierls), safe_visc(yielding)]:
+#    viscMin = fn.misc.min(mech, viscMin) 
 
 viscMin = fn.misc.constant(ndp.eta_max)
 #Generate the minimum viscosity function 
-for mech in [safe_visc(diffusion), safe_visc(dislocation), safe_visc(peierls), safe_visc(yielding)]:
-    viscMin = fn.misc.min(mech, viscMin) 
+if 'diffusion' in md.viscMechs:
+    viscMin = fn.misc.min(safe_visc(diffusion), viscMin)
+if 'dislocation' in md.viscMechs:
+    viscMin = fn.misc.min(safe_visc(dislocation), viscMin)
+if 'peierls' in md.viscMechs:
+    viscMin = fn.misc.min(safe_visc(peierls), viscMin)
+if 'yielding' in md.viscMechs:
+    viscMin = fn.misc.min(safe_visc(yielding), viscMin)
+
+
     
 dm = 1e-5
    
@@ -1835,21 +1845,11 @@ fnViscMin = fn.branching.conditional( viscMinConditions )
 
 
 
-# In[111]:
-
-#viscMinConditions
-
-
-# In[76]:
-
-
-
-
 # Stokes system setup
 # -----
 # 
 
-# In[77]:
+# In[76]:
 
 densityMapFn = fn.branching.map( fn_key = materialVariable,
                          mapping = {airIndex:ndp.StRA,
@@ -1858,7 +1858,7 @@ densityMapFn = fn.branching.map( fn_key = materialVariable,
                                     harzIndex:harzbuoyancyFn} )
 
 
-# In[78]:
+# In[77]:
 
 
 # Define our vertical unit vector using a python tuple (this will be automatically converted to a function).
@@ -2584,7 +2584,7 @@ elif figures == 'store':
 
 
     figMech= glucifer.Figure(store3, figsize=(300*np.round(md.aspectRatio,2),300))
-    figMech.append( glucifer.objects.Points(gSwarm,fnViscMin, valueRange =[0.,5.], fn_mask=vizVariable))
+    figMech.append( glucifer.objects.Points(gSwarm,fnViscMin, valueRange =[0.,mechCount], fn_mask=vizVariable))
     
     figMat= glucifer.Figure(store4, figsize=(300*np.round(md.aspectRatio,2),300))
     figMat.append( glucifer.objects.Points(gSwarm,materialVariable, fn_mask=vizVariable))
@@ -2603,7 +2603,7 @@ elif figures == 'store':
 
 # In[ ]:
 
-
+ndp
 
 
 # In[ ]:
@@ -2656,7 +2656,7 @@ elif figures == 'store':
 
 # **Miscellania**
 
-# In[122]:
+# In[106]:
 
 ##############
 #Create a numpy array at the surface to get surface information on (using parallel-friendly evaluate_global)
@@ -2671,7 +2671,7 @@ dummy = tempMM.evaluate(mesh)
 
 
 
-# In[123]:
+# In[107]:
 
 #Not parallel friendly yet
 #tipXvels = np.sum(velocityField[0].evaluate(tipSwarm)) /\
@@ -2685,7 +2685,7 @@ dummy = tempMM.evaluate(mesh)
 #    tipSwarm.particleGlobalCount
 
 
-# In[124]:
+# In[108]:
 
 ##############
 #These functions handle checkpointing
@@ -2734,7 +2734,7 @@ def checkpoint3(step,  checkpointPath, interfaces,interfacenames ):
     
 
 
-# In[125]:
+# In[109]:
 
 def plate_infoFn(velocityField,xFn,  depthLimit, xsearchlim = 1.0, currentloc = 0.0, plateType='convergent'):
     """
@@ -2786,7 +2786,7 @@ def plate_infoFn(velocityField,xFn,  depthLimit, xsearchlim = 1.0, currentloc = 
         raise ValueError('plateType should be one of convergent/divergent')
 
 
-# In[126]:
+# In[110]:
 
 ##############
 #This will allow us to evaluate viscous shear heating, and add the result directly to the temperature field
@@ -2798,7 +2798,7 @@ viscDisProj = uw.utils.MeshVariable_Projection( viscDisFnmesh, viscDisMapFn)
 viscDisProj.solve()
 
 
-# In[127]:
+# In[111]:
 
 # initialise timer for computation
 start = time.clock()
@@ -3308,29 +3308,25 @@ test = (ndp.Di/ndp.RA)*dt*viscDisFnmesh
 #test.evaluate(mesh).max()
 
 
-# In[34]:
+# In[90]:
 
-step
-
-
-# In[41]:
+#figMech= glucifer.Figure(figsize=(300*np.round(md.aspectRatio,2),300))
+#figMech.append( glucifer.objects.Points(gSwarm,fnViscMin, valueRange =[0.,mechCount]))
 
 
+# In[91]:
+
+#figMech.show()
 
 
-# In[40]:
+# In[121]:
+
+#viscMinConditions
 
 
+# In[92]:
 
-
-# In[1]:
-
-
-
-
-# In[28]:
-
-#1. - 660/2900.
+#np.unique(fnViscMin.evaluate(gSwarm))
 
 
 # In[ ]:
