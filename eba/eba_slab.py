@@ -1788,7 +1788,7 @@ if md.viscCombine == 'min':
 #for mech in [safe_visc(diffusion), safe_visc(dislocation), safe_visc(peierls), safe_visc(yielding)]:
 #    viscMin = fn.misc.min(mech, viscMin) 
 
-viscMin = fn.misc.constant(ndp.eta_max)
+viscMin = fn.misc.constant(ndp.eta_max*slabViscReduceFn)
 #Generate the minimum viscosity function 
 if 'diffusion' in md.viscMechs:
     viscMin = fn.misc.min(safe_visc(diffusion), viscMin)
