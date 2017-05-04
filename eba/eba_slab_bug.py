@@ -1465,10 +1465,22 @@ if md.phaseBuoyancy:
 
 # ## Faults / interfaces
 
+# In[ ]:
+
+
+
+
 # In[63]:
 
 from unsupported_dan.interfaces.marker2D import markerLine2D
 from unsupported_dan.faults.faults2D import fault2D, fault_collection
+
+
+# In[ ]:
+
+##
+print("Test point1 ")
+uw.barrier()
 
 
 # In[65]:
@@ -1626,7 +1638,8 @@ edotn_SFn, edots_SFn = fault_coll.global_fault_strainrate_fns(velocityField, dir
 # In[ ]:
 
 ##
-#print("Test point")
+print("Test point 2")
+uw.barrier()
 
 
 # Rheology
@@ -1676,6 +1689,11 @@ else:
     
 
 
+# In[ ]:
+
+
+
+
 # In[114]:
 
 ##############
@@ -1690,6 +1708,11 @@ strainRate_2ndInvariant = fn.tensor.second_invariant(
 
 def safe_visc(func, viscmin=ndp.eta_min, viscmax=ndp.eta_max*slabViscReduceFn):
     return fn.misc.max(viscmin, fn.misc.min(viscmax, func))
+
+
+# In[ ]:
+
+
 
 
 # In[ ]:
@@ -1796,6 +1819,11 @@ if md.viscCombine == 'min':
                                                      (True, finalviscosityFn)])
 
 
+# In[ ]:
+
+
+
+
 # In[75]:
 
 #viscMinConditions = fn.misc.min(diffusion, dislocation, peierls, yielding)
@@ -1872,6 +1900,13 @@ viscMinConditions.append( (True                                           , mech
 # use the branching conditional function to set each particle's index
 fnViscMin = fn.branching.conditional( viscMinConditions )
 
+
+
+# In[ ]:
+
+##
+print("Test point 3")
+uw.barrier()
 
 
 # Stokes system setup
