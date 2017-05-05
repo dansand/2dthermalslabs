@@ -1837,8 +1837,8 @@ dm = 1e-5
 
 mechCount = 0
 viscMinConditions = []
-viscMinConditions.append(( operator.and_((viscMin > (ndp.eta_max - dm) ),
-                           (viscMin < (ndp.eta_max + dm) ))  , mechCount))
+viscMinConditions.append(( operator.and_((viscMin > (ndp.eta_max*slabViscReduceFn - dm) ),
+                           (viscMin < (ndp.eta_max*slabViscReduceFn + dm) ))  , mechCount))
 
 mechCount +=1
 
@@ -2108,9 +2108,12 @@ def nn_evaluation(fromSwarm, _data, n=1, weighted=False):
 _ix, _weights = nn_evaluation(gSwarm, mesh.data, n=5, weighted=True)
 
 # create a variable to hold sigma_xx
-stressField    = uw.mesh.MeshVariable( mesh=mesh,         nodeDofCount=1 )
-stressVariableFn =  2.*sym_strainRate[0]*viscosityMapFn
-#stressField.data[:,0] = np.average(stressVariableFn.evaluate(gSwarm)[_ix][:,:,0],weights=_weights, axis=1)
+stressFieldX    = uw.mesh.MeshVariable( mesh=mesh,         nodeDofCount=1 )
+stressXVariableFn =  2.*sym_strainRate[0]*viscosityMapFn
+#stressFieldX.data[:,0] = np.average(stressXVariableFn.evaluate(gSwarm)[_ix][:,:,0],weights=_weights, axis=1)
+
+stressFieldMag    = uw.mesh.MeshVariable( mesh=mesh,         nodeDofCount=1 )
+stressMagVariableFn =  2.*strainRate_2ndInvariant*viscosityMapFn
 
 
 # In[ ]:
@@ -2621,7 +2624,7 @@ elif figures == 'store':
     
     
     #figStress= glucifer.Figure(store5, figsize=(300*np.round(md.aspectRatio,2),300))
-    #figStress.append( glucifer.objects.Points(gSwarm,stressVariableFn, fn_mask=vizVariable))
+    #figStress.append( glucifer.objects.Points(gSwarm,stressXVariableFn, fn_mask=vizVariable))
     #figStress.append( glucifer.objects.VectorArrows(mesh, eig1, arrowHead=0.0, scaling=0.05, glyphs=3, resolutionI=int(16*md.aspectRatio), resolutionJ=16*2))
     #figStress.append( glucifer.objects.VectorArrows(mesh, eig2, arrowHead=0.0, scaling=0.05, glyphs=3, resolutionI=int(16*md.aspectRatio), resolutionJ=16*2))
 
@@ -3143,7 +3146,8 @@ while realtime < 1.:
         
         # rebuild the sigma_xx variable
         _ix, _weights = nn_evaluation(gSwarm, mesh.data, n=5, weighted=True)
-        stressField.data[:,0] = np.average(stressVariableFn.evaluate(gSwarm)[_ix][:,:,0],weights=_weights, axis=1)
+        stressFieldX.data[:,0] = np.average(stressXVariableFn.evaluate(gSwarm)[_ix][:,:,0],weights=_weights, axis=1)
+        stressFieldMag.data[:,0] = np.average(stressMagVariableFn.evaluate(gSwarm)[_ix][:,:,0],weights=_weights, axis=1)
 
         
         
@@ -3161,13 +3165,16 @@ while realtime < 1.:
         tH = temperatureField.save(fullpath + "temp_" + str(step) + ".h5")
         eH = eig1.save(fullpath + "eig_" + str(step) + ".h5")
         eH2 = eig2.save(fullpath + "eig2_" + str(step) + ".h5")
-        sigXX = stressField.save(fullpath + "sigXX_" + str(step) + ".h5")
+        sigXX = stressFieldX.save(fullpath + "sigXX_" + str(step) + ".h5")
+        sigII = stressFieldMag.save(fullpath + "sigII_" + str(step) + ".h5")
+
         velocityField.xdmf(fullpath + "velocity_" + str(step), vH, 'velocity', mh, 'mesh', modeltime=realtime)
         temperatureField.xdmf(fullpath + "temp_" + str(step), tH, 'temperature', mh, 'mesh', modeltime=realtime)
         eig1.xdmf(fullpath + "eig_" + str(step), eH, 'eig', mh, 'mesh', modeltime=realtime)
         eig2.xdmf(fullpath + "eig2_" + str(step), eH2, 'eig2', mh, 'mesh', modeltime=realtime)
-        stressField.xdmf(fullpath + "sigXX_" + str(step), sigXX, 'sigXX', mh, 'mesh', modeltime=realtime)
-        
+        stressFieldX.xdmf(fullpath + "sigXX_" + str(step), sigXX, 'sigXX', mh, 'mesh', modeltime=realtime)
+        stressFieldMag.xdmf(fullpath + "sigII_" + str(step), sigII, 'sigII', mh, 'mesh', modeltime=realtime)
+
     ################
     #Particle update
     ###############    
@@ -3328,7 +3335,7 @@ test = (ndp.Di/ndp.RA)*dt*viscDisFnmesh
 #fig= glucifer.Figure()
 #fig.append( glucifer.objects.Points(gSwarm,lowerPlateRestFn))
 #fig.append( glucifer.objects.Points(gSwarm, viscosityMapFn, logScale=True, valueRange =[1e-3,1e5]))
-#fig.append( glucifer.objects.Surface(mesh, stressField))#
+#fig.append( glucifer.objects.Surface(mesh, stressFieldX))#
 
 #fig.show()
 
