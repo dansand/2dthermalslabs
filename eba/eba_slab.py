@@ -490,7 +490,7 @@ if not checkpointLoad:
             'E': 1./(dp.R*dp.deltaTa), #using deltaTa, the guesstimated adiabatic temp differnnce to scale these paramters
             'Ads':1./((dp.eta0**(-1.*dp.n))*(dp.k**(1. - dp.n))*(dp.LS**(-2.+ (2.*dp.n)))),
             'Adf':dp.eta0,
-            'Apr':2.6845783276046923e+40 #same form as Ads, but ndp.np =20. (hardcoded because numbers are too big)
+            'Apr':2.6845783276046923e+40 #same form as Ads, but ndp.np =20, dp.eta0=1e20 (hardcoded because numbers are too big)
                 
 
            })
@@ -1701,7 +1701,7 @@ def safe_visc(func, viscmin=ndp.eta_min, viscmax=ndp.eta_max*slabViscReduceFn):
     return fn.misc.max(viscmin, fn.misc.min(viscmax, func))
 
 
-# In[83]:
+# In[87]:
 
 ############
 #Rheology: create UW2 functions for all viscous mechanisms
@@ -1752,7 +1752,7 @@ crustyielding = crustyielding0*(1. - ctanhFn) + ctanhFn*yielding
 viscmaxCrustFn = ndp.eta_max_crust*(1. - ctanhFn) + ctanhFn*ndp.eta_max
 
 
-# In[75]:
+# In[88]:
 
 #crustyielding.evaluate(mesh).min(), crustyielding.evaluate(mesh).mean(),crustyielding.evaluate(mesh).max()
 #finalcrustviscosityFn.evaluate(mesh).min(),finalcrustviscosityFn.evaluate(mesh).max(), finalcrustviscosityFn.evaluate(mesh).mean()
@@ -1764,7 +1764,7 @@ viscmaxCrustFn = ndp.eta_max_crust*(1. - ctanhFn) + ctanhFn*ndp.eta_max
 #finalviscosityFn.evaluate(mesh).min(),finalviscosityFn.evaluate(mesh).max(), finalviscosityFn.evaluate(mesh).mean()
 
 
-# In[76]:
+# In[89]:
 
 ############
 #Rheology: combine viscous mechanisms in various ways 
@@ -1815,7 +1815,7 @@ if md.viscCombine == 'min':
     finalcrustviscosityFn  = crustviscosityFn
 
 
-# In[77]:
+# In[90]:
 
 #viscMinConditions = fn.misc.min(diffusion, dislocation, peierls, yielding)
 #for mech in [safe_visc(diffusion), safe_visc(dislocation), safe_visc(peierls), safe_visc(yielding)]:
@@ -2126,6 +2126,9 @@ def nn_evaluation(fromSwarm, _data, n=1, weighted=False):
 
 _ix, _weights = nn_evaluation(gSwarm, mesh.data, n=5, weighted=True)
 
+
+#Create a few more mesh variables. 
+
 # create a variable to hold sigma_xx
 stressFieldX    = uw.mesh.MeshVariable( mesh=mesh,         nodeDofCount=1 )
 stressXVariableFn =  2.*sym_strainRate[0]*viscosityMapFn
@@ -2133,6 +2136,9 @@ stressXVariableFn =  2.*sym_strainRate[0]*viscosityMapFn
 
 stressFieldMag    = uw.mesh.MeshVariable( mesh=mesh,         nodeDofCount=1 )
 stressMagVariableFn =  2.*strainRate_2ndInvariant*viscosityMapFn
+
+
+ageField    = uw.mesh.MeshVariable( mesh=mesh,         nodeDofCount=1 )
 
 
 # In[ ]:
@@ -3183,6 +3189,20 @@ while realtime < 1.:
         eig2.xdmf(fullpath + "eig2_" + str(step), eH2, 'eig2', mh, 'mesh', modeltime=realtime)
         stressFieldX.xdmf(fullpath + "sigXX_" + str(step), sigXX, 'sigXX', mh, 'mesh', modeltime=realtime)
         stressFieldMag.xdmf(fullpath + "sigII_" + str(step), sigII, 'sigII', mh, 'mesh', modeltime=realtime)
+        
+        
+        #Increment age stuff map to mesh and save. 
+        ageConditions = [ (depthFn < ndp.AGETRACKDEPTH, ageVariable + ageDT ),  #add ageDThere
+                  (True, 0.) ]
+        ageVariable.data[:] = fn.branching.conditional( ageConditions ).evaluate(gSwarm)        
+        ageDT = 0. #reset the age incrementer
+        dt = 0     #this is pretty dodgy,. I'm setting this so that if we run an XDMF step, we update the age variable here,
+        #and not in the particle update step that follows. This means that no functions can rely on dt after this point. 
+        
+        ageField.data[:,0] = np.average(ageVariable.evaluate(gSwarm)[_ix][:,:,0],weights=_weights, axis=1)
+        age_ = ageField.save(fullpath + "age_" + str(step) + ".h5")
+        ageField.xdmf(fullpath + "age_" + str(step), age_, 'age_', mh, 'mesh', modeltime=realtime)
+
 
     ################
     #Particle update
