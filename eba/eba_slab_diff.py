@@ -372,6 +372,17 @@ dp.deltaTa = (3110.65) - dp.TS  #Adiabatic Temp at base of mantle, minus Ts,
                                 #this is tied to specific choices of expansivity, Specific heat. 
 
 
+# In[ ]:
+
+####TEST BLOCK, smaller activation energy
+
+fracE = 0.6 #We want to multiply the activation Energy by this value
+delE= dp.Edf - dp.Edf*fracE
+dp.Edf *= fracE
+dp.Vdf *=0.8
+dp.Adf /= np.exp(delE /(dp.R*dp.TP))
+
+
 # In[19]:
 
 #dp.deltaTa
